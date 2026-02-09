@@ -1,115 +1,151 @@
 
 
-# خطة الانتقال من Cloudinary إلى Bunny.net
+# تحسين صفحة المطعم باستخدام React Query + select
 
-## ملخص التغييرات
+## لماذا `select` بدلا من `useMemo`؟
 
-سنقوم باستبدال نظام رفع وحذف وعرض الصور بالكامل من Cloudinary إلى Bunny.net Storage + CDN.
+- **`select` في React Query** تعمل كـ selector محسّن تلقائيا: لا تُعاد إلا عند تغير الـ `data` من السيرفر
+- **`useMemo`** يحتاج تحديد الـ dependencies يدويا وقد يُعاد حسابه بدون داعي عند أي re-render
+- `select` تفصل منطق التحويل عن الـ component مما يجعل الكود أنظف
+- `select` لا تسبب re-render إلا إذا تغيرت النتيجة فعلا (structural sharing)
 
-## كيف يعمل Bunny.net
+## الهيكل المقترح
 
-- **الرفع**: نرسل الملف عبر HTTP PUT إلى `https://storage.bunnycdn.com/{storageZone}/{path}/{filename}` مع Access Key في الـ header
-- **العرض**: الصور تُعرض مباشرة عبر Pull Zone: `https://menuss.b-cdn.net/{path}/{filename}`
-- **الحذف**: نرسل HTTP DELETE إلى نفس عنوان الـ Storage مع Access Key
+### 1. إنشاء custom hooks للبيانات
 
-## الفرق عن Cloudinary
+ملف جديد: `src/hooks/useRestaurantData.ts`
 
-| الميزة | Cloudinary | Bunny.net |
-|--------|-----------|-----------|
-| الرفع | من المتصفح مباشرة (Upload Preset) | عبر Edge Function (لحماية Access Key) |
-| العرض | URL مع transformations | URL مباشر من CDN |
-| الحذف | عبر Edge Function | عبر Edge Function |
-| تحسين الصور | Cloudinary transformations | Bunny Optimizer (مدمج في CDN) |
+يحتوي على:
 
-## خطوات التنفيذ
+- **`useRestaurant(username)`** - يجلب بيانات المطعم
+- **`useCategories(restaurantId)`** - يجلب الفئات (مفعّل فقط عند توفر restaurantId)
+- **`useMenuItems(restaurantId)`** - يجلب عناصر القائمة
+- **`useSizes()`** - يجلب الاحجام
+- **`useExtras(restaurantId)`** - يجلب الاضافات
+- **`useBranches(restaurantId)`** - يجلب الفروع
+- **`useDeliveryAreas(branchIds)`** - يجلب مناطق التوصيل
 
-### 1. حفظ Access Key كـ Secret
-- سنضيف secret باسم `BUNNY_STORAGE_ACCESS_KEY` بقيمة `60d702bb-5cb5-4301-b021df7eaa73-4f33-43b5`
-- باقي المعلومات (Storage Name, Pull Zone URL) ستكون ثوابت في الكود لأنها ليست حساسة
+كل hook يستخدم `useQuery` مع `enabled` للتحكم بالترتيب.
 
-### 2. إنشاء Edge Function جديدة `bunny-upload`
-- تستقبل الصورة (بعد الضغط في المتصفح) + المسار المطلوب
-- ترفعها إلى Bunny Storage عبر HTTP PUT
-- تُرجع رابط الـ CDN
+### 2. استخدام `select` للفلترة
 
-### 3. تعديل Edge Function الحذف
-- إعادة تسمية/استبدال `cloudinary-delete` بـ `bunny-delete`
-- تستقبل مسار الملف وتحذفه من Bunny Storage عبر HTTP DELETE
+مثال عملي لفلترة عناصر القائمة حسب الفئة:
 
-### 4. إعادة كتابة `src/lib/cloudinary.ts` إلى `src/lib/bunny.ts`
-- استبدال `uploadToCloudinary` بـ `uploadToBunny` - ترسل الصورة المضغوطة إلى Edge Function
-- استبدال `deleteFromCloudinary` بـ `deleteFromBunny`
-- تبسيط دوال عرض الصور (`getOptimizedUrl`, `getCoverImageUrl`, `getLogoUrl`, `getMenuItemUrl`) لتُرجع روابط CDN مباشرة بدلا من Cloudinary transformations
-- الإبقاء على نفس نظام الضغط (`browser-image-compression`) في المتصفح قبل الرفع
-- الإبقاء على نفس دوال إنشاء المسارات (`getCoverPublicId`, `getLogoPublicId`, `getMenuItemPublicId`)
+```text
+const { data: filteredItems } = useQuery({
+  queryKey: ['menu_items', restaurantId],
+  queryFn: () => supabase.from('menu_items')...
+  select: (data) => 
+    activeCategory === 'all' 
+      ? data 
+      : data.filter(item => item.category_id === activeCategory),
+});
+```
 
-### 5. تحديث `ImageUploader.tsx`
-- تغيير الاستيرادات من `cloudinary` إلى `bunny`
-- نفس الواجهة والسلوك، فقط تغيير أسماء الدوال المستدعاة
+ملاحظة مهمة: عند استخدام `select` مع متغير خارجي مثل `activeCategory`، الـ select تُعاد عند كل render لأن الـ function reference يتغير. للحل الامثل نستخدم useCallback:
 
-### 6. تحديث باقي الملفات
-- `Dashboard.tsx` - تغيير الاستيرادات
-- `MenuManagement.tsx` - تغيير الاستيرادات
-- `Restaurant.tsx` - تغيير الاستيرادات
-- `ProductDetailsDialog.tsx` - تغيير الاستيرادات
+```text
+const selectFilteredItems = useCallback(
+  (data: MenuItem[]) => 
+    activeCategory === 'all' ? data : data.filter(item => item.category_id === activeCategory),
+  [activeCategory]
+);
+```
 
-### 7. حذف الملفات القديمة
-- حذف `src/lib/cloudinary.ts`
-- حذف `supabase/functions/cloudinary-delete/index.ts`
+او ببساطة نستخدم `select` بدون `useCallback` لان التكلفة بسيطة جدا مع structural sharing.
 
----
+### 3. استخدام `select` لجلب الاحجام لكل صنف
+
+```text
+const getSizesForItem = (itemId: string) => 
+  sizes?.filter(size => size.menu_item_id === itemId) || [];
+```
+
+هذه الدالة بسيطة ولا تحتاج select، لكن يمكن تحويلها لـ hook منفصل إذا اردنا.
+
+### 4. الاستعلامات المتوازية تلقائيا
+
+مع React Query، الاستعلامات التي لها `enabled: true` تعمل بالتوازي تلقائيا بدون `Promise.all`. فقط الاستعلامات التي تعتمد على نتيجة استعلام سابق (مثل `restaurantId`) تنتظر.
+
+```text
+// هذا يعمل تلقائيا بالتوازي بعد جلب restaurant
+useCategories(restaurant?.id)    // متوازي
+useMenuItems(restaurant?.id)     // متوازي  
+useSizes()                       // متوازي (لا يعتمد على شيء)
+useExtras(restaurant?.id)        // متوازي
+useBranches(restaurant?.id)      // متوازي
+// هذا ينتظر الفروع
+useDeliveryAreas(branchIds)      // ينتظر branches
+```
+
+## الملفات المتأثرة
+
+| الملف | التغيير |
+|-------|---------|
+| `src/hooks/useRestaurantData.ts` | ملف جديد - جميع الـ hooks |
+| `src/pages/Restaurant.tsx` | استبدال useState/useEffect بالـ hooks الجديدة |
+| `src/components/BranchesDialog.tsx` | تحويل لاستخدام `useBranches` hook بدلا من fetch مستقل |
 
 ## التفاصيل التقنية
 
-### Edge Function: `bunny-upload`
+### هيكل `useRestaurantData.ts`
 
 ```text
-POST /bunny-upload
-Body: FormData { file: Blob, path: string }
+// useRestaurant - الاستعلام الاساسي
+useQuery({
+  queryKey: ['restaurant', username],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from('restaurants').select('*').eq('username', username).single();
+    if (error) throw error;
+    return data;
+  },
+  enabled: !!username,
+});
 
-1. يقرأ BUNNY_STORAGE_ACCESS_KEY من environment
-2. يرسل PUT إلى https://storage.bunnycdn.com/menuss/{path}
-   Header: AccessKey: {key}
-   Body: binary file data
-3. يُرجع { url: "https://menuss.b-cdn.net/{path}" }
+// useCategories - يعتمد على restaurantId
+useQuery({
+  queryKey: ['categories', restaurantId],
+  queryFn: ...,
+  enabled: !!restaurantId,
+});
+
+// useMenuItems - مع select للفلترة
+useQuery({
+  queryKey: ['menu_items', restaurantId],
+  queryFn: ...,
+  enabled: !!restaurantId,
+  select: (data) => activeCategory === 'all' ? data : data.filter(...),
+});
 ```
 
-### Edge Function: `bunny-delete`
+### تبسيط Restaurant.tsx
+
+الـ component سيصبح اخف بكثير:
+- حذف جميع useState الخاصة بالبيانات (restaurant, categories, menuItems, sizes, extras, branches, deliveryAreas)
+- حذف useEffect و fetchRestaurantData بالكامل
+- حذف loading state (React Query يوفر isLoading)
+- الابقاء على useState الخاصة بالـ UI فقط (cart, activeCategory, viewType, الخ)
+
+### معالجة حالة المطعم غير موجود
 
 ```text
-POST /bunny-delete
-Body: { path: string }
+const { data: restaurant, isLoading, isError } = useRestaurant(username);
 
-1. يقرأ BUNNY_STORAGE_ACCESS_KEY من environment
-2. يرسل DELETE إلى https://storage.bunnycdn.com/menuss/{path}
-   Header: AccessKey: {key}
-3. يُرجع { success: true }
+if (isLoading) return <LoadingSpinner />;
+if (isError || !restaurant) return <NotFoundView />;
 ```
 
-### بنية المسارات في Bunny Storage
+### ملاحظة عن `select` vs `useMemo`
+
+في حالة `filteredMenuItems` تحديدا، `select` هي الخيار الانسب لانها:
+1. لا تسبب re-render اضافي بفضل structural sharing
+2. تعمل على مستوى الـ cache - اذا كانت النتيجة نفسها لا يحصل re-render
+3. الكود اوضح: التحويل مرتبط بالـ query مباشرة
+
+لكن بما ان `activeCategory` متغير UI وليس من السيرفر، سنمرره كـ parameter للـ hook:
 
 ```text
-menuss/
-  restaurants/
-    {username}/
-      cover_{timestamp}.webp
-      logo_{timestamp}.webp
-      menu-items/
-        {itemId}_{timestamp}.webp
+const { data: filteredItems } = useFilteredMenuItems(restaurantId, activeCategory);
 ```
-
-### دوال عرض الصور (مبسطة)
-
-بدلا من Cloudinary transformations، سنستخدم روابط CDN المباشرة. Bunny CDN يدعم تحسين الصور تلقائيا إذا كان Bunny Optimizer مفعل على الـ Pull Zone.
-
-```text
-getOptimizedUrl(url) -> يُرجع الرابط كما هو (CDN يتكفل بالتحسين)
-getCoverImageUrl(url) -> يُرجع الرابط مباشرة
-getLogoUrl(url) -> يُرجع الرابط مباشرة
-getMenuItemUrl(url) -> يُرجع الرابط مباشرة
-```
-
-## ملاحظة مهمة
-
-الصور الموجودة حاليا على Cloudinary لن تعمل بعد التغيير. إذا كان لديك صور مرفوعة بالفعل، ستحتاج إلى إعادة رفعها عبر النظام الجديد.
 
