@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import ImageUploader from '@/components/ImageUploader';
-import { getCoverPublicId, getLogoPublicId } from '@/lib/cloudinary';
+import { getCoverPublicId, getLogoPublicId } from '@/lib/bunny';
 import { 
   Settings,
   Menu,

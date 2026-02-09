@@ -23,7 +23,7 @@ import RestaurantFooter from '@/components/RestaurantFooter';
 import ProductDetailsDialog from '@/components/ProductDetailsDialog';
 import BranchesDialog from '@/components/BranchesDialog';
 import ShareDialog from '@/components/ShareDialog';
-import { getLogoUrl, getCoverImageUrl, getMenuItemUrl } from '@/lib/cloudinary';
+import { getLogoUrl, getCoverImageUrl, getMenuItemUrl } from '@/lib/bunny';
 interface Restaurant {
   id: string;
   name: string;

@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import ImageUploader from '@/components/ImageUploader';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import { SortableItem } from '@/components/SortableItem';
-import { getMenuItemPublicId, deleteFromCloudinary } from '@/lib/cloudinary';
+import { getMenuItemPublicId, deleteFromBunny } from '@/lib/bunny';
 import {
   DndContext,
   closestCenter,
@@ -402,9 +402,9 @@ export default function MenuManagement() {
       // Delete image from Cloudinary if exists
       if (item?.image_public_id) {
         try {
-          await deleteFromCloudinary(item.image_public_id);
+          await deleteFromBunny(item.image_public_id);
         } catch (error) {
-          console.error('Error deleting image from Cloudinary:', error);
+          console.error('Error deleting image from Bunny:', error);
           // Continue with item deletion even if image deletion fails
         }
       }
