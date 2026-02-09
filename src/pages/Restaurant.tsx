@@ -1,4 +1,4 @@
-import { useState, useEffect,useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,17 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Home, ShoppingCart, User, Plus, Minus, Phone, MapPin, Clock, Share2, Settings, LayoutGrid, List,
+import { Home, ShoppingCart, Plus, Minus, Settings, LayoutGrid, List,
   Facebook,
   Instagram,
-  ChevronRight,
-  ChevronLeft,
   Building2,
   Copy } from 'lucide-react';
 import RestaurantFooter from '@/components/RestaurantFooter';
@@ -24,19 +21,8 @@ import ProductDetailsDialog from '@/components/ProductDetailsDialog';
 import BranchesDialog from '@/components/BranchesDialog';
 import ShareDialog from '@/components/ShareDialog';
 import { getLogoUrl, getCoverImageUrl, getMenuItemUrl } from '@/lib/bunny';
-interface Restaurant {
-  id: string;
-  name: string;
-  description: string;
-  cover_image_url: string;
-  logo_url: string;
-  owner_id: string;
-  facebook_url: string;
-  address: string;
-  email: string;
-  instagram_url: string;
-  working_hours: string;
-}
+import { useRestaurant, useCategories, useMenuItems, useSizes, useExtras, useBranches, useDeliveryAreas } from '@/hooks/useRestaurantData';
+
 interface MenuItem {
   id: string;
   name: string;
@@ -53,11 +39,6 @@ interface Size {
   price: number;
   display_order: number;
 }
-interface Category {
-  id: string;
-  name: string;
-  display_order: number;
-}
 interface Extra {
   id: string;
   name: string;
@@ -68,47 +49,30 @@ interface CartItem extends MenuItem {
   selectedSize?: Size;
   selectedExtras?: Extra[];
 }
-interface Branch {
-  id: string;
-  name: string;
-  address: string | null;
-  phone: string | null;
-  whatsapp_phone: string | null;
-  delivery_phone: string | null;
-  working_hours: string | null;
-  is_active: boolean;
-  vodafone_cash?: string | null;
-  etisalat_cash?: string | null;
-  orange_cash?: string | null;
-}
-interface DeliveryArea {
-  id: string;
-  branch_id: string;
-  name: string;
-  delivery_price: number;
-  is_active: boolean;
-}
+
 export default function Restaurant() {
-  const {
-    username
-  } = useParams<{
-    username: string;
-  }>();
+  const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
-  const {
-    user
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [sizes, setSizes] = useState<Size[]>([]);
-  const [extras, setExtras] = useState<Extra[]>([]);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  // React Query hooks - parallel fetching
+  const { data: restaurant, isLoading: loadingRestaurant } = useRestaurant(username);
+  const restaurantId = restaurant?.id;
+  
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  
+  const { data: categories = [] } = useCategories(restaurantId);
+  const { data: filteredMenuItems = [] } = useMenuItems(restaurantId, activeCategory);
+  const { data: sizes = [] } = useSizes(restaurantId);
+  const { data: extras = [] } = useExtras(restaurantId);
+  const { data: branches = [] } = useBranches(restaurantId);
+  
+  const branchIds = useMemo(() => branches.map(b => b.id), [branches]);
+  const { data: deliveryAreas = [] } = useDeliveryAreas(branchIds.length > 0 ? branchIds : undefined);
+
+  // UI state only
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [showCartDialog, setShowCartDialog] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
@@ -116,8 +80,6 @@ export default function Restaurant() {
   const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
   const [selectedProduct, setSelectedProduct] = useState<MenuItem | null>(null);
   const [showProductDialog, setShowProductDialog] = useState(false);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string>('');
   const [selectedArea, setSelectedArea] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
@@ -127,7 +89,7 @@ export default function Restaurant() {
 
   const scrollCategories = (direction: "left" | "right") => {
     if (categoriesRef.current) {
-      const scrollAmount = 200; // مقدار الحركة بالبيكسل
+      const scrollAmount = 200;
       categoriesRef.current.scrollBy({
         left: direction === "left" ? -scrollAmount : scrollAmount,
         behavior: "smooth",
@@ -135,76 +97,6 @@ export default function Restaurant() {
     }
   };
 
-  useEffect(() => {
-    if (username) {
-      fetchRestaurantData();
-    }
-  }, [username]);
-  const fetchRestaurantData = async () => {
-    try {
-      // جلب بيانات المطعم
-      const {
-        data: restaurantData,
-        error: restaurantError
-      } = await supabase.from('restaurants').select('*').eq('username', username).single();
-      if (restaurantError || !restaurantData) {
-        navigate('/404');
-        return;
-      }
-      setRestaurant(restaurantData);
-
-      // جلب الفئات
-      const {
-        data: categoriesData
-      } = await supabase.from('categories').select('*').eq('restaurant_id', restaurantData.id).order('display_order');
-      setCategories(categoriesData || []);
-
-      // جلب عناصر القائمة
-      const {
-        data: menuData
-      } = await supabase.from('menu_items').select('*').eq('restaurant_id', restaurantData.id).eq('is_available', true).order('display_order');
-      setMenuItems(menuData || []);
-
-      // جلب الأحجام
-      const {
-        data: sizesData
-      } = await supabase.from('sizes').select('*').order('display_order');
-      setSizes(sizesData || []);
-
-      // جلب الإضافات
-      const {
-        data: extrasData
-      } = await supabase.from('extras').select('*').eq('restaurant_id', restaurantData.id).eq('is_available', true).order('display_order');
-      setExtras(extrasData || []);
-
-      // جلب الفروع
-      const {
-        data: branchesData
-      } = await supabase.from('branches').select('*').eq('restaurant_id', restaurantData.id).eq('is_active', true).order('display_order');
-      setBranches(branchesData || []);
-
-      // جلب مناطق التوصيل
-      const branchIds = (branchesData || []).map(b => b.id);
-      if (branchIds.length > 0) {
-        const { data: areasData } = await supabase
-          .from('delivery_areas')
-          .select('*')
-          .in('branch_id', branchIds)
-          .eq('is_active', true)
-          .order('display_order');
-        setDeliveryAreas(areasData || []);
-      }
-    } catch (error) {
-      console.error('Error fetching restaurant data:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تحميل بيانات المطعم',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
   const addToCart = (item: MenuItem, selectedSize?: Size, selectedExtras?: Extra[]) => {
     const extrasTotal = selectedExtras?.reduce((sum, e) => sum + e.price, 0) || 0;
     const basePrice = selectedSize ? selectedSize.price : item.price;
@@ -215,7 +107,6 @@ export default function Restaurant() {
       price: basePrice + extrasTotal
     };
     setCart(prev => {
-      // البحث عن نفس الصنف بنفس الحجم والإضافات
       const extrasKey = selectedExtras?.map(e => e.id).sort().join(',') || '';
       const existingItem = prev.find(ci => 
         ci.id === item.id && 
@@ -240,6 +131,7 @@ export default function Restaurant() {
       description: `تم إضافة ${item.name}${sizeText}${extrasText} إلى السلة`
     });
   };
+
   const removeFromCart = (itemId: string, sizeId?: string, extrasKey?: string) => {
     setCart(prev => {
       const existingItem = prev.find(cartItem => 
@@ -263,13 +155,16 @@ export default function Restaurant() {
       ));
     });
   };
+
   const openProductDialog = (item: MenuItem) => {
     setSelectedProduct(item);
     setShowProductDialog(true);
   };
+
   const getSizesForItem = (itemId: string) => {
     return sizes.filter(size => size.menu_item_id === itemId);
   };
+
   const getTotalPrice = () => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
@@ -287,10 +182,10 @@ export default function Restaurant() {
   const getFinalTotal = () => {
     return getTotalPrice() + getDeliveryPrice();
   };
+
   const sendOrderToWhatsApp = async () => {
     if (cart.length === 0 || !customerName || !customerAddress || !customerPhone || !restaurant) return;
     
-    // إذا كان هناك فروع ولم يتم اختيار فرع
     if (branches.length > 0 && !selectedBranch) {
       toast({
         title: 'اختر الفرع',
@@ -300,7 +195,6 @@ export default function Restaurant() {
       return;
     }
 
-    // إذا كان هناك مناطق للفرع المختار ولم يتم اختيار منطقة
     if (selectedBranch && getAreasForBranch(selectedBranch).length > 0 && !selectedArea) {
       toast({
         title: 'اختر المنطقة',
@@ -315,7 +209,6 @@ export default function Restaurant() {
       const deliveryPrice = getDeliveryPrice();
       const finalTotal = getFinalTotal();
       
-      // تحديد رقم الواتساب المناسب من الفرع المختار
       let whatsappNumber = '';
       let branchName = '';
       let areaName = '';
@@ -335,7 +228,6 @@ export default function Restaurant() {
         }
       }
 
-      // تحضير رسالة الواتساب
       const orderText = cart.map(item => {
         const sizeText = item.selectedSize ? ` (${item.selectedSize.name})` : '';
         const extrasText = item.selectedExtras && item.selectedExtras.length > 0 
@@ -348,7 +240,6 @@ export default function Restaurant() {
       const areaText = areaName ? `\n📍 المنطقة: ${areaName}` : '';
       const deliveryText = deliveryPrice > 0 ? `\n🚗 سعر التوصيل: ${deliveryPrice} جنيه` : '';
       
-      // تحديد نص طريقة الدفع
       let paymentMethodText = 'الدفع عند الاستلام';
       if (paymentMethod === 'vodafone') {
         paymentMethodText = 'فودافون كاش';
@@ -377,11 +268,9 @@ ${orderText}
 الرجاء تأكيد استلام الطلب.
 شكراً لكم.`;
 
-      // إرسال الرسالة عبر الواتساب
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
 
-      // إفراغ السلة وإغلاق النافذة
       setCart([]);
       setShowCartDialog(false);
       setCustomerName('');
@@ -403,8 +292,8 @@ ${orderText}
       });
     }
   };
-  const filteredMenuItems = activeCategory === 'all' ? menuItems : menuItems.filter(item => item.category_id === activeCategory);
-  if (loading) {
+
+  if (loadingRestaurant) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -412,6 +301,7 @@ ${orderText}
         </div>
       </div>;
   }
+
   if (!restaurant) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">
@@ -420,6 +310,7 @@ ${orderText}
         </div>
       </div>;
   }
+
   return <div className="min-h-screen bg-gray-50 pb-20" dir="rtl">
       {/* Header */}
       <div className="bg-white shadow-sm">
@@ -447,15 +338,12 @@ ${orderText}
 
       {/* Cover Image */}
       <div className="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden">
-        {/* Background blured image */}
         {restaurant.cover_image_url && (
           <div 
             className="absolute inset-0 bg-cover bg-center blur-xl scale-110" 
             style={{ backgroundImage: `url(${getCoverImageUrl(restaurant.cover_image_url)})` }}
           />
         )}
-        
-        {/* Main sharp image on top */}
         {restaurant.cover_image_url && (
           <div className="relative w-full h-full flex items-center justify-center z-10 p-2">
             <img 
@@ -472,16 +360,7 @@ ${orderText}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4 text-sm text-gray-600">
-          {/*   {restaurant.phone && (
-              <div className="flex items-center gap-1">
-                <Phone className="w-4 h-4" />
-                <span>{restaurant.phone}</span>
-              </div>
-            )} */}
-            
-            {/* Social Media & Contact Icons */}
             <div className="flex items-center gap-3">
-              {/* أيقونة الفروع والتواصل */}
               <BranchesDialog 
                 restaurantId={restaurant.id}
                 trigger={
@@ -515,18 +394,11 @@ ${orderText}
                 </a>
               )}
             </div>
-            {/* {restaurant.address && (
-              <div className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                <span>{restaurant.address}</span>
-              </div>
-            )} */}
           </div>
         </div>
       </div>
 
        {/* Categories */}
-             {/* التصنيفات */}
        {categories.length > 0 && <div className="bg-white border-b">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
@@ -542,7 +414,6 @@ ${orderText}
           </div>
           </div>
         }
-
 
        {/* تبديل طريقة العرض */}
         <div className="container px-4 flex justify-end gap-2 py-4">
@@ -569,7 +440,6 @@ ${orderText}
         </div>
 
      {/* Menu Items */}
-      {/* عناصر المنيو */}
       <div className="container mx-auto px-4 pb-32">
         {filteredMenuItems.length === 0 ? <div className="text-center py-12">
             <p className="text-gray-600">لا توجد عناصر في القائمة حالياً</p>
@@ -583,9 +453,8 @@ ${orderText}
                     <h3 className="font-semibold text-sm sm:text-lg text-gray-800 mb-2">{item.name}</h3>
                     {item.description && <p className="hidden sm:block text-gray-600 text-sm mb-2">{item.description}</p>}
                     
-                    {/* عرض السعر الأساسي دائماً */}
                     <div className="flex items-center justify-between gap-2 mt-auto">
-                    <span className="text-sm sm:text-lg font-bold text-primary"> {/* text-base */}
+                    <span className="text-sm sm:text-lg font-bold text-primary">
                       {item.price} جنيه
                     </span>
                   
@@ -617,7 +486,6 @@ ${orderText}
                     <div className="flex-1">
                       <h3 className="font-semibold text-sm sm:text-lg text-gray-800 mb-1">{item.name}</h3>
                       {item.description && <p className="hidden sm:block text-gray-600 text-sm mb-2">{item.description}</p>}
-                      {/* عرض السعر الأساسي دائماً */}
                       <span className="text-sm font-bold text-primary block mb-2 sm:text-lg">
                         {item.price} جنيه
                       </span>
@@ -636,7 +504,6 @@ ${orderText}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
         <div className="container mx-auto px-4 py-2">
           <div className="flex items-center justify-center gap-10">
-            {/* الرئيسية */}
             <button 
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
               className="flex flex-col items-center gap-0.5 text-xs transition text-red-600 font-bold hover:text-red-500"
@@ -645,7 +512,6 @@ ${orderText}
               <span>الرئيسية</span>
             </button>
 
-            {/* الفروع والتواصل */}
             <BranchesDialog 
               restaurantId={restaurant.id}
               trigger={
@@ -656,7 +522,6 @@ ${orderText}
               }
             />
             
-             {/* سلة الطلبات */}
               <Dialog open={showCartDialog} onOpenChange={setShowCartDialog}>
                 <DialogTrigger asChild>
                   <button className={`relative flex flex-col items-center gap-0.5 text-xs transition ${showCartDialog ? "text-red-600 font-bold" : "text-gray-600"} hover:text-red-500`}>
@@ -672,9 +537,7 @@ ${orderText}
                     <DialogTitle>سلة الطلبات</DialogTitle>
                   </DialogHeader>
 
-                  {/* كل المحتوى داخل هذا الصندوق القابل للسكرول */}
                   <div className="overflow-y-auto flex-1 space-y-4 pr-2 pl-2 max-h-[calc(90vh-100px)]">
-                    {/* عناصر السلة */}
                     <div className="space-y-2">
                        {cart.map(item => {
                          const extrasKey = item.selectedExtras?.map(e => e.id).sort().join(',') || '';
@@ -734,7 +597,6 @@ ${orderText}
                     <div className="space-y-3">
                       <h3 className="font-medium">بيانات التوصيل</h3>
 
-                      {/* اختيار الفرع إذا كان هناك فروع */}
                       {branches.length > 0 && (
                         <div>
                           <Label htmlFor="branch">اختر الفرع</Label>
@@ -742,8 +604,8 @@ ${orderText}
                             value={selectedBranch} 
                             onValueChange={(value) => {
                               setSelectedBranch(value);
-                              setSelectedArea(''); // إعادة تعيين المنطقة عند تغيير الفرع
-                              setPaymentMethod('cash'); // إعادة تعيين طريقة الدفع عند تغيير الفرع
+                              setSelectedArea('');
+                              setPaymentMethod('cash');
                             }}
                           >
                             <SelectTrigger className="bg-background">
@@ -760,7 +622,6 @@ ${orderText}
                         </div>
                       )}
 
-                      {/* اختيار المنطقة إذا كان الفرع المختار لديه مناطق */}
                       {selectedBranch && getAreasForBranch(selectedBranch).length > 0 && (
                         <div>
                           <Label htmlFor="area">اختر منطقة التوصيل</Label>
@@ -779,7 +640,6 @@ ${orderText}
                         </div>
                       )}
 
-                      {/* اختيار طريقة الدفع - يظهر بعد اختيار الفرع */}
                       <div className="space-y-3">
                         <Label className="font-medium">طريقة الدفع</Label>
                         <Select value={paymentMethod} onValueChange={setPaymentMethod}>
@@ -817,7 +677,6 @@ ${orderText}
                           </SelectContent>
                         </Select>
                         
-                        {/* عرض رقم الدفع الإلكتروني */}
                         {paymentMethod !== 'cash' && selectedBranch && (
                           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
                             <div className="flex items-center justify-center gap-2 text-lg font-bold text-amber-800">
@@ -930,19 +789,7 @@ ${orderText}
 
               </Dialog>
 
-            {/* الملف الشخصي */}
-            {/* <button className={`flex flex-col items-center gap-0.5 text-xs transition ${location.pathname === "/profile" ? "text-red-600 font-bold" : "text-gray-600"} hover:text-red-500`}>
-              <User className="w-6 h-6" />
-              الملف الشخصي
-            </button> */}
           </div>
-          
-          {/* Red Cart at the far left */}
-          {/* {cart.length > 0 && <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-              <Badge className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                {cart.reduce((total, item) => total + item.quantity, 0)} عنصر
-              </Badge>
-            </div>} */}
         </div>
       </div>
 
