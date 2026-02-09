@@ -7,14 +7,15 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useAdminBranches, useAdminDeliveryAreas } from '@/hooks/useAdminData';
 import {
   useSaveBranch, useDeleteBranch, useToggleBranchActive,
   useSaveDeliveryArea, useDeleteDeliveryArea,
+  useReorderBranches, useReorderDeliveryAreas,
 } from '@/hooks/useAdminMutations';
+import type { Tables } from '@/integrations/supabase/types';
 import { 
   ArrowLeft, 
   Plus, 
@@ -177,14 +178,7 @@ function SortableBranchCard({
   );
 }
 
-interface DeliveryArea {
-  id: string;
-  branch_id: string;
-  name: string;
-  delivery_price: number;
-  is_active: boolean;
-  display_order: number;
-}
+type DeliveryArea = Tables<'delivery_areas'>;
 
 // Sortable Delivery Area Item Component
 interface SortableAreaItemProps {
@@ -250,20 +244,7 @@ function SortableAreaItem({ area, onEdit, onDelete }: SortableAreaItemProps) {
   );
 }
 
-interface Branch {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  whatsapp_phone: string;
-  delivery_phone: string;
-  working_hours: string;
-  display_order: number;
-  is_active: boolean;
-  vodafone_cash?: string | null;
-  etisalat_cash?: string | null;
-  orange_cash?: string | null;
-}
+type Branch = Tables<'branches'>;
 
 export default function BranchesManagement() {
   const { username } = useParams<{ username: string }>();
@@ -287,6 +268,8 @@ export default function BranchesManagement() {
   const toggleActiveMut = useToggleBranchActive(restaurantId);
   const saveAreaMut = useSaveDeliveryArea(restaurantId);
   const deleteAreaMut = useDeleteDeliveryArea(restaurantId);
+  const reorderBranchesMut = useReorderBranches(restaurantId);
+  const reorderAreasMut = useReorderDeliveryAreas(restaurantId);
   
   const [showDialog, setShowDialog] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
@@ -340,13 +323,6 @@ export default function BranchesManagement() {
     }
   }, [authLoading, user, navigate]);
 
-  // Helper to invalidate (for DnD reorder)
-  const invalidateBranchesData = () => {
-    queryClient.invalidateQueries({ queryKey: ['admin_branches', restaurantId] });
-    queryClient.invalidateQueries({ queryKey: ['admin_delivery_areas'] });
-    queryClient.invalidateQueries({ queryKey: ['branches', restaurantId] });
-    queryClient.invalidateQueries({ queryKey: ['delivery_areas'] });
-  };
 
   const resetForm = () => {
     setFormData({
@@ -444,36 +420,23 @@ export default function BranchesManagement() {
   };
 
   // Handle drag end for branches
-  const handleBranchDragEnd = async (event: DragEndEvent) => {
+  const handleBranchDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
     setActiveDragBranch(null);
-    
     if (!over || active.id === over.id) return;
     
     const oldIndex = branches.findIndex((b) => b.id === active.id);
     const newIndex = branches.findIndex((b) => b.id === over.id);
-    
     const newBranches = arrayMove(branches, oldIndex, newIndex);
     queryClient.setQueryData(['admin_branches', restaurantId], newBranches);
     
-    try {
-      const updates = newBranches.map((branch, index) => ({
-        id: branch.id,
-        name: branch.name,
-        restaurant_id: restaurant!.id,
-        display_order: index,
-      }));
-      
-      const { error } = await supabase.from('branches').upsert(updates);
-      if (error) throw error;
-      
-      toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب الفروع' });
-    } catch (error) {
-      console.error('Error updating branch order:', error);
-      toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' });
-      invalidateBranchesData();
-    }
+    const updates = newBranches.map((branch, index) => ({
+      id: branch.id, name: branch.name, restaurant_id: restaurant!.id, display_order: index,
+    }));
+    reorderBranchesMut.mutate(updates, {
+      onSuccess: () => toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب الفروع' }),
+      onError: () => toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' }),
+    });
   };
 
   // دوال إدارة المناطق
@@ -517,39 +480,27 @@ export default function BranchesManagement() {
   };
 
   // Handle drag end for delivery areas
-  const handleAreaDragEnd = async (event: DragEndEvent) => {
+  const handleAreaDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
     if (!over || active.id === over.id || !selectedBranchForAreas) return;
     
     const branchAreas = getBranchAreas(selectedBranchForAreas.id);
     const oldIndex = branchAreas.findIndex((a) => a.id === active.id);
     const newIndex = branchAreas.findIndex((a) => a.id === over.id);
-    
     const newAreas = arrayMove(branchAreas, oldIndex, newIndex);
     
     const updatedAreas = deliveryAreas.filter(a => a.branch_id !== selectedBranchForAreas.id);
     const reorderedAreas = newAreas.map((area, index) => ({ ...area, display_order: index }));
     queryClient.setQueryData(['admin_delivery_areas', branchIds], [...updatedAreas, ...reorderedAreas]);
     
-    try {
-      const updates = newAreas.map((area, index) => ({
-        id: area.id,
-        name: area.name,
-        branch_id: area.branch_id,
-        delivery_price: area.delivery_price,
-        display_order: index,
-      }));
-      
-      const { error } = await supabase.from('delivery_areas').upsert(updates);
-      if (error) throw error;
-      
-      toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب المناطق' });
-    } catch (error) {
-      console.error('Error updating area order:', error);
-      toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' });
-      invalidateBranchesData();
-    }
+    const updates = newAreas.map((area, index) => ({
+      id: area.id, name: area.name, branch_id: area.branch_id,
+      delivery_price: area.delivery_price, display_order: index,
+    }));
+    reorderAreasMut.mutate(updates, {
+      onSuccess: () => toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب المناطق' }),
+      onError: () => toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' }),
+    });
   };
 
   const openDeleteAreaDialog = (areaId: string) => {

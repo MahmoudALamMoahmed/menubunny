@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Phone, MapPin, Calendar, DollarSign, Package } from 'lucide-react';
 import { useRestaurant } from '@/hooks/useRestaurantData';
+import { useAdminOrders } from '@/hooks/useAdminData';
 import { useUpdateOrderStatus } from '@/hooks/useAdminMutations';
+import type { Tables } from '@/integrations/supabase/types';
+
+type Order = Tables<'orders'>;
 
 interface OrderItem {
   id: string;
@@ -16,67 +18,20 @@ interface OrderItem {
   total: number;
 }
 
-interface Order {
-  id: string;
-  customer_name: string;
-  customer_phone: string;
-  notes: string;
-  items: OrderItem[];
-  total_price: number;
-  status: string;
-  is_confirmed: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 export default function Orders() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
-  const updateStatusMut = useUpdateOrderStatus();
+  const { data: orders = [], isLoading: ordersLoading } = useAdminOrders(restaurant?.id);
+  const updateStatusMut = useUpdateOrderStatus(restaurant?.id);
 
-  useEffect(() => {
-    if (restaurant) {
-      fetchOrders(restaurant.id);
-    }
-  }, [restaurant]);
-
-  const fetchOrders = async (restaurantId: string) => {
-    try {
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('restaurant_id', restaurantId)
-        .order('created_at', { ascending: false });
-
-      if (ordersError) throw ordersError;
-
-      const formattedOrders: Order[] = (ordersData || []).map(order => ({
-        ...order,
-        items: Array.isArray(order.items) ? (order.items as unknown as OrderItem[]) : [],
-      }));
-      setOrders(formattedOrders);
-    } catch (error) {
-      console.error('خطأ في جلب البيانات:', error);
-    } finally {
-      setLoading(false);
-    }
+  const getOrderItems = (order: Order): OrderItem[] => {
+    return Array.isArray(order.items) ? (order.items as unknown as OrderItem[]) : [];
   };
 
   const handleUpdateStatus = (orderId: string, newStatus: string, isConfirmed?: boolean) => {
-    updateStatusMut.mutate(
-      { orderId, status: newStatus, isConfirmed },
-      {
-        onSuccess: (updateData) => {
-          setOrders(orders.map(order => 
-            order.id === orderId ? { ...order, ...updateData } : order
-          ));
-        },
-      }
-    );
+    updateStatusMut.mutate({ orderId, status: newStatus, isConfirmed });
   };
 
   const getStatusColor = (status: string) => {
@@ -109,7 +64,7 @@ export default function Orders() {
     });
   };
 
-  if (loading || restaurantLoading) {
+  if (restaurantLoading || ordersLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">
@@ -146,65 +101,69 @@ export default function Orders() {
               </CardContent>
             </Card>
           ) : (
-            orders.map((order) => (
-              <Card key={order.id} className="overflow-hidden">
-                <CardHeader className="bg-gray-50 border-b">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <CardTitle className="text-lg">طلب #{order.id.slice(0, 8)}</CardTitle>
-                      <Badge className={getStatusColor(order.status)}>{getStatusText(order.status)}</Badge>
-                      {order.is_confirmed && <Badge className="bg-green-100 text-green-800">مؤكد</Badge>}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Calendar className="w-4 h-4" />
-                      {formatDate(order.created_at)}
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <h3 className="font-semibold text-gray-900 border-b pb-2">معلومات العميل</h3>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2"><span className="font-medium">الاسم:</span><span>{order.customer_name}</span></div>
-                        <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400" /><span className="font-medium">الهاتف:</span><span dir="ltr">{order.customer_phone}</span></div>
-                        {order.notes && (<div className="flex items-start gap-2"><MapPin className="w-4 h-4 text-gray-400 mt-1" /><span className="font-medium">العنوان:</span><span className="flex-1">{order.notes}</span></div>)}
+            orders.map((order) => {
+              const items = getOrderItems(order);
+              const status = order.status ?? 'pending';
+              return (
+                <Card key={order.id} className="overflow-hidden">
+                  <CardHeader className="bg-gray-50 border-b">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <CardTitle className="text-lg">طلب #{order.id.slice(0, 8)}</CardTitle>
+                        <Badge className={getStatusColor(status)}>{getStatusText(status)}</Badge>
+                        {order.is_confirmed && <Badge className="bg-green-100 text-green-800">مؤكد</Badge>}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Calendar className="w-4 h-4" />
+                        {formatDate(order.created_at)}
                       </div>
                     </div>
-                    <div className="space-y-4">
-                      <h3 className="font-semibold text-gray-900 border-b pb-2">تفاصيل الطلب</h3>
-                      <div className="space-y-2">
-                        {order.items.map((item, index) => (
-                          <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
-                            <div><span className="font-medium">{item.name}</span><span className="text-gray-600 mr-2">x{item.quantity}</span></div>
-                            <span className="font-medium">{item.total} جنيه</span>
+                  </CardHeader>
+                  
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <h3 className="font-semibold text-gray-900 border-b pb-2">معلومات العميل</h3>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2"><span className="font-medium">الاسم:</span><span>{order.customer_name}</span></div>
+                          <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400" /><span className="font-medium">الهاتف:</span><span dir="ltr">{order.customer_phone}</span></div>
+                          {order.notes && (<div className="flex items-start gap-2"><MapPin className="w-4 h-4 text-gray-400 mt-1" /><span className="font-medium">العنوان:</span><span className="flex-1">{order.notes}</span></div>)}
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <h3 className="font-semibold text-gray-900 border-b pb-2">تفاصيل الطلب</h3>
+                        <div className="space-y-2">
+                          {items.map((item, index) => (
+                            <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                              <div><span className="font-medium">{item.name}</span><span className="text-gray-600 mr-2">x{item.quantity}</span></div>
+                              <span className="font-medium">{item.total} جنيه</span>
+                            </div>
+                          ))}
+                          <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                            <div className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-gray-400" /><span className="font-semibold">الإجمالي:</span></div>
+                            <span className="text-lg font-bold text-primary">{order.total_price} جنيه</span>
                           </div>
-                        ))}
-                        <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                          <div className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-gray-400" /><span className="font-semibold">الإجمالي:</span></div>
-                          <span className="text-lg font-bold text-primary">{order.total_price} جنيه</span>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <div className="flex flex-wrap gap-2">
-                      {order.status === 'pending' && (
-                        <>
-                          <Button onClick={() => handleUpdateStatus(order.id, 'confirmed', true)} className="bg-blue-600 hover:bg-blue-700">تأكيد الطلب</Button>
-                          <Button onClick={() => handleUpdateStatus(order.id, 'cancelled')} variant="destructive">إلغاء الطلب</Button>
-                        </>
-                      )}
-                      {order.status === 'confirmed' && <Button onClick={() => handleUpdateStatus(order.id, 'preparing')} className="bg-purple-600 hover:bg-purple-700">بدء التحضير</Button>}
-                      {order.status === 'preparing' && <Button onClick={() => handleUpdateStatus(order.id, 'ready')} className="bg-green-600 hover:bg-green-700">الطلب جاهز</Button>}
-                      {order.status === 'ready' && <Button onClick={() => handleUpdateStatus(order.id, 'delivered')} className="bg-gray-600 hover:bg-gray-700">تم التسليم</Button>}
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <div className="flex flex-wrap gap-2">
+                        {status === 'pending' && (
+                          <>
+                            <Button onClick={() => handleUpdateStatus(order.id, 'confirmed', true)} className="bg-blue-600 hover:bg-blue-700">تأكيد الطلب</Button>
+                            <Button onClick={() => handleUpdateStatus(order.id, 'cancelled')} variant="destructive">إلغاء الطلب</Button>
+                          </>
+                        )}
+                        {status === 'confirmed' && <Button onClick={() => handleUpdateStatus(order.id, 'preparing')} className="bg-purple-600 hover:bg-purple-700">بدء التحضير</Button>}
+                        {status === 'preparing' && <Button onClick={() => handleUpdateStatus(order.id, 'ready')} className="bg-green-600 hover:bg-green-700">الطلب جاهز</Button>}
+                        {status === 'ready' && <Button onClick={() => handleUpdateStatus(order.id, 'delivered')} className="bg-gray-600 hover:bg-gray-700">تم التسليم</Button>}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </div>
       </div>
