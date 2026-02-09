@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Phone, MapPin, Calendar, DollarSign, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useRestaurant } from '@/hooks/useRestaurantData';
 
 interface OrderItem {
   id: string;
@@ -29,48 +30,31 @@ interface Order {
 }
 
 export default function Orders() {
-  const { restaurantUsername } = useParams();
+  const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [restaurant, setRestaurant] = useState<any>(null);
 
+  const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+
+  // Fetch orders when restaurant is available
   useEffect(() => {
-    fetchRestaurantAndOrders();
-  }, [restaurantUsername]);
+    if (restaurant) {
+      fetchOrders(restaurant.id);
+    }
+  }, [restaurant]);
 
-  const fetchRestaurantAndOrders = async () => {
+  const fetchOrders = async (restaurantId: string) => {
     try {
-      // جلب بيانات المطعم أولاً
-      const { data: restaurantData, error: restaurantError } = await supabase
-        .from('restaurants')
-        .select('*')
-        .eq('username', restaurantUsername)
-        .maybeSingle();
-
-      if (restaurantError) {
-        throw restaurantError;
-      }
-
-      if (!restaurantData) {
-        throw new Error('المطعم غير موجود');
-      }
-
-      setRestaurant(restaurantData);
-
-      // جلب الطلبات الخاصة بالمطعم
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*')
-        .eq('restaurant_id', restaurantData.id)
+        .eq('restaurant_id', restaurantId)
         .order('created_at', { ascending: false });
 
-      if (ordersError) {
-        throw ordersError;
-      }
+      if (ordersError) throw ordersError;
 
-      // تحويل البيانات إلى النوع المطلوب
       const formattedOrders: Order[] = (ordersData || []).map(order => ({
         ...order,
         items: Array.isArray(order.items) ? (order.items as unknown as OrderItem[]) : [],
@@ -173,7 +157,7 @@ export default function Orders() {
     });
   };
 
-  if (loading) {
+  if (loading || restaurantLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">
@@ -192,7 +176,7 @@ export default function Orders() {
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
-              onClick={() => navigate(`/${restaurantUsername}/dashboard`)}
+              onClick={() => navigate(`/${username}/dashboard`)}
               className="flex items-center gap-2"
             >
               <ArrowRight className="w-4 h-4" />

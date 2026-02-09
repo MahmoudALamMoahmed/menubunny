@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRestaurant } from '@/hooks/useRestaurantData';
 import ImageUploader from '@/components/ImageUploader';
 import { getCoverPublicId, getLogoPublicId } from '@/lib/bunny';
 import { 
@@ -24,19 +25,6 @@ import {
   Store
 } from 'lucide-react';
 
-interface Restaurant {
-  id: string;
-  name: string;
-  username: string;
-  description: string;
-  cover_image_url: string;
-  logo_url: string;
-  owner_id: string;
-  facebook_url: string;
-  cover_image_public_id?: string;
-  logo_public_id?: string;
-}
-
 export default function Dashboard() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
@@ -44,8 +32,8 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  
   const [saving, setSaving] = useState(false);
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -62,59 +50,36 @@ export default function Dashboard() {
     logo_public_id: ''
   });
 
+  // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
-      return;
     }
-    
-    if (username && user) {
-      fetchRestaurantData();
-    }
-  }, [username, user, authLoading]);
+  }, [authLoading, user, navigate]);
 
-  const fetchRestaurantData = async () => {
-    try {
-      const { data: restaurantData, error } = await supabase
-        .from('restaurants')
-        .select('*')
-        .eq('username', username)
-        .eq('owner_id', user?.id)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          setFormData(prev => ({ ...prev, username: username || '' }));
-        } else {
-          throw error;
-        }
-      } else {
-        setRestaurant(restaurantData);
-        setFormData({
-          name: restaurantData.name || '',
-          username: restaurantData.username || '',
-          description: restaurantData.description || '',
-          cover_image_url: restaurantData.cover_image_url || '',
-          logo_url: restaurantData.logo_url || '',
-          facebook_url: restaurantData.facebook_url || '',
-          email: restaurantData.email || '',
-          instagram_url: restaurantData.instagram_url || '',
-          working_hours: restaurantData.working_hours || '',
-          cover_image_public_id: restaurantData.cover_image_public_id || '',
-          logo_public_id: restaurantData.logo_public_id || ''
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching restaurant data:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تحميل بيانات المطعم',
-        variant: 'destructive',
+  // Sync form data when restaurant loads
+  useEffect(() => {
+    if (restaurant) {
+      setFormData({
+        name: restaurant.name || '',
+        username: restaurant.username || '',
+        description: restaurant.description || '',
+        cover_image_url: restaurant.cover_image_url || '',
+        logo_url: restaurant.logo_url || '',
+        facebook_url: restaurant.facebook_url || '',
+        email: restaurant.email || '',
+        instagram_url: restaurant.instagram_url || '',
+        working_hours: restaurant.working_hours || '',
+        cover_image_public_id: restaurant.cover_image_public_id || '',
+        logo_public_id: restaurant.logo_public_id || ''
       });
-    } finally {
-      setLoading(false);
+    } else if (!restaurantLoading && username) {
+      setFormData(prev => ({ ...prev, username: username }));
     }
-  };
+  }, [restaurant, restaurantLoading, username]);
+
+  // Check ownership
+  const isOwner = restaurant && user && restaurant.owner_id === user.id;
 
   const handleSave = async () => {
     if (!user) return;
@@ -154,7 +119,6 @@ export default function Dashboard() {
           throw error;
         }
 
-        setRestaurant(data);
         toast({
           title: 'تم إنشاء المطعم بنجاح',
           description: 'يمكنك الآن إضافة عناصر القائمة',
@@ -162,7 +126,6 @@ export default function Dashboard() {
         setInfoDialogOpen(false);
       }
       
-      await fetchRestaurantData();
       queryClient.invalidateQueries({ queryKey: ['restaurant', username] });
     } catch (error) {
       console.error('Error saving restaurant:', error);
@@ -176,7 +139,7 @@ export default function Dashboard() {
     }
   };
 
-  if (authLoading || loading) {
+  if (authLoading || restaurantLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">
@@ -238,7 +201,6 @@ export default function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* إدارة معلومات المطعم - أول زر */}
               <Button 
                 variant="outline" 
                 className="w-full justify-start"

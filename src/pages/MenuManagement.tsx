@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRestaurant } from '@/hooks/useRestaurantData';
 import ImageUploader from '@/components/ImageUploader';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import { SortableItem } from '@/components/SortableItem';
@@ -40,12 +42,7 @@ import {
   Search
 } from 'lucide-react';
 
-interface Restaurant {
-  id: string;
-  name: string;
-  username: string;
-  owner_id: string;
-}
+// Restaurant interface removed - using useRestaurant hook
 
 interface Category {
   id: string;
@@ -89,8 +86,10 @@ export default function MenuManagement() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  
   const [categories, setCategories] = useState<Category[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [sizes, setSizes] = useState<Size[]>([]);
@@ -163,66 +162,35 @@ export default function MenuManagement() {
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
-      return;
     }
-    
-    if (username && user) {
-      fetchData();
-    }
-  }, [username, user, authLoading]);
+  }, [authLoading, user, navigate]);
 
-  const fetchData = async () => {
+  // Fetch menu data when restaurant is available
+  useEffect(() => {
+    if (restaurant) {
+      fetchMenuData(restaurant.id);
+    }
+  }, [restaurant]);
+
+  const fetchMenuData = async (restaurantId: string) => {
     try {
-      // Fetch restaurant
-      const { data: restaurantData, error: restaurantError } = await supabase
-        .from('restaurants')
-        .select('*')
-        .eq('username', username)
-        .eq('owner_id', user?.id)
-        .single();
+      // Fetch categories, menu items, sizes, extras in parallel
+      const [categoriesRes, itemsRes, sizesRes, extrasRes] = await Promise.all([
+        supabase.from('categories').select('*').eq('restaurant_id', restaurantId).order('display_order'),
+        supabase.from('menu_items').select('*').eq('restaurant_id', restaurantId).order('display_order'),
+        supabase.from('sizes').select('*').order('display_order'),
+        supabase.from('extras').select('*').eq('restaurant_id', restaurantId).order('display_order'),
+      ]);
 
-      if (restaurantError) throw restaurantError;
-      setRestaurant(restaurantData);
+      if (categoriesRes.error) throw categoriesRes.error;
+      if (itemsRes.error) throw itemsRes.error;
+      if (sizesRes.error) throw sizesRes.error;
+      if (extrasRes.error) throw extrasRes.error;
 
-      // Fetch categories
-      const { data: categoriesData, error: categoriesError } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('restaurant_id', restaurantData.id)
-        .order('display_order');
-
-      if (categoriesError) throw categoriesError;
-      setCategories(categoriesData || []);
-
-      // Fetch menu items
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('menu_items')
-        .select('*')
-        .eq('restaurant_id', restaurantData.id)
-        .order('display_order');
-
-      if (itemsError) throw itemsError;
-      setMenuItems(itemsData || []);
-
-      // Fetch sizes
-      const { data: sizesData, error: sizesError } = await supabase
-        .from('sizes')
-        .select('*')
-        .order('display_order');
-
-      if (sizesError) throw sizesError;
-      setSizes(sizesData || []);
-
-      // Fetch extras
-      const { data: extrasData, error: extrasError } = await supabase
-        .from('extras')
-        .select('*')
-        .eq('restaurant_id', restaurantData.id)
-        .order('display_order');
-
-      if (extrasError) throw extrasError;
-      setExtras(extrasData || []);
-
+      setCategories(categoriesRes.data || []);
+      setMenuItems(itemsRes.data || []);
+      setSizes(sizesRes.data || []);
+      setExtras(extrasRes.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -278,7 +246,7 @@ export default function MenuManagement() {
       setCategoryForm({ name: '', display_order: 0 });
       setShowCategoryForm(false);
       setEditingCategory(null);
-      await fetchData();
+      await fetchMenuData(restaurant!.id);
       
     } catch (error) {
       console.error('Error saving category:', error);
@@ -350,7 +318,7 @@ export default function MenuManagement() {
       setTempItemId(null);
       setShowItemForm(false);
       setEditingItem(null);
-      await fetchData();
+      await fetchMenuData(restaurant!.id);
       
     } catch (error) {
       console.error('Error saving item:', error);
@@ -380,7 +348,7 @@ export default function MenuManagement() {
       });
       
       setDeleteDialog({ open: false, type: 'category', id: '', name: '' });
-      await fetchData();
+      await fetchMenuData(restaurant!.id);
     } catch (error) {
       console.error('Error deleting category:', error);
       toast({
@@ -422,7 +390,7 @@ export default function MenuManagement() {
       });
       
       setDeleteDialog({ open: false, type: 'item', id: '', name: '' });
-      await fetchData();
+      await fetchMenuData(restaurant!.id);
     } catch (error) {
       console.error('Error deleting item:', error);
       toast({
@@ -478,7 +446,7 @@ export default function MenuManagement() {
       // Reset form and refresh data
       setSizeForm({ name: '', price: '', display_order: 0 });
       setEditingSize(null);
-      await fetchData();
+      await fetchMenuData(restaurant!.id);
       
     } catch (error) {
       console.error('Error saving size:', error);
@@ -508,7 +476,7 @@ export default function MenuManagement() {
       });
       
       setDeleteDialog({ open: false, type: 'size', id: '', name: '' });
-      await fetchData();
+      await fetchMenuData(restaurant!.id);
     } catch (error) {
       console.error('Error deleting size:', error);
       toast({
@@ -573,7 +541,7 @@ export default function MenuManagement() {
       
       setExtraForm({ name: '', price: '', display_order: 0 });
       setEditingExtra(null);
-      await fetchData();
+      await fetchMenuData(restaurant!.id);
       
     } catch (error) {
       console.error('Error saving extra:', error);
@@ -603,7 +571,7 @@ export default function MenuManagement() {
       });
       
       setDeleteDialog({ open: false, type: 'extra', id: '', name: '' });
-      await fetchData();
+      await fetchMenuData(restaurant!.id);
     } catch (error) {
       console.error('Error deleting extra:', error);
       toast({
@@ -654,7 +622,7 @@ export default function MenuManagement() {
         description: 'حدث خطأ أثناء تحديث الترتيب',
         variant: 'destructive',
       });
-      await fetchData();
+      await fetchMenuData(restaurant!.id);
     }
   };
 
@@ -715,7 +683,7 @@ export default function MenuManagement() {
         description: 'حدث خطأ أثناء تحديث الترتيب',
         variant: 'destructive',
       });
-      await fetchData();
+      await fetchMenuData(restaurant!.id);
     }
   };
 
@@ -759,11 +727,11 @@ export default function MenuManagement() {
         description: 'حدث خطأ أثناء تحديث الترتيب',
         variant: 'destructive',
       });
-      await fetchData();
+      await fetchMenuData(restaurant!.id);
     }
   };
 
-  if (authLoading || loading) {
+  if (authLoading || restaurantLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">
