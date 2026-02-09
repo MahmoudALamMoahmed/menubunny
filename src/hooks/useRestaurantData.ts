@@ -33,6 +33,7 @@ export function useRestaurant(username: string | undefined) {
     enabled: !!username,
     staleTime: LONG_STALE,
     gcTime: LONG_GC,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -51,6 +52,7 @@ export function useCategories(restaurantId: string | undefined) {
     enabled: !!restaurantId,
     staleTime: LONG_STALE,
     gcTime: LONG_GC,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -70,6 +72,7 @@ export function useMenuItems(restaurantId: string | undefined, activeCategory?: 
     enabled: !!restaurantId,
     staleTime: MEDIUM_STALE,
     gcTime: MEDIUM_GC,
+    refetchOnWindowFocus: false,
     select: activeCategory && activeCategory !== 'all'
       ? (data: MenuItem[]) => data.filter(item => item.category_id === activeCategory)
       : undefined,
@@ -90,6 +93,7 @@ export function useSizes(restaurantId: string | undefined) {
     enabled: !!restaurantId,
     staleTime: MEDIUM_STALE,
     gcTime: MEDIUM_GC,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -109,6 +113,7 @@ export function useExtras(restaurantId: string | undefined) {
     enabled: !!restaurantId,
     staleTime: MEDIUM_STALE,
     gcTime: MEDIUM_GC,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -128,6 +133,7 @@ export function useBranches(restaurantId: string | undefined) {
     enabled: !!restaurantId,
     staleTime: LONG_STALE,
     gcTime: LONG_GC,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -147,5 +153,6 @@ export function useDeliveryAreas(branchIds: string[] | undefined) {
     enabled: !!branchIds && branchIds.length > 0,
     staleTime: LONG_STALE,
     gcTime: LONG_GC,
+    refetchOnWindowFocus: false,
   });
 }
