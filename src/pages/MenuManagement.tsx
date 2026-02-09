@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRestaurant } from '@/hooks/useRestaurantData';
+import { useAdminCategories, useAdminMenuItems, useAdminSizes, useAdminExtras } from '@/hooks/useAdminData';
 import ImageUploader from '@/components/ImageUploader';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import { SortableItem } from '@/components/SortableItem';
@@ -89,12 +90,15 @@ export default function MenuManagement() {
   const queryClient = useQueryClient();
   
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  const restaurantId = restaurant?.id;
   
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [sizes, setSizes] = useState<Size[]>([]);
-  const [extras, setExtras] = useState<Extra[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: categories = [], isLoading: categoriesLoading } = useAdminCategories(restaurantId);
+  const { data: menuItems = [], isLoading: itemsLoading } = useAdminMenuItems(restaurantId);
+  const { data: sizes = [], isLoading: sizesLoading } = useAdminSizes(restaurantId);
+  const { data: extras = [], isLoading: extrasLoading } = useAdminExtras(restaurantId);
+  
+  const dataLoading = categoriesLoading || itemsLoading || sizesLoading || extrasLoading;
+  
   const [saving, setSaving] = useState(false);
   
   // Form states
@@ -165,42 +169,17 @@ export default function MenuManagement() {
     }
   }, [authLoading, user, navigate]);
 
-  // Fetch menu data when restaurant is available
-  useEffect(() => {
-    if (restaurant) {
-      fetchMenuData(restaurant.id);
-    }
-  }, [restaurant]);
-
-  const fetchMenuData = async (restaurantId: string) => {
-    try {
-      // Fetch categories, menu items, sizes, extras in parallel
-      const [categoriesRes, itemsRes, sizesRes, extrasRes] = await Promise.all([
-        supabase.from('categories').select('*').eq('restaurant_id', restaurantId).order('display_order'),
-        supabase.from('menu_items').select('*').eq('restaurant_id', restaurantId).order('display_order'),
-        supabase.from('sizes').select('*').order('display_order'),
-        supabase.from('extras').select('*').eq('restaurant_id', restaurantId).order('display_order'),
-      ]);
-
-      if (categoriesRes.error) throw categoriesRes.error;
-      if (itemsRes.error) throw itemsRes.error;
-      if (sizesRes.error) throw sizesRes.error;
-      if (extrasRes.error) throw extrasRes.error;
-
-      setCategories(categoriesRes.data || []);
-      setMenuItems(itemsRes.data || []);
-      setSizes(sizesRes.data || []);
-      setExtras(extrasRes.data || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تحميل البيانات',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
+  // Helper to invalidate all admin queries
+  const invalidateAdminData = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin_categories', restaurantId] });
+    queryClient.invalidateQueries({ queryKey: ['admin_menu_items', restaurantId] });
+    queryClient.invalidateQueries({ queryKey: ['admin_sizes', restaurantId] });
+    queryClient.invalidateQueries({ queryKey: ['admin_extras', restaurantId] });
+    // Also invalidate public cache
+    queryClient.invalidateQueries({ queryKey: ['categories', restaurantId] });
+    queryClient.invalidateQueries({ queryKey: ['menu_items', restaurantId] });
+    queryClient.invalidateQueries({ queryKey: ['sizes', restaurantId] });
+    queryClient.invalidateQueries({ queryKey: ['extras', restaurantId] });
   };
 
   const handleSaveCategory = async () => {
@@ -246,7 +225,7 @@ export default function MenuManagement() {
       setCategoryForm({ name: '', display_order: 0 });
       setShowCategoryForm(false);
       setEditingCategory(null);
-      await fetchMenuData(restaurant!.id);
+      invalidateAdminData();
       
     } catch (error) {
       console.error('Error saving category:', error);
@@ -318,7 +297,7 @@ export default function MenuManagement() {
       setTempItemId(null);
       setShowItemForm(false);
       setEditingItem(null);
-      await fetchMenuData(restaurant!.id);
+      invalidateAdminData();
       
     } catch (error) {
       console.error('Error saving item:', error);
@@ -348,7 +327,7 @@ export default function MenuManagement() {
       });
       
       setDeleteDialog({ open: false, type: 'category', id: '', name: '' });
-      await fetchMenuData(restaurant!.id);
+      invalidateAdminData();
     } catch (error) {
       console.error('Error deleting category:', error);
       toast({
@@ -390,7 +369,7 @@ export default function MenuManagement() {
       });
       
       setDeleteDialog({ open: false, type: 'item', id: '', name: '' });
-      await fetchMenuData(restaurant!.id);
+      invalidateAdminData();
     } catch (error) {
       console.error('Error deleting item:', error);
       toast({
@@ -446,7 +425,7 @@ export default function MenuManagement() {
       // Reset form and refresh data
       setSizeForm({ name: '', price: '', display_order: 0 });
       setEditingSize(null);
-      await fetchMenuData(restaurant!.id);
+      invalidateAdminData();
       
     } catch (error) {
       console.error('Error saving size:', error);
@@ -476,7 +455,7 @@ export default function MenuManagement() {
       });
       
       setDeleteDialog({ open: false, type: 'size', id: '', name: '' });
-      await fetchMenuData(restaurant!.id);
+      invalidateAdminData();
     } catch (error) {
       console.error('Error deleting size:', error);
       toast({
@@ -541,7 +520,7 @@ export default function MenuManagement() {
       
       setExtraForm({ name: '', price: '', display_order: 0 });
       setEditingExtra(null);
-      await fetchMenuData(restaurant!.id);
+      invalidateAdminData();
       
     } catch (error) {
       console.error('Error saving extra:', error);
@@ -571,7 +550,7 @@ export default function MenuManagement() {
       });
       
       setDeleteDialog({ open: false, type: 'extra', id: '', name: '' });
-      await fetchMenuData(restaurant!.id);
+      invalidateAdminData();
     } catch (error) {
       console.error('Error deleting extra:', error);
       toast({
@@ -594,7 +573,7 @@ export default function MenuManagement() {
     const newIndex = categories.findIndex((c) => c.id === over.id);
     
     const newCategories = arrayMove(categories, oldIndex, newIndex);
-    setCategories(newCategories);
+    queryClient.setQueryData(['admin_categories', restaurantId], newCategories);
     
     // Update display_order in database
     try {
@@ -622,7 +601,7 @@ export default function MenuManagement() {
         description: 'حدث خطأ أثناء تحديث الترتيب',
         variant: 'destructive',
       });
-      await fetchMenuData(restaurant!.id);
+      invalidateAdminData();
     }
   };
 
@@ -649,7 +628,7 @@ export default function MenuManagement() {
     );
     
     const newMenuItems = [...newFilteredItems, ...otherItems];
-    setMenuItems(newMenuItems);
+    queryClient.setQueryData(['admin_menu_items', restaurantId], newMenuItems);
     
     // Update display_order in database
     try {
@@ -683,7 +662,7 @@ export default function MenuManagement() {
         description: 'حدث خطأ أثناء تحديث الترتيب',
         variant: 'destructive',
       });
-      await fetchMenuData(restaurant!.id);
+      invalidateAdminData();
     }
   };
 
@@ -697,7 +676,7 @@ export default function MenuManagement() {
     const newIndex = extras.findIndex((e) => e.id === over.id);
     
     const newExtras = arrayMove(extras, oldIndex, newIndex);
-    setExtras(newExtras);
+    queryClient.setQueryData(['admin_extras', restaurantId], newExtras);
     
     // Update display_order in database
     try {
@@ -727,11 +706,11 @@ export default function MenuManagement() {
         description: 'حدث خطأ أثناء تحديث الترتيب',
         variant: 'destructive',
       });
-      await fetchMenuData(restaurant!.id);
+      invalidateAdminData();
     }
   };
 
-  if (authLoading || restaurantLoading || loading) {
+  if (authLoading || restaurantLoading || dataLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">
