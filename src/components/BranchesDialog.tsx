@@ -1,18 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Phone, MapPin, Clock, Truck, MessageCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-
-interface Branch {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  whatsapp_phone: string;
-  delivery_phone: string;
-  working_hours: string;
-  is_active: boolean;
-}
+import { useBranches } from '@/hooks/useRestaurantData';
 
 interface BranchesDialogProps {
   restaurantId: string;
@@ -20,33 +9,8 @@ interface BranchesDialogProps {
 }
 
 export default function BranchesDialog({ restaurantId, trigger }: BranchesDialogProps) {
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      fetchBranches();
-    }
-  }, [open, restaurantId]);
-
-  const fetchBranches = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('branches')
-        .select('*')
-        .eq('restaurant_id', restaurantId)
-        .eq('is_active', true)
-        .order('display_order');
-
-      if (error) throw error;
-      setBranches(data || []);
-    } catch (error) {
-      console.error('Error fetching branches:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: branches = [], isLoading: loading } = useBranches(open ? restaurantId : undefined);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
