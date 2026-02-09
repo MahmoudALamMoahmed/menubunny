@@ -13,10 +13,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useAdminCategories, useAdminMenuItems, useAdminSizes, useAdminExtras } from '@/hooks/useAdminData';
+import {
+  useSaveCategory, useDeleteCategory,
+  useSaveMenuItem, useDeleteMenuItem,
+  useSaveSize, useDeleteSize,
+  useSaveExtra, useDeleteExtra,
+} from '@/hooks/useAdminMutations';
 import ImageUploader from '@/components/ImageUploader';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import { SortableItem } from '@/components/SortableItem';
-import { getMenuItemPublicId, deleteFromBunny } from '@/lib/bunny';
+import { getMenuItemPublicId } from '@/lib/bunny';
 import {
   DndContext,
   closestCenter,
@@ -32,7 +38,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { 
+import {
   ArrowLeft,
   Plus,
   Edit,
@@ -42,8 +48,6 @@ import {
   Cookie,
   Search
 } from 'lucide-react';
-
-// Restaurant interface removed - using useRestaurant hook
 
 interface Category {
   id: string;
@@ -98,8 +102,19 @@ export default function MenuManagement() {
   const { data: extras = [], isLoading: extrasLoading } = useAdminExtras(restaurantId);
   
   const dataLoading = categoriesLoading || itemsLoading || sizesLoading || extrasLoading;
-  
-  const [saving, setSaving] = useState(false);
+
+  // Mutations
+  const saveCategoryMut = useSaveCategory(restaurantId);
+  const deleteCategoryMut = useDeleteCategory(restaurantId);
+  const saveItemMut = useSaveMenuItem(restaurantId);
+  const deleteItemMut = useDeleteMenuItem(restaurantId);
+  const saveSizeMut = useSaveSize(restaurantId);
+  const deleteSizeMut = useDeleteSize(restaurantId);
+  const saveExtraMut = useSaveExtra(restaurantId);
+  const deleteExtraMut = useDeleteExtra(restaurantId);
+
+  const saving = saveCategoryMut.isPending || saveItemMut.isPending || saveSizeMut.isPending || saveExtraMut.isPending;
+  const isDeleting = deleteCategoryMut.isPending || deleteItemMut.isPending || deleteSizeMut.isPending || deleteExtraMut.isPending;
   
   // Form states
   const [showCategoryForm, setShowCategoryForm] = useState(false);
@@ -153,7 +168,6 @@ export default function MenuManagement() {
     id: string;
     name: string;
   }>({ open: false, type: 'category', id: '', name: '' });
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // DnD sensors
   const sensors = useSensors(
@@ -169,82 +183,37 @@ export default function MenuManagement() {
     }
   }, [authLoading, user, navigate]);
 
-  // Helper to invalidate all admin queries
+  // Helper to invalidate all admin queries (for DnD reorder operations)
   const invalidateAdminData = () => {
     queryClient.invalidateQueries({ queryKey: ['admin_categories', restaurantId] });
     queryClient.invalidateQueries({ queryKey: ['admin_menu_items', restaurantId] });
     queryClient.invalidateQueries({ queryKey: ['admin_sizes', restaurantId] });
     queryClient.invalidateQueries({ queryKey: ['admin_extras', restaurantId] });
-    // Also invalidate public cache
     queryClient.invalidateQueries({ queryKey: ['categories', restaurantId] });
     queryClient.invalidateQueries({ queryKey: ['menu_items', restaurantId] });
     queryClient.invalidateQueries({ queryKey: ['sizes', restaurantId] });
     queryClient.invalidateQueries({ queryKey: ['extras', restaurantId] });
   };
 
-  const handleSaveCategory = async () => {
+  const handleSaveCategory = () => {
     if (!restaurant || !categoryForm.name.trim()) return;
-    
-    setSaving(true);
-    try {
-      if (editingCategory) {
-        // Update existing category
-        const { error } = await supabase
-          .from('categories')
-          .update({
-            name: categoryForm.name,
-            display_order: categoryForm.display_order
-          })
-          .eq('id', editingCategory.id);
-
-        if (error) throw error;
-        
-        toast({
-          title: 'تم التحديث',
-          description: 'تم تحديث القسم بنجاح',
-        });
-      } else {
-        // Create new category
-        const { error } = await supabase
-          .from('categories')
-          .insert([{
-            name: categoryForm.name,
-            display_order: categoryForm.display_order,
-            restaurant_id: restaurant.id
-          }]);
-
-        if (error) throw error;
-        
-        toast({
-          title: 'تم الحفظ',
-          description: 'تم إضافة القسم بنجاح',
-        });
+    saveCategoryMut.mutate(
+      { id: editingCategory?.id, name: categoryForm.name, display_order: categoryForm.display_order },
+      {
+        onSuccess: () => {
+          setCategoryForm({ name: '', display_order: 0 });
+          setShowCategoryForm(false);
+          setEditingCategory(null);
+        },
       }
-      
-      // Reset form and refresh data
-      setCategoryForm({ name: '', display_order: 0 });
-      setShowCategoryForm(false);
-      setEditingCategory(null);
-      invalidateAdminData();
-      
-    } catch (error) {
-      console.error('Error saving category:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حفظ القسم',
-        variant: 'destructive',
-      });
-    } finally {
-      setSaving(false);
-    }
+    );
   };
 
-  const handleSaveItem = async () => {
+  const handleSaveItem = () => {
     if (!restaurant || !itemForm.name.trim() || !itemForm.price) return;
-    
-    setSaving(true);
-    try {
-      const itemData = {
+    saveItemMut.mutate(
+      {
+        id: editingItem?.id,
         name: itemForm.name,
         description: itemForm.description || null,
         price: parseFloat(itemForm.price),
@@ -253,219 +222,57 @@ export default function MenuManagement() {
         image_public_id: itemForm.image_public_id || null,
         is_available: itemForm.is_available,
         display_order: itemForm.display_order,
-        restaurant_id: restaurant.id
-      };
-
-      if (editingItem) {
-        // Update existing item
-        const { error } = await supabase
-          .from('menu_items')
-          .update(itemData)
-          .eq('id', editingItem.id);
-
-        if (error) throw error;
-        
-        toast({
-          title: 'تم التحديث',
-          description: 'تم تحديث الصنف بنجاح',
-        });
-      } else {
-        // Create new item
-        const { error } = await supabase
-          .from('menu_items')
-          .insert([itemData]);
-
-        if (error) throw error;
-        
-        toast({
-          title: 'تم الحفظ',
-          description: 'تم إضافة الصنف بنجاح',
-        });
+        restaurant_id: restaurant.id,
+      },
+      {
+        onSuccess: () => {
+          setItemForm({ name: '', description: '', price: '', category_id: '', image_url: '', image_public_id: '', is_available: true, display_order: 0 });
+          setTempItemId(null);
+          setShowItemForm(false);
+          setEditingItem(null);
+        },
       }
-      
-      // Reset form and refresh data
-      setItemForm({
-        name: '',
-        description: '',
-        price: '',
-        category_id: '',
-        image_url: '',
-        image_public_id: '',
-        is_available: true,
-        display_order: 0
-      });
-      setTempItemId(null);
-      setShowItemForm(false);
-      setEditingItem(null);
-      invalidateAdminData();
-      
-    } catch (error) {
-      console.error('Error saving item:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حفظ الصنف',
-        variant: 'destructive',
-      });
-    } finally {
-      setSaving(false);
-    }
+    );
   };
 
-  const handleDeleteCategory = async (categoryId: string) => {
-    setIsDeleting(true);
-    try {
-      const { error } = await supabase
-        .from('categories')
-        .delete()
-        .eq('id', categoryId);
-
-      if (error) throw error;
-      
-      toast({
-        title: 'تم الحذف',
-        description: 'تم حذف القسم بنجاح',
-      });
-      
-      setDeleteDialog({ open: false, type: 'category', id: '', name: '' });
-      invalidateAdminData();
-    } catch (error) {
-      console.error('Error deleting category:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حذف القسم',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDeleting(false);
-    }
+  const handleDeleteCategory = (categoryId: string) => {
+    deleteCategoryMut.mutate(categoryId, {
+      onSuccess: () => setDeleteDialog({ open: false, type: 'category', id: '', name: '' }),
+    });
   };
 
-  const handleDeleteItem = async (itemId: string) => {
-    setIsDeleting(true);
-    try {
-      // Find the item to get its image public_id
-      const item = menuItems.find(i => i.id === itemId);
-      
-      // Delete image from Cloudinary if exists
-      if (item?.image_public_id) {
-        try {
-          await deleteFromBunny(item.image_public_id);
-        } catch (error) {
-          console.error('Error deleting image from Bunny:', error);
-          // Continue with item deletion even if image deletion fails
-        }
-      }
-      
-      const { error } = await supabase
-        .from('menu_items')
-        .delete()
-        .eq('id', itemId);
-
-      if (error) throw error;
-      
-      toast({
-        title: 'تم الحذف',
-        description: 'تم حذف الصنف بنجاح',
-      });
-      
-      setDeleteDialog({ open: false, type: 'item', id: '', name: '' });
-      invalidateAdminData();
-    } catch (error) {
-      console.error('Error deleting item:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حذف الصنف',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDeleting(false);
-    }
+  const handleDeleteItem = (itemId: string) => {
+    const item = menuItems.find(i => i.id === itemId);
+    deleteItemMut.mutate(
+      { itemId, imagePublicId: item?.image_public_id },
+      { onSuccess: () => setDeleteDialog({ open: false, type: 'item', id: '', name: '' }) }
+    );
   };
 
   // Size management functions
-  const handleSaveSize = async () => {
+  const handleSaveSize = () => {
     if (!selectedItemId || !sizeForm.name.trim() || !sizeForm.price) return;
-    
-    setSaving(true);
-    try {
-      const sizeData = {
+    saveSizeMut.mutate(
+      {
+        id: editingSize?.id,
         menu_item_id: selectedItemId,
         name: sizeForm.name,
         price: parseFloat(sizeForm.price),
-        display_order: sizeForm.display_order
-      };
-
-      if (editingSize) {
-        // Update existing size
-        const { error } = await supabase
-          .from('sizes')
-          .update(sizeData)
-          .eq('id', editingSize.id);
-
-        if (error) throw error;
-        
-        toast({
-          title: 'تم التحديث',
-          description: 'تم تحديث الحجم بنجاح',
-        });
-      } else {
-        // Create new size
-        const { error } = await supabase
-          .from('sizes')
-          .insert([sizeData]);
-
-        if (error) throw error;
-        
-        toast({
-          title: 'تم الحفظ',
-          description: 'تم إضافة الحجم بنجاح',
-        });
+        display_order: sizeForm.display_order,
+      },
+      {
+        onSuccess: () => {
+          setSizeForm({ name: '', price: '', display_order: 0 });
+          setEditingSize(null);
+        },
       }
-      
-      // Reset form and refresh data
-      setSizeForm({ name: '', price: '', display_order: 0 });
-      setEditingSize(null);
-      invalidateAdminData();
-      
-    } catch (error) {
-      console.error('Error saving size:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حفظ الحجم',
-        variant: 'destructive',
-      });
-    } finally {
-      setSaving(false);
-    }
+    );
   };
 
-  const handleDeleteSize = async (sizeId: string) => {
-    setIsDeleting(true);
-    try {
-      const { error } = await supabase
-        .from('sizes')
-        .delete()
-        .eq('id', sizeId);
-
-      if (error) throw error;
-      
-      toast({
-        title: 'تم الحذف',
-        description: 'تم حذف الحجم بنجاح',
-      });
-      
-      setDeleteDialog({ open: false, type: 'size', id: '', name: '' });
-      invalidateAdminData();
-    } catch (error) {
-      console.error('Error deleting size:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حذف الحجم',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDeleting(false);
-    }
+  const handleDeleteSize = (sizeId: string) => {
+    deleteSizeMut.mutate(sizeId, {
+      onSuccess: () => setDeleteDialog({ open: false, type: 'size', id: '', name: '' }),
+    });
   };
 
   const openSizesDialog = (itemId: string) => {
@@ -480,87 +287,30 @@ export default function MenuManagement() {
   };
 
   // Extras management functions
-  const handleSaveExtra = async () => {
+  const handleSaveExtra = () => {
     if (!restaurant || !extraForm.name.trim() || !extraForm.price) return;
-    
-    setSaving(true);
-    try {
-      const extraData = {
+    saveExtraMut.mutate(
+      {
+        id: editingExtra?.id,
         restaurant_id: restaurant.id,
         name: extraForm.name,
         price: parseFloat(extraForm.price),
         display_order: extraForm.display_order,
-        is_available: true
-      };
-
-      if (editingExtra) {
-        const { error } = await supabase
-          .from('extras')
-          .update(extraData)
-          .eq('id', editingExtra.id);
-
-        if (error) throw error;
-        
-        toast({
-          title: 'تم التحديث',
-          description: 'تم تحديث الإضافة بنجاح',
-        });
-      } else {
-        const { error } = await supabase
-          .from('extras')
-          .insert([extraData]);
-
-        if (error) throw error;
-        
-        toast({
-          title: 'تم الحفظ',
-          description: 'تم إضافة الإضافة بنجاح',
-        });
+        is_available: true,
+      },
+      {
+        onSuccess: () => {
+          setExtraForm({ name: '', price: '', display_order: 0 });
+          setEditingExtra(null);
+        },
       }
-      
-      setExtraForm({ name: '', price: '', display_order: 0 });
-      setEditingExtra(null);
-      invalidateAdminData();
-      
-    } catch (error) {
-      console.error('Error saving extra:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حفظ الإضافة',
-        variant: 'destructive',
-      });
-    } finally {
-      setSaving(false);
-    }
+    );
   };
 
-  const handleDeleteExtra = async (extraId: string) => {
-    setIsDeleting(true);
-    try {
-      const { error } = await supabase
-        .from('extras')
-        .delete()
-        .eq('id', extraId);
-
-      if (error) throw error;
-      
-      toast({
-        title: 'تم الحذف',
-        description: 'تم حذف الإضافة بنجاح',
-      });
-      
-      setDeleteDialog({ open: false, type: 'extra', id: '', name: '' });
-      invalidateAdminData();
-    } catch (error) {
-      console.error('Error deleting extra:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حذف الإضافة',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDeleting(false);
-    }
+  const handleDeleteExtra = (extraId: string) => {
+    deleteExtraMut.mutate(extraId, {
+      onSuccess: () => setDeleteDialog({ open: false, type: 'extra', id: '', name: '' }),
+    });
   };
 
   // Handle drag end for categories
@@ -575,7 +325,6 @@ export default function MenuManagement() {
     const newCategories = arrayMove(categories, oldIndex, newIndex);
     queryClient.setQueryData(['admin_categories', restaurantId], newCategories);
     
-    // Update display_order in database
     try {
       const updates = newCategories.map((cat, index) => ({
         id: cat.id,
@@ -584,23 +333,13 @@ export default function MenuManagement() {
         restaurant_id: cat.restaurant_id,
       }));
       
-      const { error } = await supabase
-        .from('categories')
-        .upsert(updates);
-      
+      const { error } = await supabase.from('categories').upsert(updates);
       if (error) throw error;
       
-      toast({
-        title: 'تم الترتيب',
-        description: 'تم تحديث ترتيب الفئات',
-      });
+      toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب الفئات' });
     } catch (error) {
       console.error('Error updating category order:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تحديث الترتيب',
-        variant: 'destructive',
-      });
+      toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' });
       invalidateAdminData();
     }
   };
@@ -621,7 +360,6 @@ export default function MenuManagement() {
     
     const newFilteredItems = arrayMove(filteredItems, oldIndex, newIndex);
     
-    // Rebuild full menuItems array with new order
     const otherItems = menuItems.filter(item => 
       !item.name.toLowerCase().includes(itemSearchQuery.toLowerCase()) &&
       !item.description?.toLowerCase().includes(itemSearchQuery.toLowerCase())
@@ -630,7 +368,6 @@ export default function MenuManagement() {
     const newMenuItems = [...newFilteredItems, ...otherItems];
     queryClient.setQueryData(['admin_menu_items', restaurantId], newMenuItems);
     
-    // Update display_order in database
     try {
       const updates = newFilteredItems.map((item, index) => ({
         id: item.id,
@@ -645,23 +382,13 @@ export default function MenuManagement() {
         display_order: index,
       }));
       
-      const { error } = await supabase
-        .from('menu_items')
-        .upsert(updates);
-      
+      const { error } = await supabase.from('menu_items').upsert(updates);
       if (error) throw error;
       
-      toast({
-        title: 'تم الترتيب',
-        description: 'تم تحديث ترتيب الأصناف',
-      });
+      toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب الأصناف' });
     } catch (error) {
       console.error('Error updating item order:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تحديث الترتيب',
-        variant: 'destructive',
-      });
+      toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' });
       invalidateAdminData();
     }
   };
@@ -678,7 +405,6 @@ export default function MenuManagement() {
     const newExtras = arrayMove(extras, oldIndex, newIndex);
     queryClient.setQueryData(['admin_extras', restaurantId], newExtras);
     
-    // Update display_order in database
     try {
       const updates = newExtras.map((extra, index) => ({
         id: extra.id,
@@ -689,23 +415,13 @@ export default function MenuManagement() {
         display_order: index,
       }));
       
-      const { error } = await supabase
-        .from('extras')
-        .upsert(updates);
-      
+      const { error } = await supabase.from('extras').upsert(updates);
       if (error) throw error;
       
-      toast({
-        title: 'تم الترتيب',
-        description: 'تم تحديث ترتيب الإضافات',
-      });
+      toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب الإضافات' });
     } catch (error) {
       console.error('Error updating extras order:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تحديث الترتيب',
-        variant: 'destructive',
-      });
+      toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' });
       invalidateAdminData();
     }
   };
@@ -879,7 +595,6 @@ export default function MenuManagement() {
                 <Button onClick={() => {
                   setShowItemForm(!showItemForm);
                   if (!showItemForm) {
-                    // Generate temp ID for new item
                     setTempItemId(crypto.randomUUID());
                   }
                 }}>
@@ -1388,7 +1103,7 @@ export default function MenuManagement() {
           deleteDialog.type === 'item' ? 'حذف الصنف' :
           deleteDialog.type === 'size' ? 'حذف الحجم' : 'حذف الإضافة'
         }
-        description={`هل أنت متأكد من حذف "${deleteDialog.name}"؟ لا يمكن التراجع عن هذا الإجراء.`}
+        description={`هل أنت متأكد من حذف \"${deleteDialog.name}\"؟ لا يمكن التراجع عن هذا الإجراء.`}
         isLoading={isDeleting}
       />
     </div>
