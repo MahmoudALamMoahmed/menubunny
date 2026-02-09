@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Plus, Minus } from 'lucide-react';
-import { getMenuItemUrl } from '@/lib/cloudinary';
+import { getMenuItemUrl } from '@/lib/bunny';
 
 interface MenuItem {
   id: string;

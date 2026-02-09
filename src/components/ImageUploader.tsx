@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Upload, Trash2, Loader2, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
-import { uploadToCloudinary, deleteFromCloudinary, getOptimizedUrl, UploadProgress, ImageType } from '@/lib/cloudinary';
+import { uploadToBunny, deleteFromBunny, getOptimizedUrl, UploadProgress, ImageType } from '@/lib/bunny';
 import { cn } from '@/lib/utils';
 import ImageCropper from './ImageCropper';
 
@@ -90,11 +90,11 @@ export default function ImageUploader({
     try {
       // Delete old image if exists
       if (currentPublicId) {
-        await deleteFromCloudinary(currentPublicId);
+        await deleteFromBunny(currentPublicId);
       }
 
       // Upload new image with progress tracking
-      const result = await uploadToCloudinary(file, publicId, imageType, (progress) => {
+      const result = await uploadToBunny(file, publicId, imageType, (progress) => {
         setUploadProgress(progress);
       });
       
@@ -160,7 +160,7 @@ export default function ImageUploader({
 
     setDeleting(true);
     try {
-      await deleteFromCloudinary(currentPublicId);
+      await deleteFromBunny(currentPublicId);
       onDelete();
     } catch (error) {
       console.error('Delete error:', error);

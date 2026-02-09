@@ -1,1 +1,7 @@
 project_id = "lpfzrsdqyqesjzfaxqwq"
+
+[functions.bunny-upload]
+verify_jwt = false
+
+[functions.bunny-delete]
+verify_jwt = false
