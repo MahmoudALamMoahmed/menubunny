@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import ImageUploader from '@/components/ImageUploader';
 import { getCoverPublicId, getLogoPublicId } from '@/lib/bunny';
 import { 
@@ -41,6 +42,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
@@ -161,6 +163,7 @@ export default function Dashboard() {
       }
       
       await fetchRestaurantData();
+      queryClient.invalidateQueries({ queryKey: ['restaurant', username] });
     } catch (error) {
       console.error('Error saving restaurant:', error);
       toast({
