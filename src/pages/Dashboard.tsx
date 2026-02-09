@@ -6,35 +6,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
 import { useRestaurant } from '@/hooks/useRestaurantData';
+import { useSaveRestaurant } from '@/hooks/useAdminMutations';
 import ImageUploader from '@/components/ImageUploader';
 import { getCoverPublicId, getLogoPublicId } from '@/lib/bunny';
 import { 
-  Settings,
-  Menu,
-  BarChart3,
-  ShoppingBag,
-  ArrowLeft,
-  Save,
-  Eye,
-  Building2,
-  Store
+  Settings, Menu, BarChart3, ShoppingBag, ArrowLeft, Save, Eye, Building2, Store
 } from 'lucide-react';
 
 export default function Dashboard() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
   
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  const saveRestaurantMut = useSaveRestaurant(username);
   
-  const [saving, setSaving] = useState(false);
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -50,14 +38,12 @@ export default function Dashboard() {
     logo_public_id: ''
   });
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
     }
   }, [authLoading, user, navigate]);
 
-  // Sync form data when restaurant loads
   useEffect(() => {
     if (restaurant) {
       setFormData({
@@ -78,65 +64,14 @@ export default function Dashboard() {
     }
   }, [restaurant, restaurantLoading, username]);
 
-  // Check ownership
   const isOwner = restaurant && user && restaurant.owner_id === user.id;
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!user) return;
-    
-    setSaving(true);
-    
-    try {
-      if (restaurant) {
-        const { error } = await supabase
-          .from('restaurants')
-          .update(formData)
-          .eq('id', restaurant.id);
-
-        if (error) throw error;
-
-        toast({
-          title: 'تم الحفظ بنجاح',
-          description: 'تم تحديث بيانات المطعم',
-        });
-        setInfoDialogOpen(false);
-      } else {
-        const { data, error } = await supabase
-          .from('restaurants')
-          .insert([{ ...formData, owner_id: user.id }])
-          .select()
-          .single();
-
-        if (error) {
-          if (error.code === '23505') {
-            toast({
-              title: 'خطأ',
-              description: 'اسم المطعم في الرابط مُستخدم بالفعل',
-              variant: 'destructive',
-            });
-            return;
-          }
-          throw error;
-        }
-
-        toast({
-          title: 'تم إنشاء المطعم بنجاح',
-          description: 'يمكنك الآن إضافة عناصر القائمة',
-        });
-        setInfoDialogOpen(false);
-      }
-      
-      queryClient.invalidateQueries({ queryKey: ['restaurant', username] });
-    } catch (error) {
-      console.error('Error saving restaurant:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حفظ البيانات',
-        variant: 'destructive',
-      });
-    } finally {
-      setSaving(false);
-    }
+    saveRestaurantMut.mutate(
+      { id: restaurant?.id, data: formData, ownerId: user.id },
+      { onSuccess: () => setInfoDialogOpen(false) }
+    );
   };
 
   if (authLoading || restaurantLoading) {
@@ -157,11 +92,7 @@ export default function Dashboard() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/')}
-              >
+              <Button variant="outline" size="sm" onClick={() => navigate('/')}>
                 <ArrowLeft className="w-4 h-4 ml-2" />
                 العودة
               </Button>
@@ -170,18 +101,12 @@ export default function Dashboard() {
                   {restaurant ? 'لوحة التحكم' : 'إنشاء مطعم جديد'}
                 </h1>
                 <p className="text-gray-600 text-sm">
-                  {restaurant 
-                    ? `${restaurant.name}` 
-                    : 'أنشئ مطعمك الإلكتروني الآن'
-                  }
+                  {restaurant ? `${restaurant.name}` : 'أنشئ مطعمك الإلكتروني الآن'}
                 </p>
               </div>
             </div>
             {restaurant && (
-              <Button
-                variant="outline"
-                onClick={() => navigate(`/${restaurant.username}`)}
-              >
+              <Button variant="outline" onClick={() => navigate(`/${restaurant.username}`)}>
                 <Eye className="w-4 h-4 ml-2" />
                 عرض المطعم
               </Button>
@@ -192,84 +117,44 @@ export default function Dashboard() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
-          {/* Quick Actions */}
           <Card>
             <CardHeader>
               <CardTitle>إجراءات سريعة</CardTitle>
-              <CardDescription>
-                اختر ما تريد إدارته
-              </CardDescription>
+              <CardDescription>اختر ما تريد إدارته</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                onClick={() => setInfoDialogOpen(true)}
-              >
+              <Button variant="outline" className="w-full justify-start" onClick={() => setInfoDialogOpen(true)}>
                 <Store className="w-4 h-4 ml-2" />
                 إدارة معلومات المطعم
               </Button>
-              
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                disabled={!restaurant}
-                onClick={() => restaurant && navigate(`/${restaurant.username}/menu-management`)}
-              >
+              <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/menu-management`)}>
                 <Menu className="w-4 h-4 ml-2" />
                 إدارة القائمة
               </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                disabled={!restaurant}
-                onClick={() => restaurant && navigate(`/${restaurant.username}/footer-management`)}
-              >
+              <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/footer-management`)}>
                 <Settings className="w-4 h-4 ml-2" />
                 إدارة الفوتر
               </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                disabled={!restaurant}
-                onClick={() => restaurant && navigate(`/${restaurant.username}/branches-management`)}
-              >
+              <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/branches-management`)}>
                 <Building2 className="w-4 h-4 ml-2" />
                 إدارة الفروع
               </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                disabled={!restaurant}
-                onClick={() => restaurant && navigate(`/${restaurant.username}/orders`)}
-              >
+              <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/orders`)}>
                 <ShoppingBag className="w-4 h-4 ml-2" />
                 الطلبات
               </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start"
-                disabled={!restaurant}
-                onClick={() => restaurant && navigate(`/${restaurant.username}/analytics`)}
-              >
+              <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/analytics`)}>
                 <BarChart3 className="w-4 h-4 ml-2" />
                 التقارير
               </Button>
             </CardContent>
           </Card>
 
-          {/* Help */}
           <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>مساعدة</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>مساعدة</CardTitle></CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600 mb-3">
-                هل تحتاج مساعدة في إعداد مطعمك؟
-              </p>
-              <Button variant="outline" size="sm" className="w-full">
-                تواصل معنا
-              </Button>
+              <p className="text-sm text-gray-600 mb-3">هل تحتاج مساعدة في إعداد مطعمك؟</p>
+              <Button variant="outline" size="sm" className="w-full">تواصل معنا</Button>
             </CardContent>
           </Card>
         </div>
@@ -283,121 +168,48 @@ export default function Dashboard() {
               <Store className="w-5 h-5" />
               {restaurant ? 'إدارة معلومات المطعم' : 'إنشاء مطعم جديد'}
             </DialogTitle>
-            <DialogDescription>
-              أدخل البيانات الأساسية لمطعمك
-            </DialogDescription>
+            <DialogDescription>أدخل البيانات الأساسية لمطعمك</DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">اسم المطعم *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="مطعم الأصالة"
-                  required
-                />
+                <Input id="name" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} placeholder="مطعم الأصالة" required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="username">اسم المطعم في الرابط *</Label>
                 <div className="relative">
-                  <Input
-                    id="username"
-                    value={formData.username}
-                    onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') }))}
-                    placeholder="hany"
-                    required
-                    disabled={!!restaurant}
-                  />
-                  <div className="text-xs text-gray-500 mt-1">
-                    سيكون رابط مطعمك: /{formData.username}
-                  </div>
+                  <Input id="username" value={formData.username} onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') }))} placeholder="hany" required disabled={!!restaurant} />
+                  <div className="text-xs text-gray-500 mt-1">سيكون رابط مطعمك: /{formData.username}</div>
                 </div>
               </div>
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="description">وصف المطعم</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="نقدم أفضل المأكولات الشرقية والغربية..."
-                rows={3}
-              />
+              <Textarea id="description" value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} placeholder="نقدم أفضل المأكولات الشرقية والغربية..." rows={3} />
             </div>
 
             {restaurant && (
               <div className="grid md:grid-cols-2 gap-4">
-                <ImageUploader
-                  label="صورة الغلاف"
-                  currentImageUrl={formData.cover_image_url}
-                  currentPublicId={formData.cover_image_public_id}
-                  publicId={getCoverPublicId(restaurant.username)}
-                  aspectRatio="cover"
-                  imageType="cover"
-                  onUploadComplete={(url, publicId) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      cover_image_url: url,
-                      cover_image_public_id: publicId
-                    }));
-                  }}
-                  onDelete={() => {
-                    setFormData(prev => ({
-                      ...prev,
-                      cover_image_url: '',
-                      cover_image_public_id: ''
-                    }));
-                  }}
-                />
-                <ImageUploader
-                  label="شعار المطعم"
-                  currentImageUrl={formData.logo_url}
-                  currentPublicId={formData.logo_public_id}
-                  publicId={getLogoPublicId(restaurant.username)}
-                  aspectRatio="logo"
-                  imageType="logo"
-                  onUploadComplete={(url, publicId) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      logo_url: url,
-                      logo_public_id: publicId
-                    }));
-                  }}
-                  onDelete={() => {
-                    setFormData(prev => ({
-                      ...prev,
-                      logo_url: '',
-                      logo_public_id: ''
-                    }));
-                  }}
-                />
+                <ImageUploader label="صورة الغلاف" currentImageUrl={formData.cover_image_url} currentPublicId={formData.cover_image_public_id} publicId={getCoverPublicId(restaurant.username)} aspectRatio="cover" imageType="cover" onUploadComplete={(url, publicId) => setFormData(prev => ({ ...prev, cover_image_url: url, cover_image_public_id: publicId }))} onDelete={() => setFormData(prev => ({ ...prev, cover_image_url: '', cover_image_public_id: '' }))} />
+                <ImageUploader label="شعار المطعم" currentImageUrl={formData.logo_url} currentPublicId={formData.logo_public_id} publicId={getLogoPublicId(restaurant.username)} aspectRatio="logo" imageType="logo" onUploadComplete={(url, publicId) => setFormData(prev => ({ ...prev, logo_url: url, logo_public_id: publicId }))} onDelete={() => setFormData(prev => ({ ...prev, logo_url: '', logo_public_id: '' }))} />
               </div>
             )}
             
             {!restaurant && (
-              <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
-                ℹ️ يمكنك رفع صور الغلاف والشعار بعد إنشاء المطعم
-              </p>
+              <p className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">ℹ️ يمكنك رفع صور الغلاف والشعار بعد إنشاء المطعم</p>
             )}
 
             <div className="space-y-2">
               <Label htmlFor="facebook_url">رابط صفحة الفيسبوك</Label>
-              <Input
-                id="facebook_url"
-                value={formData.facebook_url}
-                onChange={(e) => setFormData(prev => ({ ...prev, facebook_url: e.target.value }))}
-                placeholder="https://facebook.com/restaurant-name"
-              />
+              <Input id="facebook_url" value={formData.facebook_url} onChange={(e) => setFormData(prev => ({ ...prev, facebook_url: e.target.value }))} placeholder="https://facebook.com/restaurant-name" />
             </div>
 
-            {/* زر الحفظ داخل الديالوج */}
             <div className="flex justify-end pt-4 border-t">
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? (
+              <Button onClick={handleSave} disabled={saveRestaurantMut.isPending}>
+                {saveRestaurantMut.isPending ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
                     جاري الحفظ...

@@ -11,6 +11,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useAdminBranches, useAdminDeliveryAreas } from '@/hooks/useAdminData';
+import {
+  useSaveBranch, useDeleteBranch, useToggleBranchActive,
+  useSaveDeliveryArea, useDeleteDeliveryArea,
+} from '@/hooks/useAdminMutations';
 import { 
   ArrowLeft, 
   Plus, 
@@ -98,7 +102,6 @@ function SortableBranchCard({
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {/* Drag Handle */}
               <button
                 className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
                 {...attributes}
@@ -134,7 +137,6 @@ function SortableBranchCard({
             </div>
           )}
           
-          {/* عرض عدد المناطق */}
           <div className="flex items-center gap-2 text-sm">
             <Navigation className="w-4 h-4 text-green-500" />
             <span className="text-gray-600">
@@ -263,8 +265,6 @@ interface Branch {
   orange_cash?: string | null;
 }
 
-// Restaurant interface removed - using useRestaurant hook
-
 export default function BranchesManagement() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
@@ -280,8 +280,14 @@ export default function BranchesManagement() {
   const { data: deliveryAreas = [], isLoading: areasLoading } = useAdminDeliveryAreas(branchIds);
   
   const dataLoading = branchesLoading || areasLoading;
+
+  // Mutations
+  const saveBranchMut = useSaveBranch(restaurantId);
+  const deleteBranchMut = useDeleteBranch(restaurantId);
+  const toggleActiveMut = useToggleBranchActive(restaurantId);
+  const saveAreaMut = useSaveDeliveryArea(restaurantId);
+  const deleteAreaMut = useDeleteDeliveryArea(restaurantId);
   
-  const [saving, setSaving] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [formData, setFormData] = useState({
@@ -302,15 +308,12 @@ export default function BranchesManagement() {
   const [selectedBranchForAreas, setSelectedBranchForAreas] = useState<Branch | null>(null);
   const [areaForm, setAreaForm] = useState({ name: '', delivery_price: 0 });
   const [editingArea, setEditingArea] = useState<DeliveryArea | null>(null);
-  const [savingArea, setSavingArea] = useState(false);
 
   // Delete confirmation dialogs
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [branchToDelete, setBranchToDelete] = useState<string | null>(null);
-  const [deletingBranch, setDeletingBranch] = useState(false);
   const [deleteAreaDialogOpen, setDeleteAreaDialogOpen] = useState(false);
   const [areaToDelete, setAreaToDelete] = useState<string | null>(null);
-  const [deletingArea, setDeletingArea] = useState(false);
 
   // Search and filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -337,11 +340,10 @@ export default function BranchesManagement() {
     }
   }, [authLoading, user, navigate]);
 
-  // Helper to invalidate all branches admin queries
+  // Helper to invalidate (for DnD reorder)
   const invalidateBranchesData = () => {
     queryClient.invalidateQueries({ queryKey: ['admin_branches', restaurantId] });
     queryClient.invalidateQueries({ queryKey: ['admin_delivery_areas'] });
-    // Also invalidate public cache
     queryClient.invalidateQueries({ queryKey: ['branches', restaurantId] });
     queryClient.invalidateQueries({ queryKey: ['delivery_areas'] });
   };
@@ -379,7 +381,7 @@ export default function BranchesManagement() {
     setShowDialog(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!restaurant || !formData.name.trim()) {
       toast({
         title: 'خطأ',
@@ -389,53 +391,20 @@ export default function BranchesManagement() {
       return;
     }
 
-    setSaving(true);
-
-    try {
-      if (editingBranch) {
-        // تحديث فرع موجود
-        const { error } = await supabase
-          .from('branches')
-          .update(formData)
-          .eq('id', editingBranch.id);
-
-        if (error) throw error;
-
-        toast({
-          title: 'تم التحديث',
-          description: 'تم تحديث بيانات الفرع بنجاح',
-        });
-      } else {
-        // إضافة فرع جديد
-        const { error } = await supabase
-          .from('branches')
-          .insert([{
-            ...formData,
-            restaurant_id: restaurant.id,
-            display_order: branches.length
-          }]);
-
-        if (error) throw error;
-
-        toast({
-          title: 'تم الإضافة',
-          description: 'تم إضافة الفرع بنجاح',
-        });
+    saveBranchMut.mutate(
+      {
+        id: editingBranch?.id,
+        ...formData,
+        restaurant_id: restaurant.id,
+        display_order: editingBranch ? undefined : branches.length,
+      },
+      {
+        onSuccess: () => {
+          setShowDialog(false);
+          resetForm();
+        },
       }
-
-      setShowDialog(false);
-      resetForm();
-      invalidateBranchesData();
-    } catch (error) {
-      console.error('Error saving branch:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حفظ البيانات',
-        variant: 'destructive',
-      });
-    } finally {
-      setSaving(false);
-    }
+    );
   };
 
   const openDeleteDialog = (branchId: string) => {
@@ -443,51 +412,18 @@ export default function BranchesManagement() {
     setDeleteDialogOpen(true);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     if (!branchToDelete) return;
-
-    setDeletingBranch(true);
-    try {
-      const { error } = await supabase
-        .from('branches')
-        .delete()
-        .eq('id', branchToDelete);
-
-      if (error) throw error;
-
-      toast({
-        title: 'تم الحذف',
-        description: 'تم حذف الفرع بنجاح',
-      });
-
-      setDeleteDialogOpen(false);
-      setBranchToDelete(null);
-      invalidateBranchesData();
-    } catch (error) {
-      console.error('Error deleting branch:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حذف الفرع',
-        variant: 'destructive',
-      });
-    } finally {
-      setDeletingBranch(false);
-    }
+    deleteBranchMut.mutate(branchToDelete, {
+      onSuccess: () => {
+        setDeleteDialogOpen(false);
+        setBranchToDelete(null);
+      },
+    });
   };
 
-  const toggleActive = async (branch: Branch) => {
-    try {
-      const { error } = await supabase
-        .from('branches')
-        .update({ is_active: !branch.is_active })
-        .eq('id', branch.id);
-
-      if (error) throw error;
-
-      invalidateBranchesData();
-    } catch (error) {
-      console.error('Error toggling branch status:', error);
-    }
+  const toggleActive = (branch: Branch) => {
+    toggleActiveMut.mutate({ branchId: branch.id, isActive: !branch.is_active });
   };
 
   // DnD sensors
@@ -521,7 +457,6 @@ export default function BranchesManagement() {
     const newBranches = arrayMove(branches, oldIndex, newIndex);
     queryClient.setQueryData(['admin_branches', restaurantId], newBranches);
     
-    // Update display_order in database
     try {
       const updates = newBranches.map((branch, index) => ({
         id: branch.id,
@@ -530,24 +465,13 @@ export default function BranchesManagement() {
         display_order: index,
       }));
       
-      const { error } = await supabase
-        .from('branches')
-        .upsert(updates);
-      
+      const { error } = await supabase.from('branches').upsert(updates);
       if (error) throw error;
       
-      toast({
-        title: 'تم الترتيب',
-        description: 'تم تحديث ترتيب الفروع',
-      });
+      toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب الفروع' });
     } catch (error) {
       console.error('Error updating branch order:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تحديث الترتيب',
-        variant: 'destructive',
-      });
-      // Revert on error
+      toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' });
       invalidateBranchesData();
     }
   };
@@ -567,7 +491,7 @@ export default function BranchesManagement() {
     return deliveryAreas.filter(area => area.branch_id === branchId);
   };
 
-  const handleSaveArea = async () => {
+  const handleSaveArea = () => {
     if (!selectedBranchForAreas || !areaForm.name.trim()) {
       toast({
         title: 'خطأ',
@@ -577,55 +501,19 @@ export default function BranchesManagement() {
       return;
     }
 
-    setSavingArea(true);
-
-    try {
-      if (editingArea) {
-        const { error } = await supabase
-          .from('delivery_areas')
-          .update({ 
-            name: areaForm.name, 
-            delivery_price: areaForm.delivery_price 
-          })
-          .eq('id', editingArea.id);
-
-        if (error) throw error;
-
-        toast({
-          title: 'تم التحديث',
-          description: 'تم تحديث بيانات المنطقة بنجاح',
-        });
-      } else {
-        const branchAreas = getBranchAreas(selectedBranchForAreas.id);
-        const { error } = await supabase
-          .from('delivery_areas')
-          .insert([{
-            branch_id: selectedBranchForAreas.id,
-            name: areaForm.name,
-            delivery_price: areaForm.delivery_price,
-            display_order: branchAreas.length
-          }]);
-
-        if (error) throw error;
-
-        toast({
-          title: 'تم الإضافة',
-          description: 'تم إضافة المنطقة بنجاح',
-        });
+    const branchAreas = getBranchAreas(selectedBranchForAreas.id);
+    saveAreaMut.mutate(
+      {
+        id: editingArea?.id,
+        branch_id: selectedBranchForAreas.id,
+        name: areaForm.name,
+        delivery_price: areaForm.delivery_price,
+        display_order: editingArea ? undefined : branchAreas.length,
+      },
+      {
+        onSuccess: () => resetAreaForm(),
       }
-
-      resetAreaForm();
-      invalidateBranchesData();
-    } catch (error) {
-      console.error('Error saving area:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حفظ البيانات',
-        variant: 'destructive',
-      });
-    } finally {
-      setSavingArea(false);
-    }
+    );
   };
 
   // Handle drag end for delivery areas
@@ -640,12 +528,10 @@ export default function BranchesManagement() {
     
     const newAreas = arrayMove(branchAreas, oldIndex, newIndex);
     
-    // Optimistic update for delivery areas
     const updatedAreas = deliveryAreas.filter(a => a.branch_id !== selectedBranchForAreas.id);
     const reorderedAreas = newAreas.map((area, index) => ({ ...area, display_order: index }));
     queryClient.setQueryData(['admin_delivery_areas', branchIds], [...updatedAreas, ...reorderedAreas]);
     
-    // Update display_order in database
     try {
       const updates = newAreas.map((area, index) => ({
         id: area.id,
@@ -655,23 +541,13 @@ export default function BranchesManagement() {
         display_order: index,
       }));
       
-      const { error } = await supabase
-        .from('delivery_areas')
-        .upsert(updates);
-      
+      const { error } = await supabase.from('delivery_areas').upsert(updates);
       if (error) throw error;
       
-      toast({
-        title: 'تم الترتيب',
-        description: 'تم تحديث ترتيب المناطق',
-      });
+      toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب المناطق' });
     } catch (error) {
       console.error('Error updating area order:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تحديث الترتيب',
-        variant: 'destructive',
-      });
+      toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' });
       invalidateBranchesData();
     }
   };
@@ -681,36 +557,14 @@ export default function BranchesManagement() {
     setDeleteAreaDialogOpen(true);
   };
 
-  const handleConfirmDeleteArea = async () => {
+  const handleConfirmDeleteArea = () => {
     if (!areaToDelete) return;
-
-    setDeletingArea(true);
-    try {
-      const { error } = await supabase
-        .from('delivery_areas')
-        .delete()
-        .eq('id', areaToDelete);
-
-      if (error) throw error;
-
-      toast({
-        title: 'تم الحذف',
-        description: 'تم حذف المنطقة بنجاح',
-      });
-
-      setDeleteAreaDialogOpen(false);
-      setAreaToDelete(null);
-      invalidateBranchesData();
-    } catch (error) {
-      console.error('Error deleting area:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حذف المنطقة',
-        variant: 'destructive',
-      });
-    } finally {
-      setDeletingArea(false);
-    }
+    deleteAreaMut.mutate(areaToDelete, {
+      onSuccess: () => {
+        setDeleteAreaDialogOpen(false);
+        setAreaToDelete(null);
+      },
+    });
   };
 
   const openEditArea = (area: DeliveryArea) => {
@@ -729,6 +583,16 @@ export default function BranchesManagement() {
     );
   }
 
+  if (!restaurant) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
+        <div className="text-center">
+          <p className="text-gray-600">المطعم غير موجود</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
       {/* Header */}
@@ -739,357 +603,307 @@ export default function BranchesManagement() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/${username}/dashboard`)}
+                onClick={() => navigate(`/${restaurant.username}/dashboard`)}
               >
                 <ArrowLeft className="w-4 h-4 ml-2" />
-                العودة
+                العودة لوحة التحكم
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">إدارة الفروع</h1>
-                <p className="text-gray-600 text-sm">
-                  {restaurant?.name}
-                </p>
+                <p className="text-gray-600 text-sm">إدارة فروع {restaurant.name}</p>
               </div>
             </div>
-            <Dialog open={showDialog} onOpenChange={(open) => {
-              setShowDialog(open);
-              if (!open) resetForm();
-            }}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 ml-2" />
-                  إضافة فرع
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md max-h-[90vh] flex flex-col" dir="rtl">
-                <DialogHeader className="flex-shrink-0">
-                  <DialogTitle>
-                    {editingBranch ? 'تعديل الفرع' : 'إضافة فرع جديد'}
-                  </DialogTitle>
-                </DialogHeader>
-                <ScrollArea className="flex-1 overflow-auto pl-3" dir="rtl">
-                <div className="space-y-4 px-1">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">اسم الفرع *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="فرع المعادي"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="address">العنوان</Label>
-                    <Input
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                      placeholder="شارع 9، المعادي، القاهرة"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">الهاتف</Label>
-                      <Input
-                        id="phone"
-                        value={formData.phone}
-                        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                        placeholder="01012345678"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="whatsapp_phone">واتساب</Label>
-                      <Input
-                        id="whatsapp_phone"
-                        value={formData.whatsapp_phone}
-                        onChange={(e) => setFormData(prev => ({ ...prev, whatsapp_phone: e.target.value }))}
-                        placeholder="01012345678"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="delivery_phone">رقم الدليفري</Label>
-                    <Input
-                      id="delivery_phone"
-                      value={formData.delivery_phone}
-                      onChange={(e) => setFormData(prev => ({ ...prev, delivery_phone: e.target.value }))}
-                      placeholder="01012345678"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="working_hours">ساعات العمل</Label>
-                    <Input
-                      id="working_hours"
-                      value={formData.working_hours}
-                      onChange={(e) => setFormData(prev => ({ ...prev, working_hours: e.target.value }))}
-                      placeholder="يومياً من 9 صباحاً إلى 11 مساءً"
-                    />
-                  </div>
-                  
-                  {/* أرقام الدفع الإلكتروني */}
-                  <div className="border-t pt-4 mt-4">
-                    <h4 className="font-medium text-sm mb-3 text-gray-700">أرقام الدفع الإلكتروني (اختياري)</h4>
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="vodafone_cash" className="text-sm flex items-center gap-2">
-                          <span className="w-3 h-3 bg-red-500 rounded-full"></span>
-                          فودافون كاش
-                        </Label>
-                        <Input
-                          id="vodafone_cash"
-                          value={formData.vodafone_cash}
-                          onChange={(e) => setFormData(prev => ({ ...prev, vodafone_cash: e.target.value }))}
-                          placeholder="01012345678"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="etisalat_cash" className="text-sm flex items-center gap-2">
-                          <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                          اتصالات كاش
-                        </Label>
-                        <Input
-                          id="etisalat_cash"
-                          value={formData.etisalat_cash}
-                          onChange={(e) => setFormData(prev => ({ ...prev, etisalat_cash: e.target.value }))}
-                          placeholder="01112345678"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="orange_cash" className="text-sm flex items-center gap-2">
-                          <span className="w-3 h-3 bg-orange-500 rounded-full"></span>
-                          اورانج كاش
-                        </Label>
-                        <Input
-                          id="orange_cash"
-                          value={formData.orange_cash}
-                          onChange={(e) => setFormData(prev => ({ ...prev, orange_cash: e.target.value }))}
-                          placeholder="01212345678"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="is_active">فعال</Label>
-                    <Switch
-                      id="is_active"
-                      checked={formData.is_active}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
-                    />
-                  </div>
-                  <Button 
-                    className="w-full" 
-                    onClick={handleSave}
-                    disabled={saving}
-                  >
-                    {saving ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
-                        جاري الحفظ...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4 ml-2" />
-                        حفظ
-                      </>
-                    )}
-                  </Button>
-                </div>
-                </ScrollArea>
-              </DialogContent>
-            </Dialog>
+
+            <Button onClick={() => { resetForm(); setShowDialog(true); }}>
+              <Plus className="w-4 h-4 ml-2" />
+              إضافة فرع
+            </Button>
           </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Search and Filter */}
-        {branches.length > 0 && (
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                placeholder="ابحث بالاسم أو العنوان..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={(value: 'all' | 'active' | 'inactive') => setStatusFilter(value)}>
-              <SelectTrigger className="w-full sm:w-40">
-                <Filter className="w-4 h-4 ml-2" />
-                <SelectValue placeholder="الحالة" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">جميع الفروع</SelectItem>
-                <SelectItem value="active">الفروع الفعالة</SelectItem>
-                <SelectItem value="inactive">الفروع المعطلة</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Search and filter bar */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="ابحث عن فرع..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-9"
+            />
           </div>
-        )}
+          <Select value={statusFilter} onValueChange={(v: 'all' | 'active' | 'inactive') => setStatusFilter(v)}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <Filter className="w-4 h-4 ml-2" />
+              <SelectValue placeholder="جميع الفروع" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">جميع الفروع</SelectItem>
+              <SelectItem value="active">الفروع النشطة</SelectItem>
+              <SelectItem value="inactive">الفروع غير النشطة</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-        {branches.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Building2 className="w-16 h-16 text-gray-300 mb-4" />
-              <h3 className="text-lg font-medium text-gray-600 mb-2">لا توجد فروع</h3>
-              <p className="text-gray-500 text-sm mb-4">قم بإضافة فروع مطعمك مع عناوينها وأرقام التواصل</p>
-              <Button onClick={() => setShowDialog(true)}>
-                <Plus className="w-4 h-4 ml-2" />
-                إضافة فرع
-              </Button>
-            </CardContent>
-          </Card>
-        ) : filteredBranches.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Search className="w-16 h-16 text-gray-300 mb-4" />
-              <h3 className="text-lg font-medium text-gray-600 mb-2">لا توجد نتائج</h3>
-              <p className="text-gray-500 text-sm mb-4">لم يتم العثور على فروع مطابقة للبحث</p>
-              <Button variant="outline" onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}>
-                إعادة تعيين البحث
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <DndContext 
-            sensors={sensors} 
-            collisionDetection={closestCenter} 
-            onDragStart={handleBranchDragStart}
-            onDragEnd={handleBranchDragEnd}
+        {/* Branches Grid with DnD */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleBranchDragStart}
+          onDragEnd={handleBranchDragEnd}
+        >
+          <SortableContext
+            items={filteredBranches.map(b => b.id)}
+            strategy={rectSortingStrategy}
           >
-            <SortableContext 
-              items={filteredBranches.map(b => b.id)} 
-              strategy={rectSortingStrategy}
-            >
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredBranches.map((branch) => (
-                  <SortableBranchCard
-                    key={branch.id}
-                    branch={branch}
-                    onToggleActive={toggleActive}
-                    onEdit={openEditDialog}
-                    onDelete={openDeleteDialog}
-                    onOpenAreas={openAreasDialog}
-                    areasCount={getBranchAreas(branch.id).length}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-            
-            {/* Drag Overlay for smooth animations */}
-            <DragOverlay>
-              {activeDragBranch ? (
-                <div className="rotate-3 scale-105">
-                  <Card className="shadow-2xl ring-2 ring-primary bg-white">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <GripVertical className="w-5 h-5 text-primary" />
-                          <CardTitle className="text-lg">{activeDragBranch.name}</CardTitle>
-                        </div>
-                        <Switch checked={activeDragBranch.is_active} disabled />
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {activeDragBranch.address && (
-                        <div className="flex items-start gap-2 text-sm">
-                          <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-                          <span className="text-gray-600">{activeDragBranch.address}</span>
-                        </div>
-                      )}
-                      {activeDragBranch.phone && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Phone className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-600">{activeDragBranch.phone}</span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredBranches.map((branch) => (
+                <SortableBranchCard
+                  key={branch.id}
+                  branch={branch}
+                  onToggleActive={toggleActive}
+                  onEdit={openEditDialog}
+                  onDelete={openDeleteDialog}
+                  onOpenAreas={openAreasDialog}
+                  areasCount={getBranchAreas(branch.id).length}
+                />
+              ))}
+            </div>
+          </SortableContext>
+
+          <DragOverlay>
+            {activeDragBranch ? (
+              <Card className="shadow-2xl ring-2 ring-primary opacity-90">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">{activeDragBranch.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {activeDragBranch.address && (
+                    <div className="flex items-start gap-2 text-sm">
+                      <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+                      <span className="text-gray-600">{activeDragBranch.address}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+
+        {filteredBranches.length === 0 && (
+          <div className="text-center py-12">
+            <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 text-lg">
+              {searchQuery || statusFilter !== 'all' 
+                ? 'لا توجد فروع مطابقة للبحث' 
+                : 'لم يتم إضافة فروع بعد'
+              }
+            </p>
+            {!searchQuery && statusFilter === 'all' && (
+              <Button className="mt-4" onClick={() => { resetForm(); setShowDialog(true); }}>
+                <Plus className="w-4 h-4 ml-2" />
+                إضافة فرع جديد
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Dialog إدارة مناطق التوصيل */}
-      <Dialog open={showAreasDialog} onOpenChange={(open) => {
-        setShowAreasDialog(open);
-        if (!open) {
-          resetAreaForm();
-          setSelectedBranchForAreas(null);
-        }
-      }}>
+      {/* Add/Edit Branch Dialog */}
+      <Dialog open={showDialog} onOpenChange={(open) => { setShowDialog(open); if (!open) resetForm(); }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingBranch ? 'تعديل الفرع' : 'إضافة فرع جديد'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="branchName">اسم الفرع *</Label>
+              <Input
+                id="branchName"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="مثال: فرع المعادي"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="branchAddress">العنوان</Label>
+              <Input
+                id="branchAddress"
+                value={formData.address}
+                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                placeholder="العنوان التفصيلي"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="branchPhone">رقم الهاتف</Label>
+                <Input
+                  id="branchPhone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="01xxxxxxxxx"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="branchDeliveryPhone">رقم الدليفري</Label>
+                <Input
+                  id="branchDeliveryPhone"
+                  value={formData.delivery_phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, delivery_phone: e.target.value }))}
+                  placeholder="01xxxxxxxxx"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="branchWhatsapp">رقم الواتساب</Label>
+              <Input
+                id="branchWhatsapp"
+                value={formData.whatsapp_phone}
+                onChange={(e) => setFormData(prev => ({ ...prev, whatsapp_phone: e.target.value }))}
+                placeholder="01xxxxxxxxx"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="branchHours">مواعيد العمل</Label>
+              <Input
+                id="branchHours"
+                value={formData.working_hours}
+                onChange={(e) => setFormData(prev => ({ ...prev, working_hours: e.target.value }))}
+                placeholder="يومياً من 9 ص إلى 11 م"
+              />
+            </div>
+
+            {/* Payment Methods */}
+            <div className="space-y-3 border-t pt-4">
+              <Label className="text-base font-semibold">أرقام المحافظ الإلكترونية</Label>
+              <div className="space-y-2">
+                <Label htmlFor="vodafone">فودافون كاش</Label>
+                <Input
+                  id="vodafone"
+                  value={formData.vodafone_cash}
+                  onChange={(e) => setFormData(prev => ({ ...prev, vodafone_cash: e.target.value }))}
+                  placeholder="01xxxxxxxxx"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="etisalat">اتصالات كاش</Label>
+                <Input
+                  id="etisalat"
+                  value={formData.etisalat_cash}
+                  onChange={(e) => setFormData(prev => ({ ...prev, etisalat_cash: e.target.value }))}
+                  placeholder="01xxxxxxxxx"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="orange">أورانج كاش</Label>
+                <Input
+                  id="orange"
+                  value={formData.orange_cash}
+                  onChange={(e) => setFormData(prev => ({ ...prev, orange_cash: e.target.value }))}
+                  placeholder="01xxxxxxxxx"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
+              />
+              <Label>الفرع نشط</Label>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={() => { setShowDialog(false); resetForm(); }}>
+                إلغاء
+              </Button>
+              <Button onClick={handleSave} disabled={saveBranchMut.isPending}>
+                {saveBranchMut.isPending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
+                    جاري الحفظ...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 ml-2" />
+                    {editingBranch ? 'تحديث' : 'إضافة'}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delivery Areas Dialog */}
+      <Dialog open={showAreasDialog} onOpenChange={(open) => { setShowAreasDialog(open); if (!open) { resetAreaForm(); setSelectedBranchForAreas(null); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh]" dir="rtl">
           <DialogHeader>
             <DialogTitle>
               مناطق التوصيل - {selectedBranchForAreas?.name}
             </DialogTitle>
           </DialogHeader>
-          
-          <div className="space-y-4">
-            {/* نموذج إضافة/تعديل منطقة */}
-            <Card>
-              <CardContent className="pt-4 space-y-3">
-                <h4 className="font-medium">
-                  {editingArea ? 'تعديل المنطقة' : 'إضافة منطقة جديدة'}
-                </h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>اسم المنطقة</Label>
-                    <Input
-                      value={areaForm.name}
-                      onChange={(e) => setAreaForm(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="مثال: المعادي"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>سعر التوصيل (جنيه)</Label>
-                    <Input
-                      type="number"
-                      value={areaForm.delivery_price}
-                      onChange={(e) => setAreaForm(prev => ({ ...prev, delivery_price: Number(e.target.value) }))}
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={handleSaveArea}
-                    disabled={savingArea}
-                    className="flex-1"
-                  >
-                    {savingArea ? 'جاري الحفظ...' : (editingArea ? 'تحديث' : 'إضافة')}
-                  </Button>
-                  {editingArea && (
-                    <Button variant="outline" onClick={resetAreaForm}>
-                      إلغاء
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* قائمة المناطق */}
-            <div className="space-y-2">
-              <h4 className="font-medium">المناطق الحالية</h4>
-              {selectedBranchForAreas && getBranchAreas(selectedBranchForAreas.id).length === 0 ? (
-                <p className="text-gray-500 text-sm text-center py-4">
-                  لا توجد مناطق مضافة لهذا الفرع
-                </p>
-              ) : selectedBranchForAreas && (
-                <DndContext 
-                  sensors={sensors} 
-                  collisionDetection={closestCenter} 
+          <div className="space-y-4 py-4">
+            {/* Add/Edit Area Form */}
+            <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="areaName">اسم المنطقة</Label>
+                  <Input
+                    id="areaName"
+                    value={areaForm.name}
+                    onChange={(e) => setAreaForm(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="مثال: المعادي"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="areaPrice">سعر التوصيل</Label>
+                  <Input
+                    id="areaPrice"
+                    type="number"
+                    value={areaForm.delivery_price}
+                    onChange={(e) => setAreaForm(prev => ({ ...prev, delivery_price: parseFloat(e.target.value) || 0 }))}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleSaveArea} disabled={saveAreaMut.isPending}>
+                  <Save className="w-4 h-4 ml-1" />
+                  {editingArea ? 'تحديث' : 'إضافة'}
+                </Button>
+                {editingArea && (
+                  <Button size="sm" variant="outline" onClick={resetAreaForm}>
+                    إلغاء
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Areas List with DnD */}
+            {selectedBranchForAreas && (
+              <ScrollArea className="max-h-[400px]">
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
                   onDragEnd={handleAreaDragEnd}
                 >
-                  <SortableContext 
-                    items={getBranchAreas(selectedBranchForAreas.id).map(a => a.id)} 
+                  <SortableContext
+                    items={getBranchAreas(selectedBranchForAreas.id).map(a => a.id)}
                     strategy={verticalListSortingStrategy}
                   >
                     <div className="space-y-2">
-                      {getBranchAreas(selectedBranchForAreas.id).map(area => (
+                      {getBranchAreas(selectedBranchForAreas.id).map((area) => (
                         <SortableAreaItem
                           key={area.id}
                           area={area}
@@ -1100,30 +914,37 @@ export default function BranchesManagement() {
                     </div>
                   </SortableContext>
                 </DndContext>
-              )}
-            </div>
+                
+                {getBranchAreas(selectedBranchForAreas.id).length === 0 && (
+                  <div className="text-center py-8">
+                    <Navigation className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-500">لا توجد مناطق توصيل بعد</p>
+                  </div>
+                )}
+              </ScrollArea>
+            )}
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Branch Confirmation Dialog */}
+      {/* Delete Branch Confirmation */}
       <DeleteConfirmDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         onConfirm={handleConfirmDelete}
         title="حذف الفرع"
-        description="هل أنت متأكد من حذف هذا الفرع؟ سيتم حذف جميع مناطق التوصيل المرتبطة به أيضاً. لا يمكن التراجع عن هذا الإجراء."
-        isLoading={deletingBranch}
+        description="هل أنت متأكد من حذف هذا الفرع؟ سيتم حذف جميع مناطق التوصيل المرتبطة به."
+        isLoading={deleteBranchMut.isPending}
       />
 
-      {/* Delete Area Confirmation Dialog */}
+      {/* Delete Area Confirmation */}
       <DeleteConfirmDialog
         open={deleteAreaDialogOpen}
         onOpenChange={setDeleteAreaDialogOpen}
         onConfirm={handleConfirmDeleteArea}
-        title="حذف المنطقة"
-        description="هل أنت متأكد من حذف هذه المنطقة؟ لا يمكن التراجع عن هذا الإجراء."
-        isLoading={deletingArea}
+        title="حذف منطقة التوصيل"
+        description="هل أنت متأكد من حذف هذه المنطقة؟"
+        isLoading={deleteAreaMut.isPending}
       />
     </div>
   );
