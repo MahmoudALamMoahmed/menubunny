@@ -10,6 +10,14 @@ type Extra = Tables<'extras'>;
 type Branch = Tables<'branches'>;
 type DeliveryArea = Tables<'delivery_areas'>;
 
+// بيانات المطعم نادراً ما تتغير
+const LONG_STALE = 1000 * 60 * 10; // 10 دقائق
+const LONG_GC = 1000 * 60 * 30; // 30 دقيقة
+
+// بيانات المنيو تتغير أكثر
+const MEDIUM_STALE = 1000 * 60 * 5; // 5 دقائق
+const MEDIUM_GC = 1000 * 60 * 15; // 15 دقيقة
+
 export function useRestaurant(username: string | undefined) {
   return useQuery({
     queryKey: ['restaurant', username],
@@ -23,6 +31,8 @@ export function useRestaurant(username: string | undefined) {
       return data;
     },
     enabled: !!username,
+    staleTime: LONG_STALE,
+    gcTime: LONG_GC,
   });
 }
 
@@ -39,6 +49,8 @@ export function useCategories(restaurantId: string | undefined) {
       return data ?? [];
     },
     enabled: !!restaurantId,
+    staleTime: LONG_STALE,
+    gcTime: LONG_GC,
   });
 }
 
@@ -56,6 +68,8 @@ export function useMenuItems(restaurantId: string | undefined, activeCategory?: 
       return data ?? [];
     },
     enabled: !!restaurantId,
+    staleTime: MEDIUM_STALE,
+    gcTime: MEDIUM_GC,
     select: activeCategory && activeCategory !== 'all'
       ? (data: MenuItem[]) => data.filter(item => item.category_id === activeCategory)
       : undefined,
@@ -74,6 +88,8 @@ export function useSizes(restaurantId: string | undefined) {
       return data ?? [];
     },
     enabled: !!restaurantId,
+    staleTime: MEDIUM_STALE,
+    gcTime: MEDIUM_GC,
   });
 }
 
@@ -91,6 +107,8 @@ export function useExtras(restaurantId: string | undefined) {
       return data ?? [];
     },
     enabled: !!restaurantId,
+    staleTime: MEDIUM_STALE,
+    gcTime: MEDIUM_GC,
   });
 }
 
@@ -108,6 +126,8 @@ export function useBranches(restaurantId: string | undefined) {
       return data ?? [];
     },
     enabled: !!restaurantId,
+    staleTime: LONG_STALE,
+    gcTime: LONG_GC,
   });
 }
 
@@ -125,5 +145,7 @@ export function useDeliveryAreas(branchIds: string[] | undefined) {
       return data ?? [];
     },
     enabled: !!branchIds && branchIds.length > 0,
+    staleTime: LONG_STALE,
+    gcTime: LONG_GC,
   });
 }
