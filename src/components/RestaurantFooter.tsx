@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { 
   MapPin, 
   Phone, 
@@ -10,56 +9,17 @@ import {
   Truck,
   Building2
 } from "lucide-react";
-import { supabase } from '@/integrations/supabase/client';
+import { useBranches } from '@/hooks/useRestaurantData';
+import type { Tables } from '@/integrations/supabase/types';
 
-interface Restaurant {
-  id: string;
-  name: string;
-  address: string;
-  email: string;
-  facebook_url: string;
-  instagram_url: string;
-  working_hours: string;
-}
-
-interface Branch {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  whatsapp_phone: string;
-  delivery_phone: string;
-  working_hours: string;
-}
+type Restaurant = Tables<'restaurants'>;
 
 interface RestaurantFooterProps {
   restaurant: Restaurant;
 }
 
 export default function RestaurantFooter({ restaurant }: RestaurantFooterProps) {
-  const [branches, setBranches] = useState<Branch[]>([]);
-
-  useEffect(() => {
-    if (restaurant?.id) {
-      fetchBranches();
-    }
-  }, [restaurant?.id]);
-
-  const fetchBranches = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('branches')
-        .select('*')
-        .eq('restaurant_id', restaurant.id)
-        .eq('is_active', true)
-        .order('display_order');
-
-      if (error) throw error;
-      setBranches(data || []);
-    } catch (error) {
-      console.error('Error fetching branches:', error);
-    }
-  };
+  const { data: branches = [] } = useBranches(restaurant?.id);
 
   return (
     <footer className="bg-gray-900 text-white mt-12" dir="rtl">
