@@ -447,26 +447,28 @@ ${orderText}
 
       {/* Cover Image */}
       <div className="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden">
-        {/* Background blured image */}
-        {restaurant.cover_image_url && (
-          <div 
-            className="absolute inset-0 bg-cover bg-center blur-xl scale-110" 
-            style={{ backgroundImage: `url(${getCoverImageUrl(restaurant.cover_image_url)})` }}
+  
+        {/* Blurred low-res background */}
+        <img
+          src={`${getCoverImageUrl(restaurant.cover_image_url)}?width=50&blur=20`}
+          className="absolute inset-0 w-full h-full object-cover scale-110"
+          alt=""
+          aria-hidden
+          loading="lazy"
+        />
+
+        {/* Main image */}
+        <div className="relative z-10 w-full h-full flex items-center justify-center p-2">
+          <img
+            src={`${getCoverImageUrl(restaurant.cover_image_url)}?width=900`}
+            alt={restaurant.name}
+            className="max-w-full max-h-full object-contain rounded-2xl shadow-lg"
+            loading="lazy"
+            decoding="async"
           />
-        )}
-        
-        {/* Main sharp image on top */}
-        {restaurant.cover_image_url && (
-          <div className="relative w-full h-full flex items-center justify-center z-10 p-2">
-            <img 
-              src={getCoverImageUrl(restaurant.cover_image_url)} 
-              alt={restaurant.name} 
-              className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border-4 border-white/20" 
-              loading="eager" 
-            />
-          </div>
-        )}
+        </div>
       </div>
+
 
       {/* Restaurant Info */}
       <div className="bg-white border-b">
