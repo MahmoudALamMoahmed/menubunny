@@ -1,151 +1,125 @@
 
 
-# تحسين صفحة المطعم باستخدام React Query + select
+# خطة فحص وتنظيف المشروع بعد تطبيق React Query
 
-## لماذا `select` بدلا من `useMemo`؟
+## ملخص الوضع الحالي
 
-- **`select` في React Query** تعمل كـ selector محسّن تلقائيا: لا تُعاد إلا عند تغير الـ `data` من السيرفر
-- **`useMemo`** يحتاج تحديد الـ dependencies يدويا وقد يُعاد حسابه بدون داعي عند أي re-render
-- `select` تفصل منطق التحويل عن الـ component مما يجعل الكود أنظف
-- `select` لا تسبب re-render إلا إذا تغيرت النتيجة فعلا (structural sharing)
+بعد فحص جميع الصفحات والـ hooks، المشروع في حالة جيدة بشكل عام. معظم الصفحات تستخدم React Query بشكل صحيح. لكن هناك بقايا قديمة تحتاج تنظيف في مكانين رئيسيين:
 
-## الهيكل المقترح
+---
 
-### 1. إنشاء custom hooks للبيانات
+## المشاكل المكتشفة
 
-ملف جديد: `src/hooks/useRestaurantData.ts`
+### 1. صفحة Orders.tsx - لا تزال تستخدم useState + useEffect + fetch يدوي
 
-يحتوي على:
+صفحة الطلبات لا تزال تجلب الطلبات يدويا عبر `useState` و `useEffect` و `fetchOrders` بدلا من React Query. هذا يعني:
+- لا يوجد كاش للطلبات
+- لا يوجد إعادة جلب تلقائية
+- عند تحديث حالة طلب، يتم تحديث الـ state المحلي يدويا بدلا من invalidation
 
-- **`useRestaurant(username)`** - يجلب بيانات المطعم
-- **`useCategories(restaurantId)`** - يجلب الفئات (مفعّل فقط عند توفر restaurantId)
-- **`useMenuItems(restaurantId)`** - يجلب عناصر القائمة
-- **`useSizes()`** - يجلب الاحجام
-- **`useExtras(restaurantId)`** - يجلب الاضافات
-- **`useBranches(restaurantId)`** - يجلب الفروع
-- **`useDeliveryAreas(branchIds)`** - يجلب مناطق التوصيل
+### 2. DnD Reorder في MenuManagement و BranchesManagement - يستخدم supabase مباشرة
 
-كل hook يستخدم `useQuery` مع `enabled` للتحكم بالترتيب.
+عمليات إعادة الترتيب (Drag & Drop) في صفحتي إدارة القائمة والفروع لا تزال تستخدم `supabase` مباشرة بدلا من mutations. هذا مقبول تقنيا لأن العمليات تحتاج تحديث متفائل (optimistic update) مع `setQueryData`، لكن يمكن تحويلها لـ mutations لتوحيد النمط.
 
-### 2. استخدام `select` للفلترة
+### 3. صفحات Auth.tsx و ForgotPassword.tsx - تستخدم supabase مباشرة
 
-مثال عملي لفلترة عناصر القائمة حسب الفئة:
+هذا طبيعي ومقبول لأن عمليات المصادقة (login/signup/reset) تتعامل مع `supabase.auth` مباشرة وليس مع الجداول، فلا حاجة لـ React Query هنا.
 
-```text
-const { data: filteredItems } = useQuery({
-  queryKey: ['menu_items', restaurantId],
-  queryFn: () => supabase.from('menu_items')...
-  select: (data) => 
-    activeCategory === 'all' 
-      ? data 
-      : data.filter(item => item.category_id === activeCategory),
-});
-```
+---
 
-ملاحظة مهمة: عند استخدام `select` مع متغير خارجي مثل `activeCategory`، الـ select تُعاد عند كل render لأن الـ function reference يتغير. للحل الامثل نستخدم useCallback:
+## خطة التنفيذ
 
-```text
-const selectFilteredItems = useCallback(
-  (data: MenuItem[]) => 
-    activeCategory === 'all' ? data : data.filter(item => item.category_id === activeCategory),
-  [activeCategory]
-);
-```
+### المهمة 1: تحويل Orders.tsx لاستخدام React Query بالكامل
 
-او ببساطة نستخدم `select` بدون `useCallback` لان التكلفة بسيطة جدا مع structural sharing.
+- انشاء hook جديد `useAdminOrders` في `useAdminData.ts` لجلب الطلبات
+- حذف `useState` و `useEffect` و `fetchOrders` من Orders.tsx
+- تحديث `useUpdateOrderStatus` في `useAdminMutations.ts` لعمل `invalidateQueries` للطلبات بدلا من تحديث الـ state المحلي
 
-### 3. استخدام `select` لجلب الاحجام لكل صنف
+### المهمة 2: تحويل عمليات DnD Reorder لاستخدام mutations
 
-```text
-const getSizesForItem = (itemId: string) => 
-  sizes?.filter(size => size.menu_item_id === itemId) || [];
-```
+- انشاء mutations مخصصة للترتيب: `useReorderCategories`, `useReorderMenuItems`, `useReorderExtras`, `useReorderBranches`, `useReorderDeliveryAreas` في `useAdminMutations.ts`
+- كل mutation ستدعم التحديث المتفائل (optimistic update) عبر `onMutate` + `onError` rollback
+- حذف استيراد `supabase` المباشر من MenuManagement.tsx و BranchesManagement.tsx بعد التحويل
 
-هذه الدالة بسيطة ولا تحتاج select، لكن يمكن تحويلها لـ hook منفصل إذا اردنا.
+### المهمة 3: تنظيف الـ interfaces المكررة
 
-### 4. الاستعلامات المتوازية تلقائيا
+- الملفات تحتوي على interfaces محلية (مثل `MenuItem`, `Size`, `Extra`, `Branch`, `DeliveryArea`) مكررة في عدة صفحات بينما الـ types موجودة بالفعل في `supabase/types.ts`
+- توحيد استخدام `Tables<'menu_items'>` من Supabase types بدلا من تعريفها يدويا في كل ملف
 
-مع React Query، الاستعلامات التي لها `enabled: true` تعمل بالتوازي تلقائيا بدون `Promise.all`. فقط الاستعلامات التي تعتمد على نتيجة استعلام سابق (مثل `restaurantId`) تنتظر.
-
-```text
-// هذا يعمل تلقائيا بالتوازي بعد جلب restaurant
-useCategories(restaurant?.id)    // متوازي
-useMenuItems(restaurant?.id)     // متوازي  
-useSizes()                       // متوازي (لا يعتمد على شيء)
-useExtras(restaurant?.id)        // متوازي
-useBranches(restaurant?.id)      // متوازي
-// هذا ينتظر الفروع
-useDeliveryAreas(branchIds)      // ينتظر branches
-```
-
-## الملفات المتأثرة
-
-| الملف | التغيير |
-|-------|---------|
-| `src/hooks/useRestaurantData.ts` | ملف جديد - جميع الـ hooks |
-| `src/pages/Restaurant.tsx` | استبدال useState/useEffect بالـ hooks الجديدة |
-| `src/components/BranchesDialog.tsx` | تحويل لاستخدام `useBranches` hook بدلا من fetch مستقل |
+---
 
 ## التفاصيل التقنية
 
-### هيكل `useRestaurantData.ts`
+### Hook جديد: useAdminOrders
 
-```text
-// useRestaurant - الاستعلام الاساسي
-useQuery({
-  queryKey: ['restaurant', username],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from('restaurants').select('*').eq('username', username).single();
-    if (error) throw error;
-    return data;
-  },
-  enabled: !!username,
-});
-
-// useCategories - يعتمد على restaurantId
-useQuery({
-  queryKey: ['categories', restaurantId],
-  queryFn: ...,
-  enabled: !!restaurantId,
-});
-
-// useMenuItems - مع select للفلترة
-useQuery({
-  queryKey: ['menu_items', restaurantId],
-  queryFn: ...,
-  enabled: !!restaurantId,
-  select: (data) => activeCategory === 'all' ? data : data.filter(...),
-});
+```typescript
+// في useAdminData.ts
+export function useAdminOrders(restaurantId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin_orders', restaurantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('restaurant_id', restaurantId!)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!restaurantId,
+    staleTime: 1000 * 60, // دقيقة واحدة - الطلبات تتغير بسرعة
+    gcTime: ADMIN_GC,
+    refetchOnWindowFocus: false,
+  });
+}
 ```
 
-### تبسيط Restaurant.tsx
+### تحديث useUpdateOrderStatus
 
-الـ component سيصبح اخف بكثير:
-- حذف جميع useState الخاصة بالبيانات (restaurant, categories, menuItems, sizes, extras, branches, deliveryAreas)
-- حذف useEffect و fetchRestaurantData بالكامل
-- حذف loading state (React Query يوفر isLoading)
-- الابقاء على useState الخاصة بالـ UI فقط (cart, activeCategory, viewType, الخ)
-
-### معالجة حالة المطعم غير موجود
-
-```text
-const { data: restaurant, isLoading, isError } = useRestaurant(username);
-
-if (isLoading) return <LoadingSpinner />;
-if (isError || !restaurant) return <NotFoundView />;
+```typescript
+// اضافة invalidation للطلبات
+export function useUpdateOrderStatus(restaurantId: string | undefined) {
+  const qc = useQueryClient();
+  // ...
+  onSuccess: () => {
+    qc.invalidateQueries({ queryKey: ['admin_orders', restaurantId] });
+  }
+}
 ```
 
-### ملاحظة عن `select` vs `useMemo`
+### Reorder Mutations (مثال)
 
-في حالة `filteredMenuItems` تحديدا، `select` هي الخيار الانسب لانها:
-1. لا تسبب re-render اضافي بفضل structural sharing
-2. تعمل على مستوى الـ cache - اذا كانت النتيجة نفسها لا يحصل re-render
-3. الكود اوضح: التحويل مرتبط بالـ query مباشرة
-
-لكن بما ان `activeCategory` متغير UI وليس من السيرفر، سنمرره كـ parameter للـ hook:
-
-```text
-const { data: filteredItems } = useFilteredMenuItems(restaurantId, activeCategory);
+```typescript
+export function useReorderCategories(restaurantId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (updates: { id: string; display_order: number }[]) => {
+      const { error } = await supabase.from('categories').upsert(updates);
+      if (error) throw error;
+    },
+    onMutate: async (newOrder) => {
+      // حفظ البيانات القديمة للـ rollback
+      const prev = qc.getQueryData(['admin_categories', restaurantId]);
+      return { prev };
+    },
+    onError: (_, __, context) => {
+      // rollback عند الخطأ
+      qc.setQueryData(['admin_categories', restaurantId], context?.prev);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['admin_categories', restaurantId] });
+    },
+  });
+}
 ```
+
+### الملفات المتأثرة
+
+| الملف | التغيير |
+|-------|---------|
+| `src/hooks/useAdminData.ts` | اضافة `useAdminOrders` |
+| `src/hooks/useAdminMutations.ts` | تحديث `useUpdateOrderStatus` + اضافة reorder mutations |
+| `src/pages/Orders.tsx` | حذف fetch يدوي واستخدام `useAdminOrders` |
+| `src/pages/MenuManagement.tsx` | حذف `import { supabase }` واستخدام reorder mutations |
+| `src/pages/BranchesManagement.tsx` | حذف `import { supabase }` واستخدام reorder mutations |
 
