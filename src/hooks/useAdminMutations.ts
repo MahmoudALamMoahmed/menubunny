@@ -393,8 +393,9 @@ export function useSaveRestaurant(username: string | undefined) {
 
 // ─── Order Mutations ────────────────────────────────────────
 
-export function useUpdateOrderStatus() {
+export function useUpdateOrderStatus(restaurantId: string | undefined) {
   const { toast } = useToast();
+  const qc = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ orderId, status, isConfirmed }: { orderId: string; status: string; isConfirmed?: boolean }) => {
@@ -406,9 +407,117 @@ export function useUpdateOrderStatus() {
     },
     onSuccess: () => {
       toast({ title: 'تم التحديث', description: 'تم تحديث حالة الطلب بنجاح' });
+      qc.invalidateQueries({ queryKey: ['admin_orders', restaurantId] });
     },
     onError: () => {
       toast({ title: 'خطأ', description: 'حدث خطأ في تحديث الطلب', variant: 'destructive' });
+    },
+  });
+}
+
+// ─── Reorder Mutations ──────────────────────────────────────
+
+export function useReorderCategories(restaurantId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (updates: { id: string; name: string; display_order: number; restaurant_id: string }[]) => {
+      const { error } = await supabase.from('categories').upsert(updates);
+      if (error) throw error;
+    },
+    onMutate: async () => {
+      const prev = qc.getQueryData(['admin_categories', restaurantId]);
+      return { prev };
+    },
+    onError: (_, __, context) => {
+      if (context?.prev) qc.setQueryData(['admin_categories', restaurantId], context.prev);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['admin_categories', restaurantId] });
+      qc.invalidateQueries({ queryKey: ['categories', restaurantId] });
+    },
+  });
+}
+
+export function useReorderMenuItems(restaurantId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (updates: { id: string; name: string; description: string | null; price: number; category_id: string | null; restaurant_id: string; image_url: string | null; image_public_id: string | null; is_available: boolean | null; display_order: number }[]) => {
+      const { error } = await supabase.from('menu_items').upsert(updates);
+      if (error) throw error;
+    },
+    onMutate: async () => {
+      const prev = qc.getQueryData(['admin_menu_items', restaurantId]);
+      return { prev };
+    },
+    onError: (_, __, context) => {
+      if (context?.prev) qc.setQueryData(['admin_menu_items', restaurantId], context.prev);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['admin_menu_items', restaurantId] });
+      qc.invalidateQueries({ queryKey: ['menu_items', restaurantId] });
+    },
+  });
+}
+
+export function useReorderExtras(restaurantId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (updates: { id: string; name: string; price: number; restaurant_id: string; is_available: boolean | null; display_order: number }[]) => {
+      const { error } = await supabase.from('extras').upsert(updates);
+      if (error) throw error;
+    },
+    onMutate: async () => {
+      const prev = qc.getQueryData(['admin_extras', restaurantId]);
+      return { prev };
+    },
+    onError: (_, __, context) => {
+      if (context?.prev) qc.setQueryData(['admin_extras', restaurantId], context.prev);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['admin_extras', restaurantId] });
+      qc.invalidateQueries({ queryKey: ['extras', restaurantId] });
+    },
+  });
+}
+
+export function useReorderBranches(restaurantId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (updates: { id: string; name: string; restaurant_id: string; display_order: number }[]) => {
+      const { error } = await supabase.from('branches').upsert(updates);
+      if (error) throw error;
+    },
+    onMutate: async () => {
+      const prev = qc.getQueryData(['admin_branches', restaurantId]);
+      return { prev };
+    },
+    onError: (_, __, context) => {
+      if (context?.prev) qc.setQueryData(['admin_branches', restaurantId], context.prev);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['admin_branches', restaurantId] });
+      qc.invalidateQueries({ queryKey: ['branches', restaurantId] });
+    },
+  });
+}
+
+export function useReorderDeliveryAreas(restaurantId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (updates: { id: string; name: string; branch_id: string; delivery_price: number; display_order: number }[]) => {
+      const { error } = await supabase.from('delivery_areas').upsert(updates);
+      if (error) throw error;
+    },
+    onMutate: async () => {
+      const prev = qc.getQueryData(['admin_delivery_areas']);
+      return { prev };
+    },
+    onError: (_, __, context) => {
+      if (context?.prev) qc.setQueryData(['admin_delivery_areas'], context.prev);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['admin_delivery_areas'] });
+      qc.invalidateQueries({ queryKey: ['delivery_areas'] });
     },
   });
 }

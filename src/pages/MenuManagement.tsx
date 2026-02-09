@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useAdminCategories, useAdminMenuItems, useAdminSizes, useAdminExtras } from '@/hooks/useAdminData';
@@ -18,7 +17,9 @@ import {
   useSaveMenuItem, useDeleteMenuItem,
   useSaveSize, useDeleteSize,
   useSaveExtra, useDeleteExtra,
+  useReorderCategories, useReorderMenuItems, useReorderExtras,
 } from '@/hooks/useAdminMutations';
+import type { Tables } from '@/integrations/supabase/types';
 import ImageUploader from '@/components/ImageUploader';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import { SortableItem } from '@/components/SortableItem';
@@ -49,42 +50,10 @@ import {
   Search
 } from 'lucide-react';
 
-interface Category {
-  id: string;
-  name: string;
-  display_order: number;
-  restaurant_id: string;
-}
-
-interface MenuItem {
-  id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  category_id: string | null;
-  restaurant_id: string;
-  image_url: string | null;
-  image_public_id: string | null;
-  is_available: boolean;
-  display_order: number;
-}
-
-interface Size {
-  id: string;
-  menu_item_id: string;
-  name: string;
-  price: number;
-  display_order: number;
-}
-
-interface Extra {
-  id: string;
-  restaurant_id: string;
-  name: string;
-  price: number;
-  is_available: boolean;
-  display_order: number;
-}
+type Category = Tables<'categories'>;
+type MenuItem = Tables<'menu_items'>;
+type Size = Tables<'sizes'>;
+type Extra = Tables<'extras'>;
 
 export default function MenuManagement() {
   const { username } = useParams<{ username: string }>();
@@ -112,6 +81,9 @@ export default function MenuManagement() {
   const deleteSizeMut = useDeleteSize(restaurantId);
   const saveExtraMut = useSaveExtra(restaurantId);
   const deleteExtraMut = useDeleteExtra(restaurantId);
+  const reorderCategoriesMut = useReorderCategories(restaurantId);
+  const reorderItemsMut = useReorderMenuItems(restaurantId);
+  const reorderExtrasMut = useReorderExtras(restaurantId);
 
   const saving = saveCategoryMut.isPending || saveItemMut.isPending || saveSizeMut.isPending || saveExtraMut.isPending;
   const isDeleting = deleteCategoryMut.isPending || deleteItemMut.isPending || deleteSizeMut.isPending || deleteExtraMut.isPending;
@@ -183,17 +155,6 @@ export default function MenuManagement() {
     }
   }, [authLoading, user, navigate]);
 
-  // Helper to invalidate all admin queries (for DnD reorder operations)
-  const invalidateAdminData = () => {
-    queryClient.invalidateQueries({ queryKey: ['admin_categories', restaurantId] });
-    queryClient.invalidateQueries({ queryKey: ['admin_menu_items', restaurantId] });
-    queryClient.invalidateQueries({ queryKey: ['admin_sizes', restaurantId] });
-    queryClient.invalidateQueries({ queryKey: ['admin_extras', restaurantId] });
-    queryClient.invalidateQueries({ queryKey: ['categories', restaurantId] });
-    queryClient.invalidateQueries({ queryKey: ['menu_items', restaurantId] });
-    queryClient.invalidateQueries({ queryKey: ['sizes', restaurantId] });
-    queryClient.invalidateQueries({ queryKey: ['extras', restaurantId] });
-  };
 
   const handleSaveCategory = () => {
     if (!restaurant || !categoryForm.name.trim()) return;
@@ -314,116 +275,74 @@ export default function MenuManagement() {
   };
 
   // Handle drag end for categories
-  const handleCategoryDragEnd = async (event: DragEndEvent) => {
+  const handleCategoryDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
     if (!over || active.id === over.id) return;
     
     const oldIndex = categories.findIndex((c) => c.id === active.id);
     const newIndex = categories.findIndex((c) => c.id === over.id);
-    
     const newCategories = arrayMove(categories, oldIndex, newIndex);
     queryClient.setQueryData(['admin_categories', restaurantId], newCategories);
     
-    try {
-      const updates = newCategories.map((cat, index) => ({
-        id: cat.id,
-        name: cat.name,
-        display_order: index,
-        restaurant_id: cat.restaurant_id,
-      }));
-      
-      const { error } = await supabase.from('categories').upsert(updates);
-      if (error) throw error;
-      
-      toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب الفئات' });
-    } catch (error) {
-      console.error('Error updating category order:', error);
-      toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' });
-      invalidateAdminData();
-    }
+    const updates = newCategories.map((cat, index) => ({
+      id: cat.id, name: cat.name, display_order: index, restaurant_id: cat.restaurant_id,
+    }));
+    reorderCategoriesMut.mutate(updates, {
+      onSuccess: () => toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب الفئات' }),
+      onError: () => toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' }),
+    });
   };
 
   // Handle drag end for menu items
-  const handleItemDragEnd = async (event: DragEndEvent) => {
+  const handleItemDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
     if (!over || active.id === over.id) return;
     
     const filteredItems = menuItems.filter(item => 
       item.name.toLowerCase().includes(itemSearchQuery.toLowerCase()) ||
       item.description?.toLowerCase().includes(itemSearchQuery.toLowerCase())
     );
-    
     const oldIndex = filteredItems.findIndex((item) => item.id === active.id);
     const newIndex = filteredItems.findIndex((item) => item.id === over.id);
-    
     const newFilteredItems = arrayMove(filteredItems, oldIndex, newIndex);
     
     const otherItems = menuItems.filter(item => 
       !item.name.toLowerCase().includes(itemSearchQuery.toLowerCase()) &&
       !item.description?.toLowerCase().includes(itemSearchQuery.toLowerCase())
     );
-    
     const newMenuItems = [...newFilteredItems, ...otherItems];
     queryClient.setQueryData(['admin_menu_items', restaurantId], newMenuItems);
     
-    try {
-      const updates = newFilteredItems.map((item, index) => ({
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        price: item.price,
-        category_id: item.category_id,
-        restaurant_id: item.restaurant_id,
-        image_url: item.image_url,
-        image_public_id: item.image_public_id,
-        is_available: item.is_available,
-        display_order: index,
-      }));
-      
-      const { error } = await supabase.from('menu_items').upsert(updates);
-      if (error) throw error;
-      
-      toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب الأصناف' });
-    } catch (error) {
-      console.error('Error updating item order:', error);
-      toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' });
-      invalidateAdminData();
-    }
+    const updates = newFilteredItems.map((item, index) => ({
+      id: item.id, name: item.name, description: item.description, price: item.price,
+      category_id: item.category_id, restaurant_id: item.restaurant_id,
+      image_url: item.image_url, image_public_id: item.image_public_id,
+      is_available: item.is_available, display_order: index,
+    }));
+    reorderItemsMut.mutate(updates, {
+      onSuccess: () => toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب الأصناف' }),
+      onError: () => toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' }),
+    });
   };
 
   // Handle drag end for extras
-  const handleExtraDragEnd = async (event: DragEndEvent) => {
+  const handleExtraDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
     if (!over || active.id === over.id) return;
     
     const oldIndex = extras.findIndex((e) => e.id === active.id);
     const newIndex = extras.findIndex((e) => e.id === over.id);
-    
     const newExtras = arrayMove(extras, oldIndex, newIndex);
     queryClient.setQueryData(['admin_extras', restaurantId], newExtras);
     
-    try {
-      const updates = newExtras.map((extra, index) => ({
-        id: extra.id,
-        name: extra.name,
-        price: extra.price,
-        restaurant_id: extra.restaurant_id,
-        is_available: extra.is_available,
-        display_order: index,
-      }));
-      
-      const { error } = await supabase.from('extras').upsert(updates);
-      if (error) throw error;
-      
-      toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب الإضافات' });
-    } catch (error) {
-      console.error('Error updating extras order:', error);
-      toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' });
-      invalidateAdminData();
-    }
+    const updates = newExtras.map((extra, index) => ({
+      id: extra.id, name: extra.name, price: extra.price,
+      restaurant_id: extra.restaurant_id, is_available: extra.is_available, display_order: index,
+    }));
+    reorderExtrasMut.mutate(updates, {
+      onSuccess: () => toast({ title: 'تم الترتيب', description: 'تم تحديث ترتيب الإضافات' }),
+      onError: () => toast({ title: 'خطأ', description: 'حدث خطأ أثناء تحديث الترتيب', variant: 'destructive' }),
+    });
   };
 
   if (authLoading || restaurantLoading || dataLoading) {

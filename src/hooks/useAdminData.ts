@@ -118,3 +118,22 @@ export function useAdminDeliveryAreas(branchIds: string[] | undefined) {
     refetchOnWindowFocus: false,
   });
 }
+
+export function useAdminOrders(restaurantId: string | undefined) {
+  return useQuery({
+    queryKey: ['admin_orders', restaurantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('restaurant_id', restaurantId!)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!restaurantId,
+    staleTime: 1000 * 60, // دقيقة واحدة - الطلبات تتغير بسرعة
+    gcTime: ADMIN_GC,
+    refetchOnWindowFocus: false,
+  });
+}
