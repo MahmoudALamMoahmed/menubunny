@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRestaurant } from '@/hooks/useRestaurantData';
+import { useAdminBranches, useAdminDeliveryAreas } from '@/hooks/useAdminData';
 import { 
   ArrowLeft, 
   Plus, 
@@ -272,9 +273,14 @@ export default function BranchesManagement() {
   const queryClient = useQueryClient();
   
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>([]);
-  const [loading, setLoading] = useState(true);
+  const restaurantId = restaurant?.id;
+  
+  const { data: branches = [], isLoading: branchesLoading } = useAdminBranches(restaurantId);
+  const branchIds = branches.length > 0 ? branches.map(b => b.id) : undefined;
+  const { data: deliveryAreas = [], isLoading: areasLoading } = useAdminDeliveryAreas(branchIds);
+  
+  const dataLoading = branchesLoading || areasLoading;
+  
   const [saving, setSaving] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
@@ -331,45 +337,13 @@ export default function BranchesManagement() {
     }
   }, [authLoading, user, navigate]);
 
-  // Fetch branches data when restaurant is available
-  useEffect(() => {
-    if (restaurant) {
-      fetchBranchesData(restaurant.id);
-    }
-  }, [restaurant]);
-
-  const fetchBranchesData = async (restaurantId: string) => {
-    try {
-      // جلب الفروع
-      const { data: branchesData, error: branchesError } = await supabase
-        .from('branches')
-        .select('*')
-        .eq('restaurant_id', restaurantId)
-        .order('display_order');
-
-      if (branchesError) throw branchesError;
-      setBranches(branchesData || []);
-
-      // جلب مناطق التوصيل لجميع الفروع
-      const branchIds = (branchesData || []).map(b => b.id);
-      if (branchIds.length > 0) {
-        const { data: areasData } = await supabase
-          .from('delivery_areas')
-          .select('*')
-          .in('branch_id', branchIds)
-          .order('display_order');
-        setDeliveryAreas(areasData || []);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تحميل البيانات',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
+  // Helper to invalidate all branches admin queries
+  const invalidateBranchesData = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin_branches', restaurantId] });
+    queryClient.invalidateQueries({ queryKey: ['admin_delivery_areas'] });
+    // Also invalidate public cache
+    queryClient.invalidateQueries({ queryKey: ['branches', restaurantId] });
+    queryClient.invalidateQueries({ queryKey: ['delivery_areas'] });
   };
 
   const resetForm = () => {
@@ -451,7 +425,7 @@ export default function BranchesManagement() {
 
       setShowDialog(false);
       resetForm();
-      fetchBranchesData(restaurant!.id);
+      invalidateBranchesData();
     } catch (error) {
       console.error('Error saving branch:', error);
       toast({
@@ -488,7 +462,7 @@ export default function BranchesManagement() {
 
       setDeleteDialogOpen(false);
       setBranchToDelete(null);
-      fetchBranchesData(restaurant!.id);
+      invalidateBranchesData();
     } catch (error) {
       console.error('Error deleting branch:', error);
       toast({
@@ -510,7 +484,7 @@ export default function BranchesManagement() {
 
       if (error) throw error;
 
-      fetchBranchesData(restaurant!.id);
+      invalidateBranchesData();
     } catch (error) {
       console.error('Error toggling branch status:', error);
     }
@@ -545,7 +519,7 @@ export default function BranchesManagement() {
     const newIndex = branches.findIndex((b) => b.id === over.id);
     
     const newBranches = arrayMove(branches, oldIndex, newIndex);
-    setBranches(newBranches);
+    queryClient.setQueryData(['admin_branches', restaurantId], newBranches);
     
     // Update display_order in database
     try {
@@ -574,7 +548,7 @@ export default function BranchesManagement() {
         variant: 'destructive',
       });
       // Revert on error
-      fetchBranchesData(restaurant!.id);
+      invalidateBranchesData();
     }
   };
 
@@ -641,7 +615,7 @@ export default function BranchesManagement() {
       }
 
       resetAreaForm();
-      fetchBranchesData(restaurant!.id);
+      invalidateBranchesData();
     } catch (error) {
       console.error('Error saving area:', error);
       toast({
@@ -666,11 +640,10 @@ export default function BranchesManagement() {
     
     const newAreas = arrayMove(branchAreas, oldIndex, newIndex);
     
-    // Update local state
-    setDeliveryAreas(prev => {
-      const otherAreas = prev.filter(a => a.branch_id !== selectedBranchForAreas.id);
-      return [...otherAreas, ...newAreas.map((area, index) => ({ ...area, display_order: index }))];
-    });
+    // Optimistic update for delivery areas
+    const updatedAreas = deliveryAreas.filter(a => a.branch_id !== selectedBranchForAreas.id);
+    const reorderedAreas = newAreas.map((area, index) => ({ ...area, display_order: index }));
+    queryClient.setQueryData(['admin_delivery_areas', branchIds], [...updatedAreas, ...reorderedAreas]);
     
     // Update display_order in database
     try {
@@ -699,7 +672,7 @@ export default function BranchesManagement() {
         description: 'حدث خطأ أثناء تحديث الترتيب',
         variant: 'destructive',
       });
-      fetchBranchesData(restaurant!.id);
+      invalidateBranchesData();
     }
   };
 
@@ -727,7 +700,7 @@ export default function BranchesManagement() {
 
       setDeleteAreaDialogOpen(false);
       setAreaToDelete(null);
-      fetchBranchesData(restaurant!.id);
+      invalidateBranchesData();
     } catch (error) {
       console.error('Error deleting area:', error);
       toast({
@@ -745,7 +718,7 @@ export default function BranchesManagement() {
     setAreaForm({ name: area.name, delivery_price: area.delivery_price });
   };
 
-  if (authLoading || restaurantLoading || loading) {
+  if (authLoading || restaurantLoading || dataLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">
