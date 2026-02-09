@@ -8,6 +8,8 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRestaurant } from '@/hooks/useRestaurantData';
 import { 
   ArrowLeft, 
   Plus, 
@@ -260,20 +262,16 @@ interface Branch {
   orange_cash?: string | null;
 }
 
-interface Restaurant {
-  id: string;
-  name: string;
-  username: string;
-  owner_id: string;
-}
+// Restaurant interface removed - using useRestaurant hook
 
 export default function BranchesManagement() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>([]);
   const [loading, setLoading] = useState(true);
@@ -330,36 +328,23 @@ export default function BranchesManagement() {
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
-      return;
     }
-    
-    if (username && user) {
-      fetchData();
-    }
-  }, [username, user, authLoading]);
+  }, [authLoading, user, navigate]);
 
-  const fetchData = async () => {
+  // Fetch branches data when restaurant is available
+  useEffect(() => {
+    if (restaurant) {
+      fetchBranchesData(restaurant.id);
+    }
+  }, [restaurant]);
+
+  const fetchBranchesData = async (restaurantId: string) => {
     try {
-      // جلب بيانات المطعم
-      const { data: restaurantData, error: restaurantError } = await supabase
-        .from('restaurants')
-        .select('id, name, username, owner_id')
-        .eq('username', username)
-        .eq('owner_id', user?.id)
-        .single();
-
-      if (restaurantError) {
-        navigate('/');
-        return;
-      }
-
-      setRestaurant(restaurantData);
-
       // جلب الفروع
       const { data: branchesData, error: branchesError } = await supabase
         .from('branches')
         .select('*')
-        .eq('restaurant_id', restaurantData.id)
+        .eq('restaurant_id', restaurantId)
         .order('display_order');
 
       if (branchesError) throw branchesError;
@@ -466,7 +451,7 @@ export default function BranchesManagement() {
 
       setShowDialog(false);
       resetForm();
-      fetchData();
+      fetchBranchesData(restaurant!.id);
     } catch (error) {
       console.error('Error saving branch:', error);
       toast({
@@ -503,7 +488,7 @@ export default function BranchesManagement() {
 
       setDeleteDialogOpen(false);
       setBranchToDelete(null);
-      fetchData();
+      fetchBranchesData(restaurant!.id);
     } catch (error) {
       console.error('Error deleting branch:', error);
       toast({
@@ -525,7 +510,7 @@ export default function BranchesManagement() {
 
       if (error) throw error;
 
-      fetchData();
+      fetchBranchesData(restaurant!.id);
     } catch (error) {
       console.error('Error toggling branch status:', error);
     }
@@ -589,7 +574,7 @@ export default function BranchesManagement() {
         variant: 'destructive',
       });
       // Revert on error
-      fetchData();
+      fetchBranchesData(restaurant!.id);
     }
   };
 
@@ -656,7 +641,7 @@ export default function BranchesManagement() {
       }
 
       resetAreaForm();
-      fetchData();
+      fetchBranchesData(restaurant!.id);
     } catch (error) {
       console.error('Error saving area:', error);
       toast({
@@ -714,7 +699,7 @@ export default function BranchesManagement() {
         description: 'حدث خطأ أثناء تحديث الترتيب',
         variant: 'destructive',
       });
-      fetchData();
+      fetchBranchesData(restaurant!.id);
     }
   };
 
@@ -742,7 +727,7 @@ export default function BranchesManagement() {
 
       setDeleteAreaDialogOpen(false);
       setAreaToDelete(null);
-      fetchData();
+      fetchBranchesData(restaurant!.id);
     } catch (error) {
       console.error('Error deleting area:', error);
       toast({
@@ -760,7 +745,7 @@ export default function BranchesManagement() {
     setAreaForm({ name: area.name, delivery_price: area.delivery_price });
   };
 
-  if (authLoading || loading) {
+  if (authLoading || restaurantLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">

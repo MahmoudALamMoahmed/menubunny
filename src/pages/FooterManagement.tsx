@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRestaurant } from '@/hooks/useRestaurantData';
 import { 
   ArrowLeft,
   Save,
@@ -18,26 +19,15 @@ import {
   Instagram
 } from 'lucide-react';
 
-interface Restaurant {
-  id: string;
-  name: string;
-  username: string;
-  address: string;
-  email: string;
-  facebook_url: string;
-  instagram_url: string;
-  working_hours: string;
-  owner_id: string;
-}
-
 export default function FooterManagement() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     address: '',
@@ -50,46 +40,21 @@ export default function FooterManagement() {
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
-      return;
     }
-    
-    if (username && user) {
-      fetchRestaurantData();
-    }
-  }, [username, user, authLoading]);
+  }, [authLoading, user, navigate]);
 
-  const fetchRestaurantData = async () => {
-    try {
-      const { data: restaurantData, error } = await supabase
-        .from('restaurants')
-        .select('*')
-        .eq('username', username)
-        .eq('owner_id', user?.id)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      setRestaurant(restaurantData);
+  // Sync form data when restaurant loads
+  useEffect(() => {
+    if (restaurant) {
       setFormData({
-        address: restaurantData.address || '',
-        email: restaurantData.email || '',
-        facebook_url: restaurantData.facebook_url || '',
-        instagram_url: restaurantData.instagram_url || '',
-        working_hours: restaurantData.working_hours || 'يومياً من 9 صباحاً إلى 11 مساءً'
+        address: restaurant.address || '',
+        email: restaurant.email || '',
+        facebook_url: restaurant.facebook_url || '',
+        instagram_url: restaurant.instagram_url || '',
+        working_hours: restaurant.working_hours || 'يومياً من 9 صباحاً إلى 11 مساءً'
       });
-    } catch (error) {
-      console.error('Error fetching restaurant data:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تحميل بيانات المطعم',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [restaurant]);
 
   const handleSave = async () => {
     if (!user || !restaurant) return;
@@ -109,7 +74,7 @@ export default function FooterManagement() {
         description: 'تم تحديث بيانات الفوتر',
       });
       
-      await fetchRestaurantData();
+      queryClient.invalidateQueries({ queryKey: ['restaurant', username] });
     } catch (error) {
       console.error('Error saving footer data:', error);
       toast({
@@ -122,7 +87,7 @@ export default function FooterManagement() {
     }
   };
 
-  if (authLoading || loading) {
+  if (authLoading || restaurantLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">
