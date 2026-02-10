@@ -1,60 +1,83 @@
 
+# حذف Imports والمتغيرات غير المستخدمة
 
-# مراجعة وتنظيف ملفات الـ Hooks
-
-بعد فحص الملفات الثلاثة سطر بسطر، الملفات موثقة بشكل ممتاز بالفعل. هذه التغييرات المطلوبة:
-
----
-
-## 1. useRestaurantData.ts - حذف أنواع غير مستخدمة
-
-الملف يعرّف 7 أنواع (Types) في أعلى الملف لكن **واحد فقط مستخدم فعلياً**:
-
-| النوع | مستخدم؟ | أين؟ |
-|-------|---------|------|
-| `Restaurant` | لا | غير مستخدم |
-| `Category` | لا | غير مستخدم |
-| `MenuItem` | نعم | في `select` callback سطر 83 |
-| `Size` | لا | غير مستخدم |
-| `Extra` | لا | غير مستخدم |
-| `Branch` | لا | غير مستخدم |
-| `DeliveryArea` | لا | غير مستخدم |
-
-**التغيير:** حذف الأنواع الست غير المستخدمة والإبقاء على `MenuItem` فقط، مع تعديل الـ import ليصبح أخف.
+بعد فحص جميع ملفات المشروع سطر بسطر، وجدت 3 عناصر غير مستخدمة فقط:
 
 ---
 
-## 2. useAdminData.ts - الملف نظيف
+## العناصر غير المستخدمة
 
-الملف موثق بالكامل ولا يحتوي على عناصر غير مستخدمة.
-
-**ملاحظة تقنية:** `useAdminSizes` لا يفلتر بـ `restaurant_id` في الاستعلام (يجلب كل الأحجام من قاعدة البيانات). هذا لأن جدول `sizes` مرتبط بـ `menu_item_id` وليس مباشرة بـ `restaurant_id`، لذا الفلترة تتم عبر RLS أو في الكود. هذا ليس خطأ.
-
----
-
-## 3. useAdminMutations.ts - الملف نظيف
-
-الملف موثق بالكامل بتعليقات واضحة على كل mutation وكل section. لا يوجد كود غير مستخدم.
+| الملف | العنصر | النوع | السبب |
+|-------|--------|-------|-------|
+| src/components/Header.tsx | `Phone` | import من lucide-react | مستورد لكنه لا يظهر في أي مكان بالـ JSX |
+| src/components/Header.tsx | `MessageCircle` | import من lucide-react | مستورد لكنه لا يظهر في أي مكان بالـ JSX |
+| src/components/ContactSection.tsx | `MapPin` | import من lucide-react | مستورد لكنه لا يُستخدم في أي مكان بالمكون |
+| src/hooks/useAvailabilityCheck.ts | `useCallback` | import من react | مستورد لكنه لا يُستخدم في الملف |
 
 ---
 
-## ملخص التغييرات
+## التغييرات المطلوبة
 
-| الملف | التغيير |
-|-------|---------|
-| useRestaurantData.ts | حذف 6 أنواع غير مستخدمة (Restaurant, Category, Size, Extra, Branch, DeliveryArea) |
-| useAdminData.ts | لا تغيير - نظيف |
-| useAdminMutations.ts | لا تغيير - نظيف |
-
-### تفاصيل تقنية
-
-**useRestaurantData.ts:**
-- تعديل سطور 3-11 لتصبح:
+### 1. Header.tsx (سطر 2)
+تعديل من:
 ```typescript
-import type { Tables } from '@/integrations/supabase/types';
-
-// Type - نوع صنف القائمة (يُستخدم في فلترة select)
-type MenuItem = Tables<'menu_items'>;
+import { Menu, X, Phone, MessageCircle, LogOut } from "lucide-react";
 ```
-- باقي الملف يبقى كما هو بدون أي تعديل
+الى:
+```typescript
+import { Menu, X, LogOut } from "lucide-react";
+```
 
+### 2. ContactSection.tsx (سطر 9)
+تعديل من:
+```typescript
+import { MessageCircle, Phone, Mail, MapPin, Send, CheckCircle, ArrowLeft } from "lucide-react";
+```
+الى:
+```typescript
+import { MessageCircle, Phone, Mail, Send, CheckCircle, ArrowLeft } from "lucide-react";
+```
+
+### 3. useAvailabilityCheck.ts (سطر 1)
+تعديل من:
+```typescript
+import { useState, useEffect, useCallback } from 'react';
+```
+الى:
+```typescript
+import { useState, useEffect } from 'react';
+```
+
+---
+
+## الملفات النظيفة (تم فحصها وهي خالية من أي عناصر غير مستخدمة)
+
+- App.tsx
+- Restaurant.tsx
+- Dashboard.tsx
+- MenuManagement.tsx
+- BranchesManagement.tsx
+- Orders.tsx
+- FooterManagement.tsx
+- Auth.tsx
+- ForgotPassword.tsx
+- Index.tsx
+- NotFound.tsx
+- useAuth.tsx
+- useRestaurantData.ts
+- useAdminData.ts
+- useAdminMutations.ts
+- bunny.ts
+- ShareDialog.tsx
+- ProductDetailsDialog.tsx
+- BranchesDialog.tsx
+- ImageUploader.tsx
+- ImageCropper.tsx
+- SortableItem.tsx
+- DeleteConfirmDialog.tsx
+- AvailabilityIndicator.tsx
+- RestaurantFooter.tsx
+- Footer.tsx
+- HeroSection.tsx
+- FeaturesSection.tsx
+- TestimonialsSection.tsx
