@@ -10,6 +10,7 @@ import { Loader2, ChefHat, Mail, ArrowRight, CheckCircle2, Lock, Eye, EyeOff } f
 import { supabase } from '@/integrations/supabase/client';
 
 export default function ForgotPassword() {
+  // UI State - بيانات النموذج وحالات العرض المختلفة
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,7 +19,7 @@ export default function ForgotPassword() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // حالات تغيير كلمة المرور
+  // UI State - حالات تغيير كلمة المرور
   const [isResetMode, setIsResetMode] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,7 +27,7 @@ export default function ForgotPassword() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordUpdated, setPasswordUpdated] = useState(false);
 
-  // التحقق من وجود توكن إعادة التعيين في URL
+  // URL Check - التحقق من وجود توكن إعادة التعيين في URL
   useEffect(() => {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const type = hashParams.get('type');
@@ -37,7 +38,7 @@ export default function ForgotPassword() {
     }
   }, []);
 
-  // عداد تنازلي لإعادة الإرسال
+  // Timer - عداد تنازلي لإعادة إرسال الرابط
   useEffect(() => {
     if (resendCooldown > 0) {
       const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);

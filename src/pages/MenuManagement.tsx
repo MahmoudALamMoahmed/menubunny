@@ -60,11 +60,14 @@ export default function MenuManagement() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  // React Query - للوصول المباشر للكاش عند التحديث المتفائل (DnD)
   const queryClient = useQueryClient();
   
+  // React Query - جلب بيانات المطعم الأساسية
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
   const restaurantId = restaurant?.id;
   
+  // React Query - جلب بيانات القائمة الكاملة (بدون فلترة) للإدارة
   const { data: categories = [], isLoading: categoriesLoading } = useAdminCategories(restaurantId);
   const { data: menuItems = [], isLoading: itemsLoading } = useAdminMenuItems(restaurantId);
   const { data: sizes = [], isLoading: sizesLoading } = useAdminSizes(restaurantId);
@@ -72,7 +75,7 @@ export default function MenuManagement() {
   
   const dataLoading = categoriesLoading || itemsLoading || sizesLoading || extrasLoading;
 
-  // Mutations
+  // React Query Mutation - عمليات الحفظ والحذف وإعادة الترتيب
   const saveCategoryMut = useSaveCategory(restaurantId);
   const deleteCategoryMut = useDeleteCategory(restaurantId);
   const saveItemMut = useSaveMenuItem(restaurantId);
@@ -88,7 +91,7 @@ export default function MenuManagement() {
   const saving = saveCategoryMut.isPending || saveItemMut.isPending || saveSizeMut.isPending || saveExtraMut.isPending;
   const isDeleting = deleteCategoryMut.isPending || deleteItemMut.isPending || deleteSizeMut.isPending || deleteExtraMut.isPending;
   
-  // Form states
+  // UI State - حالات النماذج (فتح/إغلاق الفورم، التعديل، البحث، الفلترة، حوار الحذف)
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showItemForm, setShowItemForm] = useState(false);
   const [showSizesDialog, setShowSizesDialog] = useState(false);
@@ -141,7 +144,7 @@ export default function MenuManagement() {
     name: string;
   }>({ open: false, type: 'category', id: '', name: '' });
 
-  // DnD sensors
+  // DnD Kit - إعداد حساسات السحب والإفلات (PointerSensor + KeyboardSensor)
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -149,6 +152,7 @@ export default function MenuManagement() {
     })
   );
 
+  // Auth Guard - توجيه المستخدم غير المسجل لصفحة تسجيل الدخول
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');

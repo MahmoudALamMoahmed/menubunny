@@ -20,9 +20,12 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   
+  // React Query - جلب بيانات المطعم
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  // React Query Mutation - حفظ/تحديث بيانات المطعم
   const saveRestaurantMut = useSaveRestaurant(username);
   
+  // UI State - حالة فتح حوار المعلومات وبيانات النموذج
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -38,12 +41,14 @@ export default function Dashboard() {
     logo_public_id: ''
   });
 
+  // Auth Guard - توجيه المستخدم غير المسجل لصفحة تسجيل الدخول
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
     }
   }, [authLoading, user, navigate]);
 
+  // Data Sync - مزامنة بيانات المطعم من React Query إلى نموذج التعديل المحلي
   useEffect(() => {
     if (restaurant) {
       setFormData({

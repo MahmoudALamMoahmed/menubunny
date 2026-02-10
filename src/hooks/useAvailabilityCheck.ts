@@ -8,11 +8,13 @@ interface UseAvailabilityCheckResult {
   message: string;
 }
 
-// التحقق من توفر اسم المستخدم
+// Custom Hook - التحقق من توفر اسم المستخدم (useState + useEffect + debounce يدوي)
 export function useUsernameAvailability(username: string): UseAvailabilityCheckResult {
+  // UI State - حالة التحقق والرسالة
   const [status, setStatus] = useState<AvailabilityStatus>('idle');
   const [message, setMessage] = useState('');
 
+  // Side Effect - فحص التوفر مع debounce 500ms عند تغيير اسم المستخدم
   useEffect(() => {
     // إعادة تعيين الحالة إذا كان الحقل فارغاً
     if (!username.trim()) {

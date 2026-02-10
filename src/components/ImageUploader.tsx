@@ -31,6 +31,7 @@ export default function ImageUploader({
   className,
   enableCrop = true,
 }: ImageUploaderProps) {
+  // UI State - حالات الرفع والمعاينة والسحب والقص
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -38,6 +39,7 @@ export default function ImageUploader({
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  // DOM Ref - مرجع لعنصر input الملف
   const inputRef = useRef<HTMLInputElement>(null);
 
   const aspectClasses = {
@@ -52,6 +54,7 @@ export default function ImageUploader({
     logo: 1,
   };
 
+  // Performance - تحسين أداء لمنع إعادة الإنشاء
   const handleFileSelect = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('يرجى اختيار صورة فقط');

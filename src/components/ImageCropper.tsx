@@ -116,12 +116,14 @@ export default function ImageCropper({
   onCropComplete,
   aspectRatio = 1,
 }: ImageCropperProps) {
+  // UI State - موقع القص والتكبير والدوران ومنطقة القص
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [processing, setProcessing] = useState(false);
 
+  // Performance - تحسين أداء لمنع إعادة الإنشاء
   const onCropChange = useCallback((location: Point) => {
     setCrop(location);
   }, []);

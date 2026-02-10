@@ -16,9 +16,12 @@ export default function FooterManagement() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   
+  // React Query - جلب بيانات المطعم
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  // React Query Mutation - حفظ بيانات الفوتر
   const saveRestaurantMut = useSaveRestaurant(username);
   
+  // UI State - بيانات نموذج الفوتر
   const [formData, setFormData] = useState({
     address: '',
     email: '',
@@ -27,12 +30,14 @@ export default function FooterManagement() {
     working_hours: 'يومياً من 9 صباحاً إلى 11 مساءً'
   });
 
+  // Auth Guard - توجيه المستخدم غير المسجل لصفحة تسجيل الدخول
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
     }
   }, [authLoading, user, navigate]);
 
+  // Data Sync - مزامنة بيانات المطعم إلى النموذج المحلي
   useEffect(() => {
     if (restaurant) {
       setFormData({

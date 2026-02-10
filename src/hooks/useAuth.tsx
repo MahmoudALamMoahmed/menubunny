@@ -24,6 +24,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const PENDING_RESTAURANT_KEY = 'pending_restaurant_data';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // Auth State - حالة المستخدم والجلسة والتحميل واسم المستخدم
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,8 +104,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { created: true, error: null };
   };
 
+  // Auth Listener - مستمع لتغييرات حالة المصادقة من Supabase + جلب الجلسة الحالية
   useEffect(() => {
-    // إعداد مستمع حالة المصادقة
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         // تحديث الحالة بشكل متزامن فقط - لا await هنا!
