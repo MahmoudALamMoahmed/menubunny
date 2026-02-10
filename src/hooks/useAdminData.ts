@@ -1,11 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-// Admin hooks fetch ALL data (no availability/active filters)
-// Shorter stale times since admin data should be fresh
+// ─── إعدادات الكاش ─────────────────────────────────────────
+// Cache Config - بيانات الأدمن تحتاج تحديث أسرع من بيانات الجمهور
 const ADMIN_STALE = 1000 * 60 * 2; // 2 دقائق
 const ADMIN_GC = 1000 * 60 * 10; // 10 دقائق
 
+// ─── React Query Hooks (للأدمن - بدون فلاتر، جميع البيانات) ──
+
+// React Query - جلب جميع الفئات (بدون فلترة) للإدارة
 export function useAdminCategories(restaurantId: string | undefined) {
   return useQuery({
     queryKey: ['admin_categories', restaurantId],
@@ -25,6 +28,7 @@ export function useAdminCategories(restaurantId: string | undefined) {
   });
 }
 
+// React Query - جلب جميع أصناف القائمة (بدون فلترة is_available) للإدارة
 export function useAdminMenuItems(restaurantId: string | undefined) {
   return useQuery({
     queryKey: ['admin_menu_items', restaurantId],
@@ -44,6 +48,7 @@ export function useAdminMenuItems(restaurantId: string | undefined) {
   });
 }
 
+// React Query - جلب جميع الأحجام للإدارة
 export function useAdminSizes(restaurantId: string | undefined) {
   return useQuery({
     queryKey: ['admin_sizes', restaurantId],
@@ -62,6 +67,7 @@ export function useAdminSizes(restaurantId: string | undefined) {
   });
 }
 
+// React Query - جلب جميع الإضافات (بدون فلترة is_available) للإدارة
 export function useAdminExtras(restaurantId: string | undefined) {
   return useQuery({
     queryKey: ['admin_extras', restaurantId],
@@ -81,6 +87,7 @@ export function useAdminExtras(restaurantId: string | undefined) {
   });
 }
 
+// React Query - جلب جميع الفروع (بدون فلترة is_active) للإدارة
 export function useAdminBranches(restaurantId: string | undefined) {
   return useQuery({
     queryKey: ['admin_branches', restaurantId],
@@ -100,6 +107,7 @@ export function useAdminBranches(restaurantId: string | undefined) {
   });
 }
 
+// React Query - جلب جميع مناطق التوصيل (بدون فلترة is_active) للإدارة
 export function useAdminDeliveryAreas(branchIds: string[] | undefined) {
   return useQuery({
     queryKey: ['admin_delivery_areas', branchIds],
@@ -119,6 +127,7 @@ export function useAdminDeliveryAreas(branchIds: string[] | undefined) {
   });
 }
 
+// React Query - جلب جميع الطلبات مرتبة من الأحدث (stale أقصر لأن الطلبات تتغير بسرعة)
 export function useAdminOrders(restaurantId: string | undefined) {
   return useQuery({
     queryKey: ['admin_orders', restaurantId],

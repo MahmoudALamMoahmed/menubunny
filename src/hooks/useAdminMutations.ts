@@ -3,8 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { deleteFromBunny } from '@/lib/bunny';
 
-// ─── Helpers ────────────────────────────────────────────────
+// ─── Helpers (مساعدات لإبطال الكاش) ────────────────────────
 
+// Helper - إبطال كاش المنيو (أدمن + جمهور) بعد أي عملية تعديل
 function useInvalidateMenu(restaurantId: string | undefined) {
   const qc = useQueryClient();
   return () => {
@@ -19,6 +20,7 @@ function useInvalidateMenu(restaurantId: string | undefined) {
   };
 }
 
+// Helper - إبطال كاش الفروع ومناطق التوصيل (أدمن + جمهور)
 function useInvalidateBranches(restaurantId: string | undefined) {
   const qc = useQueryClient();
   return () => {
@@ -29,8 +31,9 @@ function useInvalidateBranches(restaurantId: string | undefined) {
   };
 }
 
-// ─── Category Mutations ─────────────────────────────────────
+// ─── Category Mutations (عمليات الأقسام) ────────────────────
 
+// React Query Mutation - إضافة أو تعديل قسم في القائمة
 export function useSaveCategory(restaurantId: string | undefined) {
   const { toast } = useToast();
   const invalidate = useInvalidateMenu(restaurantId);
@@ -55,6 +58,7 @@ export function useSaveCategory(restaurantId: string | undefined) {
   });
 }
 
+// React Query Mutation - حذف قسم من القائمة
 export function useDeleteCategory(restaurantId: string | undefined) {
   const { toast } = useToast();
   const invalidate = useInvalidateMenu(restaurantId);
@@ -74,8 +78,9 @@ export function useDeleteCategory(restaurantId: string | undefined) {
   });
 }
 
-// ─── Menu Item Mutations ────────────────────────────────────
+// ─── Menu Item Mutations (عمليات أصناف القائمة) ─────────────
 
+// Interface - بيانات حفظ/تعديل صنف
 interface SaveItemData {
   id?: string;
   name: string;
@@ -89,6 +94,7 @@ interface SaveItemData {
   restaurant_id: string;
 }
 
+// React Query Mutation - إضافة أو تعديل صنف في القائمة
 export function useSaveMenuItem(restaurantId: string | undefined) {
   const { toast } = useToast();
   const invalidate = useInvalidateMenu(restaurantId);
@@ -114,6 +120,7 @@ export function useSaveMenuItem(restaurantId: string | undefined) {
   });
 }
 
+// React Query Mutation - حذف صنف من القائمة (مع حذف الصورة من Bunny إن وجدت)
 export function useDeleteMenuItem(restaurantId: string | undefined) {
   const { toast } = useToast();
   const invalidate = useInvalidateMenu(restaurantId);
@@ -136,8 +143,9 @@ export function useDeleteMenuItem(restaurantId: string | undefined) {
   });
 }
 
-// ─── Size Mutations ─────────────────────────────────────────
+// ─── Size Mutations (عمليات الأحجام) ────────────────────────
 
+// React Query Mutation - إضافة أو تعديل حجم لصنف معين
 export function useSaveSize(restaurantId: string | undefined) {
   const { toast } = useToast();
   const invalidate = useInvalidateMenu(restaurantId);
@@ -163,6 +171,7 @@ export function useSaveSize(restaurantId: string | undefined) {
   });
 }
 
+// React Query Mutation - حذف حجم
 export function useDeleteSize(restaurantId: string | undefined) {
   const { toast } = useToast();
   const invalidate = useInvalidateMenu(restaurantId);
@@ -182,8 +191,9 @@ export function useDeleteSize(restaurantId: string | undefined) {
   });
 }
 
-// ─── Extra Mutations ────────────────────────────────────────
+// ─── Extra Mutations (عمليات الإضافات) ──────────────────────
 
+// React Query Mutation - إضافة أو تعديل إضافة
 export function useSaveExtra(restaurantId: string | undefined) {
   const { toast } = useToast();
   const invalidate = useInvalidateMenu(restaurantId);
@@ -209,6 +219,7 @@ export function useSaveExtra(restaurantId: string | undefined) {
   });
 }
 
+// React Query Mutation - حذف إضافة
 export function useDeleteExtra(restaurantId: string | undefined) {
   const { toast } = useToast();
   const invalidate = useInvalidateMenu(restaurantId);
@@ -228,8 +239,9 @@ export function useDeleteExtra(restaurantId: string | undefined) {
   });
 }
 
-// ─── Branch Mutations ───────────────────────────────────────
+// ─── Branch Mutations (عمليات الفروع) ───────────────────────
 
+// Interface - بيانات حفظ/تعديل فرع
 interface SaveBranchData {
   id?: string;
   name: string;
@@ -246,6 +258,7 @@ interface SaveBranchData {
   display_order?: number;
 }
 
+// React Query Mutation - إضافة أو تعديل فرع
 export function useSaveBranch(restaurantId: string | undefined) {
   const { toast } = useToast();
   const invalidate = useInvalidateBranches(restaurantId);
@@ -271,6 +284,7 @@ export function useSaveBranch(restaurantId: string | undefined) {
   });
 }
 
+// React Query Mutation - حذف فرع
 export function useDeleteBranch(restaurantId: string | undefined) {
   const { toast } = useToast();
   const invalidate = useInvalidateBranches(restaurantId);
@@ -290,6 +304,7 @@ export function useDeleteBranch(restaurantId: string | undefined) {
   });
 }
 
+// React Query Mutation - تبديل حالة تفعيل/تعطيل الفرع
 export function useToggleBranchActive(restaurantId: string | undefined) {
   const invalidate = useInvalidateBranches(restaurantId);
 
@@ -303,8 +318,9 @@ export function useToggleBranchActive(restaurantId: string | undefined) {
   });
 }
 
-// ─── Delivery Area Mutations ────────────────────────────────
+// ─── Delivery Area Mutations (عمليات مناطق التوصيل) ─────────
 
+// Interface - بيانات حفظ/تعديل منطقة توصيل
 interface SaveAreaData {
   id?: string;
   branch_id: string;
@@ -313,6 +329,7 @@ interface SaveAreaData {
   display_order?: number;
 }
 
+// React Query Mutation - إضافة أو تعديل منطقة توصيل
 export function useSaveDeliveryArea(restaurantId: string | undefined) {
   const { toast } = useToast();
   const invalidate = useInvalidateBranches(restaurantId);
@@ -338,6 +355,7 @@ export function useSaveDeliveryArea(restaurantId: string | undefined) {
   });
 }
 
+// React Query Mutation - حذف منطقة توصيل
 export function useDeleteDeliveryArea(restaurantId: string | undefined) {
   const { toast } = useToast();
   const invalidate = useInvalidateBranches(restaurantId);
@@ -357,8 +375,9 @@ export function useDeleteDeliveryArea(restaurantId: string | undefined) {
   });
 }
 
-// ─── Restaurant Mutations ───────────────────────────────────
+// ─── Restaurant Mutations (عمليات المطعم) ───────────────────
 
+// React Query Mutation - إنشاء أو تعديل بيانات المطعم (مع معالجة خطأ اسم مستخدم مكرر)
 export function useSaveRestaurant(username: string | undefined) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -391,8 +410,9 @@ export function useSaveRestaurant(username: string | undefined) {
   });
 }
 
-// ─── Order Mutations ────────────────────────────────────────
+// ─── Order Mutations (عمليات الطلبات) ───────────────────────
 
+// React Query Mutation - تحديث حالة الطلب (مثلاً: جديد → قيد التحضير → مكتمل)
 export function useUpdateOrderStatus(restaurantId: string | undefined) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -415,8 +435,13 @@ export function useUpdateOrderStatus(restaurantId: string | undefined) {
   });
 }
 
-// ─── Reorder Mutations ──────────────────────────────────────
+// ─── Reorder Mutations (عمليات إعادة الترتيب بالسحب والإفلات) ──
+// جميع hooks إعادة الترتيب تستخدم Optimistic Update:
+// 1. onMutate: حفظ البيانات القديمة احتياطياً
+// 2. onError: استعادة البيانات القديمة عند الفشل
+// 3. onSettled: إبطال الكاش لجلب البيانات الحقيقية من السيرفر
 
+// React Query Mutation - إعادة ترتيب الأقسام (مع تحديث متفائل)
 export function useReorderCategories(restaurantId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
@@ -438,6 +463,7 @@ export function useReorderCategories(restaurantId: string | undefined) {
   });
 }
 
+// React Query Mutation - إعادة ترتيب أصناف القائمة (مع تحديث متفائل)
 export function useReorderMenuItems(restaurantId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
@@ -459,6 +485,7 @@ export function useReorderMenuItems(restaurantId: string | undefined) {
   });
 }
 
+// React Query Mutation - إعادة ترتيب الإضافات (مع تحديث متفائل)
 export function useReorderExtras(restaurantId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
@@ -480,6 +507,7 @@ export function useReorderExtras(restaurantId: string | undefined) {
   });
 }
 
+// React Query Mutation - إعادة ترتيب الفروع (مع تحديث متفائل)
 export function useReorderBranches(restaurantId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
@@ -501,6 +529,7 @@ export function useReorderBranches(restaurantId: string | undefined) {
   });
 }
 
+// React Query Mutation - إعادة ترتيب مناطق التوصيل (مع تحديث متفائل)
 export function useReorderDeliveryAreas(restaurantId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
