@@ -141,6 +141,7 @@ export default function Auth() {
     handleUserSession();
   }, [user, navigate, ensureRestaurantExists, toast]);
 
+  // معالج تسجيل الدخول (form submit) عبر Supabase Auth
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -166,6 +167,7 @@ export default function Auth() {
     setIsLoading(false);
   };
 
+  // معالج إنشاء حساب جديد (form submit) مع التحقق من المدخلات
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);

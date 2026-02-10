@@ -15,8 +15,10 @@ import BranchesManagement from "./pages/BranchesManagement";
 import Orders from "./pages/Orders";
 import NotFound from "./pages/NotFound";
 
+// إعداد React Query Client لإدارة الكاش وجلب البيانات
 const queryClient = new QueryClient();
 
+// المكون الرئيسي - تعريف Providers والراوتر
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>

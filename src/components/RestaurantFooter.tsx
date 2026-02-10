@@ -19,6 +19,7 @@ interface RestaurantFooterProps {
 }
 
 export default function RestaurantFooter({ restaurant }: RestaurantFooterProps) {
+  // React Query - جلب الفروع النشطة لعرضها في الفوتر
   const { data: branches = [] } = useBranches(restaurant?.id);
 
   return (

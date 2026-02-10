@@ -88,6 +88,7 @@ export default function MenuManagement() {
   const reorderItemsMut = useReorderMenuItems(restaurantId);
   const reorderExtrasMut = useReorderExtras(restaurantId);
 
+  // متغيرات مساعدة لتتبع حالة الحفظ والحذف عبر جميع Mutations
   const saving = saveCategoryMut.isPending || saveItemMut.isPending || saveSizeMut.isPending || saveExtraMut.isPending;
   const isDeleting = deleteCategoryMut.isPending || deleteItemMut.isPending || deleteSizeMut.isPending || deleteExtraMut.isPending;
   
@@ -160,6 +161,7 @@ export default function MenuManagement() {
   }, [authLoading, user, navigate]);
 
 
+  // حفظ/تعديل فئة عبر Mutation
   const handleSaveCategory = () => {
     if (!restaurant || !categoryForm.name.trim()) return;
     saveCategoryMut.mutate(
@@ -174,6 +176,7 @@ export default function MenuManagement() {
     );
   };
 
+  // حفظ/تعديل صنف عبر Mutation
   const handleSaveItem = () => {
     if (!restaurant || !itemForm.name.trim() || !itemForm.price) return;
     saveItemMut.mutate(
@@ -200,12 +203,14 @@ export default function MenuManagement() {
     );
   };
 
+  // حذف فئة عبر Mutation
   const handleDeleteCategory = (categoryId: string) => {
     deleteCategoryMut.mutate(categoryId, {
       onSuccess: () => setDeleteDialog({ open: false, type: 'category', id: '', name: '' }),
     });
   };
 
+  // حذف صنف عبر Mutation (مع حذف الصورة من Bunny CDN)
   const handleDeleteItem = (itemId: string) => {
     const item = menuItems.find(i => i.id === itemId);
     deleteItemMut.mutate(
@@ -214,7 +219,7 @@ export default function MenuManagement() {
     );
   };
 
-  // Size management functions
+  // حفظ/تعديل حجم عبر Mutation
   const handleSaveSize = () => {
     if (!selectedItemId || !sizeForm.name.trim() || !sizeForm.price) return;
     saveSizeMut.mutate(
@@ -234,12 +239,14 @@ export default function MenuManagement() {
     );
   };
 
+  // حذف حجم عبر Mutation
   const handleDeleteSize = (sizeId: string) => {
     deleteSizeMut.mutate(sizeId, {
       onSuccess: () => setDeleteDialog({ open: false, type: 'size', id: '', name: '' }),
     });
   };
 
+  // فتح حوار الأحجام لصنف معين
   const openSizesDialog = (itemId: string) => {
     setSelectedItemId(itemId);
     setShowSizesDialog(true);
@@ -247,11 +254,12 @@ export default function MenuManagement() {
     setEditingSize(null);
   };
 
+  // دالة مساعدة - فلترة الأحجام حسب الصنف
   const getSizesForItem = (itemId: string) => {
     return sizes.filter(size => size.menu_item_id === itemId);
   };
 
-  // Extras management functions
+  // حفظ/تعديل إضافة عبر Mutation
   const handleSaveExtra = () => {
     if (!restaurant || !extraForm.name.trim() || !extraForm.price) return;
     saveExtraMut.mutate(
@@ -272,13 +280,14 @@ export default function MenuManagement() {
     );
   };
 
+  // حذف إضافة عبر Mutation
   const handleDeleteExtra = (extraId: string) => {
     deleteExtraMut.mutate(extraId, {
       onSuccess: () => setDeleteDialog({ open: false, type: 'extra', id: '', name: '' }),
     });
   };
 
-  // Handle drag end for categories
+  // معالج DnD لإعادة ترتيب الفئات (Optimistic Update للكاش)
   const handleCategoryDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -297,7 +306,7 @@ export default function MenuManagement() {
     });
   };
 
-  // Handle drag end for menu items
+  // معالج DnD لإعادة ترتيب الأصناف (Optimistic Update للكاش)
   const handleItemDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -329,7 +338,7 @@ export default function MenuManagement() {
     });
   };
 
-  // Handle drag end for extras
+  // معالج DnD لإعادة ترتيب الإضافات (Optimistic Update للكاش)
   const handleExtraDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -375,7 +384,7 @@ export default function MenuManagement() {
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
-      {/* Header */}
+      {/* Header - الهيدر */}
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">

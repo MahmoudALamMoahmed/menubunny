@@ -25,6 +25,7 @@ import { useRestaurant, useCategories, useMenuItems, useSizes, useExtras, useBra
 
 import type { Tables } from '@/integrations/supabase/types';
 
+// تعريف الأنواع من Supabase + واجهة السلة
 type MenuItem = Tables<'menu_items'>;
 type Size = Tables<'sizes'>;
 type Extra = Tables<'extras'>;
@@ -76,8 +77,10 @@ export default function Restaurant() {
   const [selectedBranch, setSelectedBranch] = useState<string>('');
   const [selectedArea, setSelectedArea] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
+  // التحقق من ملكية المطعم - لإظهار زر الإدارة
   const isOwner = user && restaurant && user.id === restaurant.owner_id;
 
+  // دالة إضافة صنف للسلة مع دعم الأحجام والإضافات
   const addToCart = (item: MenuItem, selectedSize?: Size, selectedExtras?: Extra[]) => {
     const extrasTotal = selectedExtras?.reduce((sum, e) => sum + e.price, 0) || 0;
     const basePrice = selectedSize ? selectedSize.price : item.price;
@@ -113,6 +116,7 @@ export default function Restaurant() {
     });
   };
 
+  // دالة حذف/تقليل كمية صنف من السلة
   const removeFromCart = (itemId: string, sizeId?: string, extrasKey?: string) => {
     setCart(prev => {
       const existingItem = prev.find(cartItem => 
@@ -137,30 +141,36 @@ export default function Restaurant() {
     });
   };
 
+  // فتح حوار تفاصيل المنتج
   const openProductDialog = (item: MenuItem) => {
     setSelectedProduct(item);
     setShowProductDialog(true);
   };
 
 
+  // حساب إجمالي سعر السلة
   const getTotalPrice = () => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
+  // حساب سعر التوصيل حسب المنطقة المختارة
   const getDeliveryPrice = () => {
     if (!selectedArea) return 0;
     const area = deliveryAreas.find(a => a.id === selectedArea);
     return area?.delivery_price || 0;
   };
 
+  // استرجاع مناطق التوصيل لفرع معين
   const getAreasForBranch = (branchId: string) => {
     return deliveryAreas.filter(area => area.branch_id === branchId);
   };
 
+  // حساب الإجمالي الكلي (سلة + توصيل)
   const getFinalTotal = () => {
     return getTotalPrice() + getDeliveryPrice();
   };
 
+  // إرسال الطلب عبر واتساب - بناء رسالة الطلب وفتح رابط واتساب
   const sendOrderToWhatsApp = async () => {
     if (cart.length === 0 || !customerName || !customerAddress || !customerPhone || !restaurant) return;
     
@@ -271,6 +281,7 @@ ${orderText}
     }
   };
 
+  // حالة التحميل - عرض مؤشر التحميل
   if (loadingRestaurant) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">
@@ -280,6 +291,7 @@ ${orderText}
       </div>;
   }
 
+  // حالة عدم وجود المطعم
   if (!restaurant) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
         <div className="text-center">
@@ -290,7 +302,7 @@ ${orderText}
   }
 
   return <div className="min-h-screen bg-gray-50 pb-20" dir="rtl">
-      {/* Header */}
+      {/* Header - الهيدر */}
       <div className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -314,7 +326,7 @@ ${orderText}
         </div>
       </div>
 
-      {/* Cover Image */}
+      {/* Cover Image - صورة الغلاف */}
       <div className="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden">
         {restaurant.cover_image_url && (
           <div 
@@ -334,7 +346,7 @@ ${orderText}
         )}
       </div>
 
-      {/* Restaurant Info */}
+      {/* Restaurant Info - معلومات المطعم وروابط التواصل */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -376,7 +388,7 @@ ${orderText}
         </div>
       </div>
 
-       {/* Categories */}
+       {/* Categories - فئات القائمة */}
        {categories.length > 0 && <div className="bg-white border-b">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
@@ -393,7 +405,7 @@ ${orderText}
           </div>
         }
 
-       {/* تبديل طريقة العرض */}
+       {/* تبديل طريقة العرض - شبكة أو قائمة */}
         <div className="container px-4 flex justify-end gap-2 py-4">
           <button
               onClick={() => setViewType("list")}
@@ -417,7 +429,7 @@ ${orderText}
                 </button>
         </div>
 
-     {/* Menu Items */}
+     {/* Menu Items - أصناف القائمة */}
       <div className="container mx-auto px-4 pb-32">
         {filteredMenuItems.length === 0 ? <div className="text-center py-12">
             <p className="text-gray-600">لا توجد عناصر في القائمة حالياً</p>
@@ -448,6 +460,7 @@ ${orderText}
                 </CardContent>
               </Card>)}
           </div> : <div className="grid gap-4">
+            {/* عرض القائمة - List View */}
             {filteredMenuItems.map(item => <Card key={item.id} className="overflow-hidden cursor-pointer" onClick={() => openProductDialog(item)}>
                 <CardContent className="p-2">
                   <div className="flex flex-row-reverse items-center gap-4">
@@ -478,7 +491,7 @@ ${orderText}
           </div>}
       </div>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation - شريط التنقل السفلي */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
         <div className="container mx-auto px-4 py-2">
           <div className="flex items-center justify-center gap-10">
@@ -500,6 +513,7 @@ ${orderText}
               }
             />
             
+              {/* Cart Dialog - حوار السلة */}
               <Dialog open={showCartDialog} onOpenChange={setShowCartDialog}>
                 <DialogTrigger asChild>
                   <button className={`relative flex flex-col items-center gap-0.5 text-xs transition ${showCartDialog ? "text-red-600 font-bold" : "text-gray-600"} hover:text-red-500`}>
@@ -516,6 +530,7 @@ ${orderText}
                   </DialogHeader>
 
                   <div className="overflow-y-auto flex-1 space-y-4 pr-2 pl-2 max-h-[calc(90vh-100px)]">
+                    {/* عناصر السلة */}
                     <div className="space-y-2">
                        {cart.map(item => {
                          const extrasKey = item.selectedExtras?.map(e => e.id).sort().join(',') || '';
@@ -553,6 +568,7 @@ ${orderText}
 
                     <Separator />
 
+                    {/* ملخص الأسعار */}
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>إجمالي الطلب:</span>
@@ -572,6 +588,7 @@ ${orderText}
 
                     <Separator />
 
+                    {/* بيانات التوصيل - اختيار الفرع والمنطقة وطريقة الدفع */}
                     <div className="space-y-3">
                       <h3 className="font-medium">بيانات التوصيل</h3>
 
@@ -618,6 +635,7 @@ ${orderText}
                         </div>
                       )}
 
+                      {/* طريقة الدفع */}
                       <div className="space-y-3">
                         <Label className="font-medium">طريقة الدفع</Label>
                         <Select value={paymentMethod} onValueChange={setPaymentMethod}>
@@ -655,6 +673,7 @@ ${orderText}
                           </SelectContent>
                         </Select>
                         
+                        {/* تعليمات الدفع الإلكتروني */}
                         {paymentMethod !== 'cash' && selectedBranch && (
                           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
                             <div className="flex items-center justify-center gap-2 text-lg font-bold text-amber-800">
@@ -733,48 +752,43 @@ ${orderText}
                         )}
                       </div>
 
+                      {/* بيانات العميل */}
                       <div>
-                        <Label htmlFor="customerName">اسم العميل</Label>
-                        <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="أدخل اسمك" />
+                        <Label htmlFor="customerName">الاسم</Label>
+                        <Input id="customerName" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="اسمك الكريم" />
                       </div>
-
                       <div>
-                        <Label htmlFor="customerAddress">عنوان التوصيل</Label>
-                        <Textarea id="customerAddress" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="أدخل عنوان التوصيل بالتفصيل" rows={3} />
+                        <Label htmlFor="customerAddress">العنوان</Label>
+                        <Textarea id="customerAddress" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="عنوان التوصيل بالتفصيل" rows={2} />
                       </div>
-
                       <div>
-                        <Label htmlFor="customerPhone">رقم العميل</Label>
-                        <Input id="customerPhone" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="أدخل رقم هاتفك" type="tel" />
+                        <Label htmlFor="customerPhone">رقم الهاتف</Label>
+                        <Input id="customerPhone" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="رقم هاتفك" />
                       </div>
+                      
+                      {/* زر إرسال الطلب عبر واتساب */}
+                      <Button onClick={sendOrderToWhatsApp} disabled={cart.length === 0 || !customerName || !customerAddress || !customerPhone} className="w-full bg-green-600 hover:bg-green-700">
+                        إرسال الطلب واتساب
+                      </Button>
                     </div>
-
-                    <Button 
-                      onClick={sendOrderToWhatsApp} 
-                      className="w-full" 
-                      disabled={
-                        !customerName || 
-                        !customerAddress || 
-                        !customerPhone || 
-                        (branches.length > 0 && !selectedBranch) ||
-                        (selectedBranch && getAreasForBranch(selectedBranch).length > 0 && !selectedArea)
-                      }
-                    >
-                      إرسال الطلب واتساب
-                    </Button>
                   </div>
                 </DialogContent>
-
               </Dialog>
-
           </div>
         </div>
       </div>
 
-      {/* Restaurant Footer */}
+      {/* Product Details Dialog - حوار تفاصيل المنتج */}
+      <ProductDetailsDialog 
+        open={showProductDialog} 
+        onOpenChange={setShowProductDialog} 
+        item={selectedProduct}
+        sizes={sizes.filter(s => s.menu_item_id === selectedProduct?.id)}
+        extras={extras}
+        onAddToCart={addToCart}
+      />
+
+      {/* Restaurant Footer - فوتر المطعم */}
       <RestaurantFooter restaurant={restaurant} />
-      
-      {/* Product Details Dialog */}
-      <ProductDetailsDialog open={showProductDialog} onOpenChange={setShowProductDialog} item={selectedProduct} sizes={sizes} extras={extras} onAddToCart={addToCart} />
     </div>;
 }

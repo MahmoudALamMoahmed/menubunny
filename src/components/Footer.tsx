@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 const Footer = () => {
+  // دالة التمرير لأعلى الصفحة
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

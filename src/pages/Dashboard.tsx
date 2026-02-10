@@ -69,8 +69,7 @@ export default function Dashboard() {
     }
   }, [restaurant, restaurantLoading, username]);
 
-  
-
+  // دالة حفظ بيانات المطعم عبر React Query Mutation
   const handleSave = () => {
     if (!user) return;
     saveRestaurantMut.mutate(
@@ -92,7 +91,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
-      {/* Header */}
+      {/* Header - الهيدر */}
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -165,7 +164,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Restaurant Info Dialog */}
+      {/* Restaurant Info Dialog - حوار معلومات المطعم */}
       <Dialog open={infoDialogOpen} onOpenChange={setInfoDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
           <DialogHeader>

@@ -140,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // دالة تسجيل الدخول عبر Supabase Auth
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -148,6 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
+  // دالة إنشاء حساب جديد مع حفظ بيانات المطعم في localStorage لإنشائها لاحقاً
   const signUp = async (email: string, password: string, username: string, restaurantName: string) => {
     const redirectUrl = `${window.location.origin}/`;
 
@@ -191,6 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: null, needsEmailConfirmation };
   };
 
+  // دالة تسجيل الخروج من Supabase Auth
   const signOut = async () => {
     await supabase.auth.signOut();
   };
