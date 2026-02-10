@@ -175,27 +175,6 @@ export default function ShareDialog({ restaurantName, username }: ShareDialogPro
             </Button>
           </div>
 
-          {/* Restaurant Link */}
-          <div className="w-full flex gap-2">
-            <Input 
-              value={restaurantUrl} 
-              readOnly 
-              className="text-left text-sm"
-              dir="ltr"
-            />
-            <Button 
-              variant="outline" 
-              size="icon"
-              onClick={handleCopy}
-              className="shrink-0"
-            >
-              {copied ? (
-                <Check className="w-4 h-4 text-green-500" />
-              ) : (
-                <Copy className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
 
           {/* Share Buttons */}
           <div className="w-full space-y-3">
