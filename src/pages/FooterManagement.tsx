@@ -50,6 +50,7 @@ export default function FooterManagement() {
     }
   }, [restaurant]);
 
+  // دالة حفظ بيانات الفوتر عبر React Query Mutation
   const handleSave = () => {
     if (!user || !restaurant) return;
     saveRestaurantMut.mutate({ id: restaurant.id, data: { ...formData, name: restaurant.name, username: restaurant.username }, ownerId: user.id });

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 const Header = () => {
+  // UI State - حالة فتح/إغلاق القائمة الجانبية (موبايل)
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const {
@@ -11,10 +12,12 @@ const Header = () => {
     username,
     signOut
   } = useAuth();
+  // دالة تسجيل الخروج والتوجيه للرئيسية
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
   };
+  // قائمة عناصر التنقل
   const navItems = [{
     name: "الرئيسية",
     href: "#home"

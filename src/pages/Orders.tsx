@@ -10,6 +10,7 @@ import type { Tables } from '@/integrations/supabase/types';
 
 type Order = Tables<'orders'>;
 
+// تعريف نوع عناصر الطلب - يُستخرج من JSON المخزن في قاعدة البيانات
 interface OrderItem {
   id: string;
   name: string;
@@ -29,14 +30,17 @@ export default function Orders() {
   // React Query Mutation - تحديث حالة الطلب مع إعادة جلب تلقائية
   const updateStatusMut = useUpdateOrderStatus(restaurant?.id);
 
+  // استخراج عناصر الطلب من JSON المخزن في قاعدة البيانات
   const getOrderItems = (order: Order): OrderItem[] => {
     return Array.isArray(order.items) ? (order.items as unknown as OrderItem[]) : [];
   };
 
+  // معالج تحديث حالة الطلب عبر Mutation
   const handleUpdateStatus = (orderId: string, newStatus: string, isConfirmed?: boolean) => {
     updateStatusMut.mutate({ orderId, status: newStatus, isConfirmed });
   };
 
+  // تحديد لون Badge حسب حالة الطلب
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -49,6 +53,7 @@ export default function Orders() {
     }
   };
 
+  // ترجمة حالة الطلب للعربية
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending': return 'في الانتظار';
@@ -61,6 +66,7 @@ export default function Orders() {
     }
   };
 
+  // تنسيق التاريخ بالعربية (مصري)
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('ar-EG', {
       year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -125,6 +131,7 @@ export default function Orders() {
                   
                   <CardContent className="p-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* معلومات العميل */}
                       <div className="space-y-4">
                         <h3 className="font-semibold text-gray-900 border-b pb-2">معلومات العميل</h3>
                         <div className="space-y-2">
@@ -133,6 +140,7 @@ export default function Orders() {
                           {order.notes && (<div className="flex items-start gap-2"><MapPin className="w-4 h-4 text-gray-400 mt-1" /><span className="font-medium">العنوان:</span><span className="flex-1">{order.notes}</span></div>)}
                         </div>
                       </div>
+                      {/* تفاصيل الطلب */}
                       <div className="space-y-4">
                         <h3 className="font-semibold text-gray-900 border-b pb-2">تفاصيل الطلب</h3>
                         <div className="space-y-2">
@@ -150,6 +158,7 @@ export default function Orders() {
                       </div>
                     </div>
 
+                    {/* أزرار تحديث حالة الطلب */}
                     <div className="mt-6 pt-6 border-t border-gray-200">
                       <div className="flex flex-wrap gap-2">
                         {status === 'pending' && (

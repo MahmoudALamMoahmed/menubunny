@@ -46,6 +46,7 @@ export default function ForgotPassword() {
     }
   }, [resendCooldown]);
 
+  // معالج إرسال رابط إعادة التعيين عبر Supabase Auth
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -81,6 +82,7 @@ export default function ForgotPassword() {
     setIsLoading(false);
   };
 
+  // معالج إعادة إرسال رابط إعادة التعيين
   const handleResend = async () => {
     setIsLoading(true);
     const redirectUrl = `${window.location.origin}/forgot-password`;
@@ -106,7 +108,7 @@ export default function ForgotPassword() {
     setIsLoading(false);
   };
 
-  // تحديث كلمة المرور الجديدة
+  // معالج تحديث كلمة المرور الجديدة عبر Supabase Auth
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);

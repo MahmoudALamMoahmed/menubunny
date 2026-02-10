@@ -60,7 +60,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-// Sortable Branch Card Component
+// واجهة props لكارت الفرع القابل للسحب (DnD)
 interface SortableBranchCardProps {
   branch: Branch;
   onToggleActive: (branch: Branch) => void;
@@ -70,6 +70,7 @@ interface SortableBranchCardProps {
   areasCount: number;
 }
 
+// مكون كارت الفرع مع دعم السحب والإفلات (DnD) وأزرار التحكم
 function SortableBranchCard({ 
   branch, 
   onToggleActive, 
@@ -78,6 +79,7 @@ function SortableBranchCard({
   onOpenAreas,
   areasCount 
 }: SortableBranchCardProps) {
+  // DnD Hook - ربط العنصر بنظام السحب والإفلات
   const {
     attributes,
     listeners,
@@ -179,14 +181,16 @@ function SortableBranchCard({
 
 type DeliveryArea = Tables<'delivery_areas'>;
 
-// Sortable Delivery Area Item Component
+// واجهة props لعنصر منطقة التوصيل القابل للسحب (DnD)
 interface SortableAreaItemProps {
   area: DeliveryArea;
   onEdit: (area: DeliveryArea) => void;
   onDelete: (areaId: string) => void;
 }
 
+// مكون عنصر منطقة التوصيل مع دعم السحب والإفلات (DnD)
 function SortableAreaItem({ area, onEdit, onDelete }: SortableAreaItemProps) {
+  // DnD Hook - ربط العنصر بنظام السحب والإفلات
   const {
     attributes,
     listeners,
@@ -328,6 +332,7 @@ export default function BranchesManagement() {
   }, [authLoading, user, navigate]);
 
 
+  // إعادة تعيين نموذج الفرع
   const resetForm = () => {
     setFormData({
       name: '',
@@ -344,6 +349,7 @@ export default function BranchesManagement() {
     setEditingBranch(null);
   };
 
+  // فتح حوار تعديل الفرع مع تعبئة البيانات الحالية
   const openEditDialog = (branch: Branch) => {
     setEditingBranch(branch);
     setFormData({
@@ -361,6 +367,7 @@ export default function BranchesManagement() {
     setShowDialog(true);
   };
 
+  // حفظ/تعديل فرع عبر Mutation
   const handleSave = () => {
     if (!restaurant || !formData.name.trim()) {
       toast({
@@ -387,11 +394,13 @@ export default function BranchesManagement() {
     );
   };
 
+  // فتح حوار تأكيد حذف الفرع
   const openDeleteDialog = (branchId: string) => {
     setBranchToDelete(branchId);
     setDeleteDialogOpen(true);
   };
 
+  // تنفيذ حذف الفرع عبر Mutation
   const handleConfirmDelete = () => {
     if (!branchToDelete) return;
     deleteBranchMut.mutate(branchToDelete, {
@@ -402,11 +411,12 @@ export default function BranchesManagement() {
     });
   };
 
+  // تبديل حالة نشاط الفرع عبر Mutation
   const toggleActive = (branch: Branch) => {
     toggleActiveMut.mutate({ branchId: branch.id, isActive: !branch.is_active });
   };
 
-  // DnD sensors
+  // DnD Kit sensors - إعداد حساسات السحب (PointerSensor + KeyboardSensor)
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -414,7 +424,7 @@ export default function BranchesManagement() {
     })
   );
 
-  // Handle drag start for branches
+  // بدء سحب فرع - حفظ الفرع النشط للـ DragOverlay
   const handleBranchDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const branch = branches.find(b => b.id === active.id);
@@ -423,7 +433,7 @@ export default function BranchesManagement() {
     }
   };
 
-  // Handle drag end for branches
+  // معالج DnD لإعادة ترتيب الفروع (Optimistic Update للكاش)
   const handleBranchDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveDragBranch(null);
@@ -443,21 +453,24 @@ export default function BranchesManagement() {
     });
   };
 
-  // دوال إدارة المناطق
+  // فتح حوار مناطق التوصيل لفرع معين
   const openAreasDialog = (branch: Branch) => {
     setSelectedBranchForAreas(branch);
     setShowAreasDialog(true);
   };
 
+  // إعادة تعيين نموذج المنطقة
   const resetAreaForm = () => {
     setAreaForm({ name: '', delivery_price: 0 });
     setEditingArea(null);
   };
 
+  // دالة مساعدة - فلترة مناطق التوصيل حسب الفرع
   const getBranchAreas = (branchId: string) => {
     return deliveryAreas.filter(area => area.branch_id === branchId);
   };
 
+  // حفظ/تعديل منطقة توصيل عبر Mutation
   const handleSaveArea = () => {
     if (!selectedBranchForAreas || !areaForm.name.trim()) {
       toast({
@@ -483,7 +496,7 @@ export default function BranchesManagement() {
     );
   };
 
-  // Handle drag end for delivery areas
+  // معالج DnD لإعادة ترتيب مناطق التوصيل (Optimistic Update للكاش)
   const handleAreaDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id || !selectedBranchForAreas) return;

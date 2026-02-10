@@ -9,6 +9,7 @@ interface SortableItemProps {
 }
 
 export function SortableItem({ id, children }: SortableItemProps) {
+  // DnD Hook (useSortable) - ربط العنصر بنظام السحب والإفلات مع دعم الحركة والشفافية
   const {
     attributes,
     listeners,

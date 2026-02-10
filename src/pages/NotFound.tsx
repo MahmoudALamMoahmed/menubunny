@@ -4,6 +4,7 @@ import { useEffect } from "react";
 const NotFound = () => {
   const location = useLocation();
 
+  // Side Effect - تسجيل خطأ 404 في console عند زيارة صفحة غير موجودة
   useEffect(() => {
     console.error(
       "404 Error: User attempted to access non-existent route:",

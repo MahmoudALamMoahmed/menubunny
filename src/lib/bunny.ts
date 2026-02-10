@@ -3,7 +3,7 @@ import imageCompression from 'browser-image-compression';
 
 const CDN_HOSTNAME = 'menuss.b-cdn.net';
 
-// ============ Image Compression Options ============
+// ============ اعدادات ضغط الصور حسب النوع (غلاف/شعار/منتج) - Image Compression Options ============
 
 const COVER_COMPRESSION_OPTIONS = {
   maxSizeMB: 3,
@@ -52,6 +52,7 @@ export interface UploadProgress {
 
 export type ProgressCallback = (progress: UploadProgress) => void;
 
+// دالة ضغط الصورة قبل الرفع مع تتبع التقدم
 async function compressImage(
   file: File,
   imageType: ImageType = 'product',
@@ -86,7 +87,7 @@ async function compressImage(
   }
 }
 
-// ============ Image URL Functions ============
+// ============ دوال بناء روابط الصور - Image URL Functions ============
 
 export function getOptimizedUrl(url: string | null | undefined, _options?: { width?: number }): string {
   return url || '';
@@ -107,13 +108,14 @@ export function getMenuItemUrl(
   return url || '';
 }
 
-// ============ Upload & Delete ============
+// ============ دوال الرفع والحذف من Bunny CDN - Upload & Delete ============
 
 interface BunnyUploadResponse {
   secure_url: string;
   public_id: string;
 }
 
+// رفع صورة - ضغط + رفع عبر Edge Function إلى Bunny CDN
 export async function uploadToBunny(
   file: File,
   publicId: string,
@@ -164,6 +166,7 @@ export async function uploadToBunny(
   }
 }
 
+// حذف صورة من Bunny CDN عبر Edge Function
 export async function deleteFromBunny(path: string): Promise<boolean> {
   if (!path) {
     console.log('No path provided, skipping delete');
@@ -189,7 +192,7 @@ export async function deleteFromBunny(path: string): Promise<boolean> {
   }
 }
 
-// ============ Path Generators ============
+// ============ دوال توليد مسارات الصور - Path Generators ============
 
 export function getCoverPublicId(restaurantUsername: string): string {
   return `restaurants/${restaurantUsername}/cover`;
