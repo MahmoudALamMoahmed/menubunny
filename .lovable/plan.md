@@ -1,125 +1,96 @@
 
 
-# خطة فحص وتنظيف المشروع بعد تطبيق React Query
+# فحص وتنظيف صفحات اليوزر و App.tsx
 
-## ملخص الوضع الحالي
+## نتيجة الفحص
 
-بعد فحص جميع الصفحات والـ hooks، المشروع في حالة جيدة بشكل عام. معظم الصفحات تستخدم React Query بشكل صحيح. لكن هناك بقايا قديمة تحتاج تنظيف في مكانين رئيسيين:
+### App.tsx - نظيف تماما
+لا توجد مشاكل. الملف يقوم فقط بإعداد QueryClientProvider و الراوتر. لا يحتاج تغيير.
 
----
+### Index.tsx - نظيف تماما
+صفحة ثابتة (static) بدون أي جلب بيانات. لا تحتاج React Query أصلا.
 
-## المشاكل المكتشفة
+### Restaurant.tsx - يحتاج تنظيف بسيط
 
-### 1. صفحة Orders.tsx - لا تزال تستخدم useState + useEffect + fetch يدوي
+**الايجابي:** يستخدم React Query بشكل صحيح عبر hooks من `useRestaurantData.ts`. لا يوجد `useEffect` أو fetch يدوي.
 
-صفحة الطلبات لا تزال تجلب الطلبات يدويا عبر `useState` و `useEffect` و `fetchOrders` بدلا من React Query. هذا يعني:
-- لا يوجد كاش للطلبات
-- لا يوجد إعادة جلب تلقائية
-- عند تحديث حالة طلب، يتم تحديث الـ state المحلي يدويا بدلا من invalidation
+**المشكلة الوحيدة:** يحتوي على interfaces محلية مكررة (سطر 26-51):
 
-### 2. DnD Reorder في MenuManagement و BranchesManagement - يستخدم supabase مباشرة
+```typescript
+interface MenuItem { ... }
+interface Size { ... }
+interface Extra { ... }
+interface CartItem extends MenuItem { ... }
+```
 
-عمليات إعادة الترتيب (Drag & Drop) في صفحتي إدارة القائمة والفروع لا تزال تستخدم `supabase` مباشرة بدلا من mutations. هذا مقبول تقنيا لأن العمليات تحتاج تحديث متفائل (optimistic update) مع `setQueryData`، لكن يمكن تحويلها لـ mutations لتوحيد النمط.
+`MenuItem` و `Size` و `Extra` موجودة بالفعل كـ `Tables<'menu_items'>` و `Tables<'sizes'>` و `Tables<'extras'>` في Supabase types. يجب حذف التعريفات المحلية واستخدام الأنواع المركزية.
 
-### 3. صفحات Auth.tsx و ForgotPassword.tsx - تستخدم supabase مباشرة
+ملاحظة: `CartItem` ليس له مقابل في Supabase لأنه نوع خاص بالـ UI (سلة الطلبات)، لذا سيبقى كـ interface محلي لكن سيعتمد على `Tables<'menu_items'>` بدلا من `MenuItem` المحلي.
 
-هذا طبيعي ومقبول لأن عمليات المصادقة (login/signup/reset) تتعامل مع `supabase.auth` مباشرة وليس مع الجداول، فلا حاجة لـ React Query هنا.
+### ProductDetailsDialog.tsx - يحتاج تنظيف
+
+نفس المشكلة: يحتوي على interfaces محلية مكررة (سطر 10-32) لـ `MenuItem` و `Size` و `Extra`. يجب استبدالها بـ `Tables<'...'>`.
+
+### RestaurantFooter.tsx - نظيف تماما
+يستخدم `Tables<'restaurants'>` من Supabase types و `useBranches` من React Query. ممتاز.
+
+### BranchesDialog.tsx - نظيف تماما
+يستخدم `useBranches` من React Query. لا مشاكل.
+
+### ShareDialog.tsx - نظيف تماما
+لا يتعامل مع بيانات من قاعدة البيانات. لا يحتاج React Query.
+
+### useAvailabilityCheck.ts - مقبول كما هو
+يستخدم `useState` + `useEffect` مع debounce يدوي للتحقق من توفر اسم المستخدم. هذا نمط مقبول لأن العملية تتم مرة واحدة أثناء التسجيل ولا تحتاج كاش.
 
 ---
 
 ## خطة التنفيذ
 
-### المهمة 1: تحويل Orders.tsx لاستخدام React Query بالكامل
-
-- انشاء hook جديد `useAdminOrders` في `useAdminData.ts` لجلب الطلبات
-- حذف `useState` و `useEffect` و `fetchOrders` من Orders.tsx
-- تحديث `useUpdateOrderStatus` في `useAdminMutations.ts` لعمل `invalidateQueries` للطلبات بدلا من تحديث الـ state المحلي
-
-### المهمة 2: تحويل عمليات DnD Reorder لاستخدام mutations
-
-- انشاء mutations مخصصة للترتيب: `useReorderCategories`, `useReorderMenuItems`, `useReorderExtras`, `useReorderBranches`, `useReorderDeliveryAreas` في `useAdminMutations.ts`
-- كل mutation ستدعم التحديث المتفائل (optimistic update) عبر `onMutate` + `onError` rollback
-- حذف استيراد `supabase` المباشر من MenuManagement.tsx و BranchesManagement.tsx بعد التحويل
-
-### المهمة 3: تنظيف الـ interfaces المكررة
-
-- الملفات تحتوي على interfaces محلية (مثل `MenuItem`, `Size`, `Extra`, `Branch`, `DeliveryArea`) مكررة في عدة صفحات بينما الـ types موجودة بالفعل في `supabase/types.ts`
-- توحيد استخدام `Tables<'menu_items'>` من Supabase types بدلا من تعريفها يدويا في كل ملف
-
----
-
-## التفاصيل التقنية
-
-### Hook جديد: useAdminOrders
-
-```typescript
-// في useAdminData.ts
-export function useAdminOrders(restaurantId: string | undefined) {
-  return useQuery({
-    queryKey: ['admin_orders', restaurantId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('restaurant_id', restaurantId!)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!restaurantId,
-    staleTime: 1000 * 60, // دقيقة واحدة - الطلبات تتغير بسرعة
-    gcTime: ADMIN_GC,
-    refetchOnWindowFocus: false,
-  });
-}
-```
-
-### تحديث useUpdateOrderStatus
-
-```typescript
-// اضافة invalidation للطلبات
-export function useUpdateOrderStatus(restaurantId: string | undefined) {
-  const qc = useQueryClient();
-  // ...
-  onSuccess: () => {
-    qc.invalidateQueries({ queryKey: ['admin_orders', restaurantId] });
-  }
-}
-```
-
-### Reorder Mutations (مثال)
-
-```typescript
-export function useReorderCategories(restaurantId: string | undefined) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (updates: { id: string; display_order: number }[]) => {
-      const { error } = await supabase.from('categories').upsert(updates);
-      if (error) throw error;
-    },
-    onMutate: async (newOrder) => {
-      // حفظ البيانات القديمة للـ rollback
-      const prev = qc.getQueryData(['admin_categories', restaurantId]);
-      return { prev };
-    },
-    onError: (_, __, context) => {
-      // rollback عند الخطأ
-      qc.setQueryData(['admin_categories', restaurantId], context?.prev);
-    },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ['admin_categories', restaurantId] });
-    },
-  });
-}
-```
-
-### الملفات المتأثرة
+### المهمة الوحيدة: توحيد الأنواع (Types) في ملفين
 
 | الملف | التغيير |
 |-------|---------|
-| `src/hooks/useAdminData.ts` | اضافة `useAdminOrders` |
-| `src/hooks/useAdminMutations.ts` | تحديث `useUpdateOrderStatus` + اضافة reorder mutations |
-| `src/pages/Orders.tsx` | حذف fetch يدوي واستخدام `useAdminOrders` |
-| `src/pages/MenuManagement.tsx` | حذف `import { supabase }` واستخدام reorder mutations |
-| `src/pages/BranchesManagement.tsx` | حذف `import { supabase }` واستخدام reorder mutations |
+| `src/pages/Restaurant.tsx` | حذف interfaces المحلية (`MenuItem`, `Size`, `Extra`) واستبدالها بـ `Tables<'menu_items'>` وغيرها. تحديث `CartItem` ليعتمد على `Tables<'menu_items'>` |
+| `src/components/ProductDetailsDialog.tsx` | حذف interfaces المحلية واستبدالها بـ `Tables<'...'>` من Supabase types |
+
+### التفاصيل التقنية
+
+#### Restaurant.tsx - التغييرات
+
+حذف الأسطر 26-51 (الـ interfaces المحلية) واستبدالها بـ:
+
+```typescript
+import type { Tables } from '@/integrations/supabase/types';
+
+type MenuItem = Tables<'menu_items'>;
+type Size = Tables<'sizes'>;
+type Extra = Tables<'extras'>;
+
+interface CartItem extends MenuItem {
+  quantity: number;
+  selectedSize?: Size;
+  selectedExtras?: Extra[];
+}
+```
+
+هذا يضمن أن الأنواع متزامنة دائما مع قاعدة البيانات وتحتوي على جميع الحقول.
+
+#### ProductDetailsDialog.tsx - التغييرات
+
+حذف الأسطر 10-32 (الـ interfaces المحلية) واستبدالها بـ:
+
+```typescript
+import type { Tables } from '@/integrations/supabase/types';
+
+type MenuItem = Tables<'menu_items'>;
+type Size = Tables<'sizes'>;
+type Extra = Tables<'extras'>;
+```
+
+---
+
+## ملخص
+
+المشروع من ناحية اليوزر في حالة ممتازة. جميع الصفحات تستخدم React Query بشكل صحيح. التغيير الوحيد المطلوب هو توحيد الأنواع (types) في ملفين فقط لمنع التكرار وضمان التزامن مع قاعدة البيانات.
 
