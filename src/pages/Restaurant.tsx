@@ -281,14 +281,57 @@ ${orderText}
     }
   };
 
-  // حالة التحميل - عرض مؤشر التحميل
+  // حالة التحميل - عرض Skeleton بدل spinner لتقليل CLS
   if (loadingRestaurant) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">جاري تحميل المطعم...</p>
+    return (
+      <div className="min-h-screen bg-gray-50" dir="rtl">
+        {/* Skeleton Header */}
+        <div className="bg-white shadow-sm">
+          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-muted animate-pulse" />
+              <div className="h-6 w-32 bg-muted animate-pulse rounded" />
+            </div>
+            <div className="h-9 w-24 bg-muted animate-pulse rounded" />
+          </div>
         </div>
-      </div>;
+        {/* Skeleton Cover */}
+        <div className="w-full h-40 sm:h-52 md:h-80 lg:h-96 bg-muted animate-pulse" />
+        {/* Skeleton Info */}
+        <div className="bg-white border-b">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
+              <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
+            </div>
+          </div>
+        </div>
+        {/* Skeleton Categories */}
+        <div className="bg-white border-b">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex gap-2">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="h-8 w-16 bg-muted animate-pulse rounded-md" />
+              ))}
+            </div>
+          </div>
+        </div>
+        {/* Skeleton Menu Cards */}
+        <div className="container mx-auto px-4 py-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} className="bg-white rounded-lg overflow-hidden shadow-sm">
+                <div className="aspect-video bg-muted animate-pulse" />
+                <div className="p-3 space-y-2">
+                  <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
+                  <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // حالة عدم وجود المطعم
@@ -326,12 +369,14 @@ ${orderText}
         </div>
       </div>
 
-      {/* Cover Image - صورة الغلاف */}
-      <div className="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden">
+      {/* Cover Image - صورة الغلاف (img tag للـ blur بدل background-image لتجنب طلب مزدوج) */}
+      <div className="relative w-full h-40 sm:h-52 md:h-80 lg:h-96 overflow-hidden">
         {restaurant.cover_image_url && (
-          <div 
-            className="absolute inset-0 bg-cover bg-center blur-xl scale-110" 
-            style={{ backgroundImage: `url(${getCoverImageUrl(restaurant.cover_image_url)})` }}
+          <img 
+            src={getCoverImageUrl(restaurant.cover_image_url)} 
+            alt="" 
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover blur-xl scale-110" 
           />
         )}
         {restaurant.cover_image_url && (
@@ -340,7 +385,9 @@ ${orderText}
               src={getCoverImageUrl(restaurant.cover_image_url)} 
               alt={restaurant.name} 
               className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border-4 border-white/20" 
-              loading="eager" 
+              loading="eager"
+              // @ts-ignore
+              fetchpriority="high"
             />
           </div>
         )}
