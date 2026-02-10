@@ -7,29 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Plus, Minus } from 'lucide-react';
 import { getMenuItemUrl } from '@/lib/bunny';
 
-interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  image_url: string;
-  is_available: boolean;
-  category_id: string;
-}
+import type { Tables } from '@/integrations/supabase/types';
 
-interface Size {
-  id: string;
-  menu_item_id: string;
-  name: string;
-  price: number;
-  display_order: number;
-}
-
-interface Extra {
-  id: string;
-  name: string;
-  price: number;
-}
+type MenuItem = Tables<'menu_items'>;
+type Size = Tables<'sizes'>;
+type Extra = Tables<'extras'>;
 
 interface ProductDetailsDialogProps {
   open: boolean;
