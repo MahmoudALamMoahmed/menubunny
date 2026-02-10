@@ -23,27 +23,12 @@ import ShareDialog from '@/components/ShareDialog';
 import { getLogoUrl, getCoverImageUrl, getMenuItemUrl } from '@/lib/bunny';
 import { useRestaurant, useCategories, useMenuItems, useSizes, useExtras, useBranches, useDeliveryAreas } from '@/hooks/useRestaurantData';
 
-interface MenuItem {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  image_url: string;
-  is_available: boolean;
-  category_id: string;
-}
-interface Size {
-  id: string;
-  menu_item_id: string;
-  name: string;
-  price: number;
-  display_order: number;
-}
-interface Extra {
-  id: string;
-  name: string;
-  price: number;
-}
+import type { Tables } from '@/integrations/supabase/types';
+
+type MenuItem = Tables<'menu_items'>;
+type Size = Tables<'sizes'>;
+type Extra = Tables<'extras'>;
+
 interface CartItem extends MenuItem {
   quantity: number;
   selectedSize?: Size;
