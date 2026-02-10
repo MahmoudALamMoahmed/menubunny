@@ -1,56 +1,106 @@
 
 
-# اصلاح مشكلة الأداء في useSizes
+# خطة تحسين الأداء (LCP, CLS, INP)
 
-## المشكلة
+## التحليل الحالي
 
-`useSizes` في `useRestaurantData.ts` و `useAdminSizes` في `useAdminData.ts` يجلبان **كل الأحجام من قاعدة البيانات بالكامل** بدون أي فلترة بـ `restaurant_id`. هذا يعني أن كل مطعم يحمّل أحجام كل المطاعم الأخرى.
+بعد فحص صفحة المطعم `/mahmoud` وتحليل طلبات الشبكة، هذه هي الأرقام الفعلية:
 
-**السبب:** جدول `sizes` لا يحتوي على عمود `restaurant_id` - هو مرتبط فقط عبر `menu_item_id`.
-
----
-
-## الحل
-
-استخدام استعلام Supabase مع فلتر عبر العلاقة (foreign key filter) لجلب الأحجام التابعة لأصناف المطعم فقط:
-
-```typescript
-.from('sizes')
-.select('*, menu_items!inner(restaurant_id)')
-.eq('menu_items.restaurant_id', restaurantId!)
-```
-
-هذا يولّد `INNER JOIN` في SQL يفلتر الأحجام حسب `restaurant_id` الموجود في `menu_items`.
+| المؤشر | الوضع الحالي | المشكلة الرئيسية |
+|--------|-------------|-----------------|
+| LCP | ~2.1 ثانية | صورة الغلاف تنتظر انتهاء استعلام المطعم (733ms) ثم تُحمّل (1400ms) |
+| CLS | مرتفع | تحوّل من spinner للمحتوى + صور بدون أبعاد محجوزة |
+| INP | جيد | التفاعلات سريعة (setState فقط) |
 
 ---
 
 ## التغييرات المطلوبة
 
-### 1. useRestaurantData.ts - useSizes (سطر 87-91)
-تعديل الاستعلام من:
-```typescript
-const { data, error } = await supabase
-  .from('sizes')
-  .select('*')
-  .order('display_order');
-```
-الى:
-```typescript
-const { data, error } = await supabase
-  .from('sizes')
-  .select('*, menu_items!inner(restaurant_id)')
-  .eq('menu_items.restaurant_id', restaurantId!)
-  .order('display_order');
-```
+### 1. تحسين LCP - صورة الغلاف (التأثير الأكبر)
 
-### 2. useAdminData.ts - useAdminSizes (سطر 56-59)
-نفس التعديل بالضبط.
+**المشكلة:** صورة الغلاف (العنصر الأكبر على الشاشة) تُحمّل بعد انتهاء استعلام المطعم، وتُطلب مرتين (blur background + الصورة الأصلية).
+
+**الحل:**
+- اضافة `fetchpriority="high"` لصورة الغلاف الأصلية
+- استخدام صورة واحدة فقط مع CSS backdrop-filter بدل تحميل نفس الصورة مرتين للـ blur
+- اضافة `<link rel="preconnect">` لـ Bunny CDN في `index.html`
+
+**الملفات:** `index.html`, `src/pages/Restaurant.tsx`
+
+### 2. تحسين CLS - حجز المساحات
+
+**المشكلة:** عند التحميل يظهر spinner ثم يُستبدل بالمحتوى الكامل، مما يسبب انزياح كبير. كذلك صور المنيو تُحمّل بدون أبعاد محجوزة.
+
+**الحل:**
+- استبدال الـ spinner بـ Skeleton layout يحاكي شكل الصفحة النهائية (هيدر + غلاف + فئات + كروت)
+- اضافة `aspect-ratio` على حاويات صور المنيو (موجود بالفعل `aspect-video`)
+- التأكد من أن صورة الغلاف لها ارتفاع ثابت (موجود بالفعل `h-64 md:h-80 lg:h-96`)
+
+**الملفات:** `src/pages/Restaurant.tsx`
+
+### 3. تحسين تحميل الخطوط
+
+**المشكلة:** خط Cairo يُحمّل من Google Fonts ويمكن أن يتسبب في FOUT (Flash of Unstyled Text).
+
+**الحل:**
+- اضافة `<link rel="preconnect">` لـ Google Fonts (موجود في index.html - نتحقق)
+- اضافة `font-display: swap` للخط
+
+**الملفات:** `index.html`
+
+### 4. تحسين الـ blur background بدون طلب مزدوج
+
+**المشكلة:** صورة الغلاف تُطلب مرتين من الشبكة: مرة للخلفية المضببة (`bg-cover blur-xl`) ومرة للصورة الأصلية. المتصفح قد يُكرر الطلب بسبب اختلاف السياق (CSS background vs img tag).
+
+**الحل:**
+- استبدال الـ `div` مع `background-image` بـ `img` tag مع `blur-xl` حتى يستخدم المتصفح نفس الكاش
+- أو استخدام CSS `backdrop-filter` بدل صورة خلفية منفصلة
+
+**الملفات:** `src/pages/Restaurant.tsx`
+
+### 5. Lazy loading ذكي لصور المنيو
+
+**المشكلة:** صور المنيو تستخدم `loading="lazy"` وهذا جيد، لكن جميعها تبدأ التحميل معاً لأنها في viewport.
+
+**الحل:** هذا سلوك طبيعي ومقبول. الصور في viewport يجب أن تُحمّل. لا تغيير مطلوب.
 
 ---
 
-## النتيجة المتوقعة
+## التفاصيل التقنية
 
-- بدلاً من جلب كل الأحجام في قاعدة البيانات، يتم جلب أحجام المطعم الحالي فقط
-- تقليل حجم البيانات المنقولة وتحسين سرعة الاستعلام
-- لا يوجد تأثير على باقي الكود لأن البيانات الإضافية (`menu_items`) تأتي كـ nested object ولا تتعارض مع الاستخدام الحالي
+### index.html
+```html
+<!-- اضافة preconnect لـ Bunny CDN و Google Fonts -->
+<link rel="preconnect" href="https://menuss.b-cdn.net" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+```
+
+### Restaurant.tsx - Skeleton Loading (بدل spinner)
+استبدال الـ spinner الحالي بـ Skeleton يحاكي شكل الصفحة:
+```text
++----------------------------------+
+| [Skeleton هيدر]                  |
++----------------------------------+
+| [Skeleton غلاف - h-64]           |
++----------------------------------+
+| [Skeleton فئات]                  |
++----------------------------------+
+| [Skeleton كروت المنيو]           |
++----------------------------------+
+```
+
+### Restaurant.tsx - صورة الغلاف
+- تحويل الخلفية المضببة من `div` مع `background-image` الى `img` tag مع `blur-xl` لتجنب الطلب المزدوج
+- اضافة `fetchpriority="high"` على صورة الغلاف الأصلية
+
+---
+
+## النتائج المتوقعة
+
+| المؤشر | قبل | بعد (متوقع) |
+|--------|-----|-------------|
+| LCP | ~2.1s | ~1.5s (preconnect يوفر ~100ms + طلب واحد بدل اثنين) |
+| CLS | مرتفع | ~0 (Skeleton بدل spinner + أبعاد محجوزة) |
+| INP | جيد | جيد (بدون تغيير) |
 
