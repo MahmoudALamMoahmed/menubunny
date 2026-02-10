@@ -69,7 +69,7 @@ export default function Dashboard() {
     }
   }, [restaurant, restaurantLoading, username]);
 
-  const isOwner = restaurant && user && restaurant.owner_id === user.id;
+  
 
   const handleSave = () => {
     if (!user) return;

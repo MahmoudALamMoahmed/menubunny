@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -76,20 +76,7 @@ export default function Restaurant() {
   const [selectedBranch, setSelectedBranch] = useState<string>('');
   const [selectedArea, setSelectedArea] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
-  // DOM Ref - مرجع لعنصر الفئات لتمرير السكرول
-  const categoriesRef = useRef<HTMLDivElement | null>(null);
-
   const isOwner = user && restaurant && user.id === restaurant.owner_id;
-
-  const scrollCategories = (direction: "left" | "right") => {
-    if (categoriesRef.current) {
-      const scrollAmount = 200;
-      categoriesRef.current.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
-        behavior: "smooth",
-      });
-    }
-  };
 
   const addToCart = (item: MenuItem, selectedSize?: Size, selectedExtras?: Extra[]) => {
     const extrasTotal = selectedExtras?.reduce((sum, e) => sum + e.price, 0) || 0;
@@ -155,9 +142,6 @@ export default function Restaurant() {
     setShowProductDialog(true);
   };
 
-  const getSizesForItem = (itemId: string) => {
-    return sizes.filter(size => size.menu_item_id === itemId);
-  };
 
   const getTotalPrice = () => {
     return cart.reduce((total, item) => total + item.price * item.quantity, 0);
