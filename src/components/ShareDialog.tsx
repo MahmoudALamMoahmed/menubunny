@@ -18,9 +18,11 @@ interface ShareDialogProps {
 }
 
 export default function ShareDialog({ restaurantName, username }: ShareDialogProps) {
+  // UI State - حالات النسخ وفتح/إغلاق الحوار
   const [copied, setCopied] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
+  // DOM Ref - مرجع لعنصر QR Code للتحميل
   const qrRef = useRef<HTMLCanvasElement>(null);
 
   // Ensure URL has proper format with https:// protocol

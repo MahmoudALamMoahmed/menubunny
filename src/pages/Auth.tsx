@@ -53,6 +53,7 @@ const getErrorMessage = (error: any): string => {
 };
 
 export default function Auth() {
+  // UI State - بيانات النماذج (إيميل، كلمة مرور، اسم مستخدم، حالة التحميل، الأخطاء)
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -62,11 +63,11 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   
-  // حالات إظهار/إخفاء كلمة المرور
+  // UI State - حالات إظهار/إخفاء كلمة المرور
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // حالات إعادة إرسال رابط التأكيد
+  // UI State - حالات إعادة إرسال رابط التأكيد
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isResending, setIsResending] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
@@ -79,10 +80,10 @@ export default function Auth() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // التحقق من توفر اسم المستخدم
+  // Custom Hook (useState + useEffect + debounce) - التحقق من توفر اسم المستخدم
   const usernameCheck = useUsernameAvailability(username);
 
-  // عداد تنازلي لإعادة الإرسال
+  // Timer - عداد تنازلي لإعادة إرسال رابط التأكيد
   useEffect(() => {
     if (resendCooldown > 0) {
       const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
@@ -117,7 +118,7 @@ export default function Auth() {
     setIsResending(false);
   };
 
-  // عند تسجيل الدخول، تأكد من وجود المطعم ثم وجه للصفحة المناسبة
+  // Auth Redirect - عند تسجيل الدخول بنجاح، إنشاء المطعم والتوجيه
   useEffect(() => {
     const handleUserSession = async () => {
       if (user) {

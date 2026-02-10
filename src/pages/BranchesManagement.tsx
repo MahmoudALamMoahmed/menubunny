@@ -251,18 +251,21 @@ export default function BranchesManagement() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  // React Query - للوصول المباشر للكاش عند التحديث المتفائل
   const queryClient = useQueryClient();
   
+  // React Query - جلب بيانات المطعم
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
   const restaurantId = restaurant?.id;
   
+  // React Query - جلب الفروع ومناطق التوصيل الكاملة للإدارة
   const { data: branches = [], isLoading: branchesLoading } = useAdminBranches(restaurantId);
   const branchIds = branches.length > 0 ? branches.map(b => b.id) : undefined;
   const { data: deliveryAreas = [], isLoading: areasLoading } = useAdminDeliveryAreas(branchIds);
   
   const dataLoading = branchesLoading || areasLoading;
 
-  // Mutations
+  // React Query Mutation - عمليات CRUD وإعادة الترتيب
   const saveBranchMut = useSaveBranch(restaurantId);
   const deleteBranchMut = useDeleteBranch(restaurantId);
   const toggleActiveMut = useToggleBranchActive(restaurantId);
@@ -271,6 +274,7 @@ export default function BranchesManagement() {
   const reorderBranchesMut = useReorderBranches(restaurantId);
   const reorderAreasMut = useReorderDeliveryAreas(restaurantId);
   
+  // UI State - حالات النماذج والحوارات والبحث والفلترة
   const [showDialog, setShowDialog] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
   const [formData, setFormData] = useState({
@@ -317,6 +321,7 @@ export default function BranchesManagement() {
     return matchesSearch && matchesStatus;
   });
 
+  // Auth Guard - توجيه المستخدم غير المسجل لصفحة تسجيل الدخول
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');

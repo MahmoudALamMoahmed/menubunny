@@ -22,8 +22,11 @@ export default function Orders() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
 
+  // React Query - جلب بيانات المطعم
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  // React Query - جلب جميع الطلبات (بدون فلترة) للأدمن
   const { data: orders = [], isLoading: ordersLoading } = useAdminOrders(restaurant?.id);
+  // React Query Mutation - تحديث حالة الطلب مع إعادة جلب تلقائية
   const updateStatusMut = useUpdateOrderStatus(restaurant?.id);
 
   const getOrderItems = (order: Order): OrderItem[] => {

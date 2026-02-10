@@ -9,7 +9,9 @@ interface BranchesDialogProps {
 }
 
 export default function BranchesDialog({ restaurantId, trigger }: BranchesDialogProps) {
+  // UI State - حالة فتح/إغلاق الحوار
   const [open, setOpen] = useState(false);
+  // React Query - جلب الفروع النشطة (يتم الجلب فقط عند فتح الحوار)
   const { data: branches = [], isLoading: loading } = useBranches(open ? restaurantId : undefined);
 
   return (

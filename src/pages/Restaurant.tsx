@@ -41,22 +41,30 @@ export default function Restaurant() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // React Query hooks - parallel fetching
+  // React Query - جلب بيانات المطعم من قاعدة البيانات بناءً على اسم المستخدم
   const { data: restaurant, isLoading: loadingRestaurant } = useRestaurant(username);
   const restaurantId = restaurant?.id;
   
+  // UI State - تتبع الفئة النشطة المختارة لفلترة المنيو
   const [activeCategory, setActiveCategory] = useState<string>('all');
   
+  // React Query - جلب فئات القائمة (المتاحة فقط)
   const { data: categories = [] } = useCategories(restaurantId);
+  // React Query - جلب أصناف القائمة مع فلترة حسب الفئة النشطة
   const { data: filteredMenuItems = [] } = useMenuItems(restaurantId, activeCategory);
+  // React Query - جلب أحجام الأصناف المتاحة
   const { data: sizes = [] } = useSizes(restaurantId);
+  // React Query - جلب الإضافات المتاحة
   const { data: extras = [] } = useExtras(restaurantId);
+  // React Query - جلب الفروع النشطة
   const { data: branches = [] } = useBranches(restaurantId);
   
+  // Performance - استخراج معرفات الفروع لتمريرها لـ hook مناطق التوصيل
   const branchIds = useMemo(() => branches.map(b => b.id), [branches]);
+  // React Query - جلب مناطق التوصيل النشطة للفروع
   const { data: deliveryAreas = [] } = useDeliveryAreas(branchIds.length > 0 ? branchIds : undefined);
 
-  // UI state only
+  // UI State - حالات واجهة المستخدم (السلة، بيانات العميل، نوع العرض، المنتج المحدد، الفرع، المنطقة، طريقة الدفع)
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCartDialog, setShowCartDialog] = useState(false);
   const [customerName, setCustomerName] = useState('');
@@ -68,6 +76,7 @@ export default function Restaurant() {
   const [selectedBranch, setSelectedBranch] = useState<string>('');
   const [selectedArea, setSelectedArea] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
+  // DOM Ref - مرجع لعنصر الفئات لتمرير السكرول
   const categoriesRef = useRef<HTMLDivElement | null>(null);
 
   const isOwner = user && restaurant && user.id === restaurant.owner_id;

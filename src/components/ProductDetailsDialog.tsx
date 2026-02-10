@@ -30,11 +30,12 @@ export default function ProductDetailsDialog({
   extras,
   onAddToCart
 }: ProductDetailsDialogProps) {
+  // UI State - الحجم المختار، الإضافات المختارة، الكمية
   const [selectedSize, setSelectedSize] = useState<Size | null>(null);
   const [selectedExtras, setSelectedExtras] = useState<Extra[]>([]);
   const [quantity, setQuantity] = useState(1);
 
-  // Reset selections when dialog opens with new item
+  // Side Effect - إعادة تعيين الاختيارات عند فتح الحوار بمنتج جديد
   useEffect(() => {
     if (open) {
       setSelectedSize(null);
