@@ -6,7 +6,7 @@ import {
   MessageCircle, 
   Phone, 
   Mail, 
-  MapPin, 
+   
   Send,
   CheckCircle,
   ArrowLeft
