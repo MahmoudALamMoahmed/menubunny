@@ -10,14 +10,18 @@ type Extra = Tables<'extras'>;
 type Branch = Tables<'branches'>;
 type DeliveryArea = Tables<'delivery_areas'>;
 
-// بيانات المطعم نادراً ما تتغير
+// ─── إعدادات الكاش ─────────────────────────────────────────
+// Cache Config - بيانات المطعم نادراً ما تتغير
 const LONG_STALE = 1000 * 60 * 10; // 10 دقائق
 const LONG_GC = 1000 * 60 * 30; // 30 دقيقة
 
-// بيانات المنيو تتغير أكثر
+// Cache Config - بيانات المنيو تتغير أكثر
 const MEDIUM_STALE = 1000 * 60 * 5; // 5 دقائق
 const MEDIUM_GC = 1000 * 60 * 15; // 15 دقيقة
 
+// ─── React Query Hooks (للجمهور - مع فلاتر التوفر/النشاط) ──
+
+// React Query - جلب بيانات المطعم بناءً على اسم المستخدم في الرابط
 export function useRestaurant(username: string | undefined) {
   return useQuery({
     queryKey: ['restaurant', username],
@@ -37,6 +41,7 @@ export function useRestaurant(username: string | undefined) {
   });
 }
 
+// React Query - جلب فئات القائمة (المتاحة فقط) مرتبة حسب display_order
 export function useCategories(restaurantId: string | undefined) {
   return useQuery({
     queryKey: ['categories', restaurantId],
@@ -56,6 +61,7 @@ export function useCategories(restaurantId: string | undefined) {
   });
 }
 
+// React Query - جلب أصناف القائمة المتاحة مع فلترة حسب الفئة النشطة عبر select
 export function useMenuItems(restaurantId: string | undefined, activeCategory?: string) {
   return useQuery({
     queryKey: ['menu_items', restaurantId],
@@ -79,6 +85,7 @@ export function useMenuItems(restaurantId: string | undefined, activeCategory?: 
   });
 }
 
+// React Query - جلب أحجام الأصناف المتاحة
 export function useSizes(restaurantId: string | undefined) {
   return useQuery({
     queryKey: ['sizes', restaurantId],
@@ -97,6 +104,7 @@ export function useSizes(restaurantId: string | undefined) {
   });
 }
 
+// React Query - جلب الإضافات المتاحة فقط (is_available = true)
 export function useExtras(restaurantId: string | undefined) {
   return useQuery({
     queryKey: ['extras', restaurantId],
@@ -117,6 +125,7 @@ export function useExtras(restaurantId: string | undefined) {
   });
 }
 
+// React Query - جلب الفروع النشطة فقط (is_active = true)
 export function useBranches(restaurantId: string | undefined) {
   return useQuery({
     queryKey: ['branches', restaurantId],
@@ -137,6 +146,7 @@ export function useBranches(restaurantId: string | undefined) {
   });
 }
 
+// React Query - جلب مناطق التوصيل النشطة للفروع المحددة
 export function useDeliveryAreas(branchIds: string[] | undefined) {
   return useQuery({
     queryKey: ['delivery_areas', branchIds],
