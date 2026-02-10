@@ -87,7 +87,8 @@ export function useSizes(restaurantId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sizes')
-        .select('*')
+        .select('*, menu_items!inner(restaurant_id)')
+        .eq('menu_items.restaurant_id', restaurantId!)
         .order('display_order');
       if (error) throw error;
       return data ?? [];
