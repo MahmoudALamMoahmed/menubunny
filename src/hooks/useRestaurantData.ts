@@ -2,13 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 
-type Restaurant = Tables<'restaurants'>;
-type Category = Tables<'categories'>;
+// Type - نوع صنف القائمة (يُستخدم في فلترة select)
 type MenuItem = Tables<'menu_items'>;
-type Size = Tables<'sizes'>;
-type Extra = Tables<'extras'>;
-type Branch = Tables<'branches'>;
-type DeliveryArea = Tables<'delivery_areas'>;
 
 // ─── إعدادات الكاش ─────────────────────────────────────────
 // Cache Config - بيانات المطعم نادراً ما تتغير
