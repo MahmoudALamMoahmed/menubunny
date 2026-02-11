@@ -396,12 +396,12 @@ ${orderText}
 
       {/* Cover Image - صورة الغلاف (img tag للـ blur بدل background-image لتجنب طلب مزدوج) */}
       <div className="container mx-auto px-2 sm:px-4 md:px-6 lg:px-28">
-        <div className="relative w-full h-64 sm:h-72 md:h-96 lg:h-[500px] overflow-hidden rounded-xl sm:rounded-2xl md:rounded-3xl">
+        <div className="relative w-full overflow-hidden rounded-xl sm:rounded-2xl md:rounded-3xl">
           {restaurant.cover_image_url && (
             <img 
               src={getCoverImageUrl(restaurant.cover_image_url)} 
               alt={restaurant.name} 
-              className="w-full h-full object-cover object-center"
+              className="w-full h-auto object-contain rounded-xl sm:rounded-2xl md:rounded-3xl"
               loading="eager"
               // @ts-ignore
               fetchpriority="high"
