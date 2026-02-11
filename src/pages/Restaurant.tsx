@@ -311,7 +311,7 @@ ${orderText}
           </div>
         </div>
         {/* Skeleton Cover */}
-        <div className="w-full h-56 sm:h-64 md:h-80 lg:h-96 bg-muted animate-pulse" />
+        <div className="w-full h-64 sm:h-72 md:h-96 lg:h-[500px] bg-muted animate-pulse" />
         {/* Skeleton Info */}
         <div className="bg-white border-b">
           <div className="container mx-auto px-4 py-4">
@@ -395,19 +395,17 @@ ${orderText}
       </div>
 
       {/* Cover Image - صورة الغلاف (img tag للـ blur بدل background-image لتجنب طلب مزدوج) */}
-      <div className="relative w-full h-56 sm:h-64 md:h-80 lg:h-96 overflow-hidden">
+      <div className="relative w-full h-64 sm:h-72 md:h-96 lg:h-[500px] overflow-hidden">
         {restaurant.cover_image_url && (
-          <div className="relative w-full h-full flex items-center justify-center z-10 p-2">
-            <img 
-              src={getCoverImageUrl(restaurant.cover_image_url)} 
-              alt={restaurant.name} 
-              className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border-4 border-white/20" 
-              loading="eager"
-              // @ts-ignore
-              fetchpriority="high"
-              decoding="sync"
-            />
-          </div>
+          <img 
+            src={getCoverImageUrl(restaurant.cover_image_url)} 
+            alt={restaurant.name} 
+            className="w-full h-full object-cover" 
+            loading="eager"
+            // @ts-ignore
+            fetchpriority="high"
+            decoding="sync"
+          />
         )}
       </div>
 
