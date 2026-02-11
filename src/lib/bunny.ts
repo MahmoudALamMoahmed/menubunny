@@ -6,7 +6,7 @@ const CDN_HOSTNAME = 'menuss.b-cdn.net';
 // ============ اعدادات ضغط الصور حسب النوع (غلاف/شعار/منتج) - Image Compression Options ============
 
 const COVER_COMPRESSION_OPTIONS = {
-  maxSizeMB: 3,
+  maxSizeMB: 5,
   maxWidthOrHeight: 2800,
   useWebWorker: true,
   fileType: 'image/webp' as const,
@@ -80,6 +80,16 @@ async function compressImage(
     });
 
     console.log(`Compressed file size: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
+    
+    // Debug: check dimensions after compression
+    const debugImg = new Image();
+    const debugUrl = URL.createObjectURL(compressedFile);
+    debugImg.onload = () => {
+      console.log(`Dimensions after compression: ${debugImg.width} x ${debugImg.height}`);
+      URL.revokeObjectURL(debugUrl);
+    };
+    debugImg.src = debugUrl;
+    
     return compressedFile;
   } catch (error) {
     console.error('Compression error:', error);

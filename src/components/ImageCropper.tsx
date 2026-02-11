@@ -76,6 +76,7 @@ async function getCroppedImg(
 
   // Resize to targetWidth if specified
   let finalCanvas = croppedCanvas;
+  console.log('Cropped dimensions:', croppedCanvas.width, 'x', croppedCanvas.height);
   if (targetWidth && croppedCanvas.width !== targetWidth) {
     const resizedCanvas = document.createElement('canvas');
     const resizedCtx = resizedCanvas.getContext('2d');
@@ -92,6 +93,7 @@ async function getCroppedImg(
     );
     finalCanvas = resizedCanvas;
   }
+  console.log('Final dimensions after resize:', finalCanvas.width, 'x', finalCanvas.height);
 
   // Return as blob
   return new Promise((resolve, reject) => {
