@@ -395,18 +395,20 @@ ${orderText}
       </div>
 
       {/* Cover Image - صورة الغلاف (img tag للـ blur بدل background-image لتجنب طلب مزدوج) */}
-      <div className="relative w-full h-64 sm:h-72 md:h-96 lg:h-[500px] overflow-hidden">
-        {restaurant.cover_image_url && (
-          <img 
-            src={getCoverImageUrl(restaurant.cover_image_url)} 
-            alt={restaurant.name} 
-className="w-full h-full object-cover object-center"
-            loading="eager"
-            // @ts-ignore
-            fetchpriority="high"
-            decoding="sync"
-          />
-        )}
+      <div className="container mx-auto px-2 sm:px-4 md:px-6 lg:px-8">
+        <div className="relative w-full h-64 sm:h-72 md:h-96 lg:h-[500px] overflow-hidden rounded-xl sm:rounded-2xl md:rounded-3xl">
+          {restaurant.cover_image_url && (
+            <img 
+              src={getCoverImageUrl(restaurant.cover_image_url)} 
+              alt={restaurant.name} 
+              className="w-full h-full object-cover object-center"
+              loading="eager"
+              // @ts-ignore
+              fetchpriority="high"
+              decoding="sync"
+            />
+          )}
+        </div>
       </div>
 
       {/* Restaurant Info - معلومات المطعم وروابط التواصل */}
