@@ -20,7 +20,7 @@ import RestaurantFooter from '@/components/RestaurantFooter';
 import ProductDetailsDialog from '@/components/ProductDetailsDialog';
 import BranchesDialog from '@/components/BranchesDialog';
 import ShareDialog from '@/components/ShareDialog';
-import { getLogoUrl, getCoverImageUrl, getMenuItemUrl } from '@/lib/bunny';
+import { getLogoUrl, getCoverImageUrl, getCoverBlurUrl, getMenuItemUrl } from '@/lib/bunny';
 import { useRestaurant, useCategories, useMenuItems, useSizes, useExtras, useBranches, useDeliveryAreas } from '@/hooks/useRestaurantData';
 
 import type { Tables } from '@/integrations/supabase/types';
@@ -65,21 +65,17 @@ export default function Restaurant() {
   // React Query - جلب مناطق التوصيل النشطة للفروع
   const { data: deliveryAreas = [] } = useDeliveryAreas(branchIds.length > 0 ? branchIds : undefined);
 
-  // Preload cover image for faster LCP
-  useEffect(() => {
-    if (restaurant?.cover_image_url) {
-      const url = getCoverImageUrl(restaurant.cover_image_url);
-      if (!document.querySelector(`link[href="${url}"]`)) {
-        const link = document.createElement('link');
-        link.rel = 'preload';
-        link.as = 'image';
-        link.href = url;
-        // @ts-ignore
-        link.fetchpriority = 'high';
-        document.head.appendChild(link);
-      }
-    }
-  }, [restaurant?.cover_image_url]);
+  // Preload blur cover (LCP element) during render — faster than useEffect
+  const coverBlurUrl = restaurant?.cover_image_url ? getCoverBlurUrl(restaurant.cover_image_url) : '';
+  if (coverBlurUrl && typeof document !== 'undefined' && !document.querySelector(`link[href="${CSS.escape(coverBlurUrl)}"]`)) {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = coverBlurUrl;
+    // @ts-ignore
+    link.fetchpriority = 'high';
+    document.head.appendChild(link);
+  }
 
   // UI State - حالات واجهة المستخدم (السلة، بيانات العميل، نوع العرض، المنتج المحدد، الفرع، المنطقة، طريقة الدفع)
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -402,7 +398,7 @@ ${orderText}
       <div className="relative w-full h-56 sm:h-64 md:h-80 lg:h-96 overflow-hidden">
         {restaurant.cover_image_url && (
           <img 
-            src={getCoverImageUrl(restaurant.cover_image_url)} 
+            src={coverBlurUrl} 
             alt="" 
             aria-hidden="true"
             className="absolute inset-0 w-full h-full object-cover blur-xl scale-110"
