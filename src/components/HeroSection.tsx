@@ -3,7 +3,7 @@ import { ArrowLeft, Star, Users, Zap } from "lucide-react";
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-screen bg-gradient-hero flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-screen bg-gradient-hero flex items-center justify-center overflow-hidden" style={{ contentVisibility: 'auto' }}>
       {/* Background decorative elements */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-primary/10"></div>
       <div className="absolute top-20 right-20 w-32 h-32 bg-secondary/20 rounded-full blur-3xl"></div>
