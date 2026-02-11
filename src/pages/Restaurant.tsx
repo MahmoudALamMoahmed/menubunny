@@ -400,7 +400,7 @@ ${orderText}
           <img 
             src={getCoverImageUrl(restaurant.cover_image_url)} 
             alt={restaurant.name} 
-            className="w-full h-full object-cover" 
+className="w-full h-full object-cover object-center"
             loading="eager"
             // @ts-ignore
             fetchpriority="high"
