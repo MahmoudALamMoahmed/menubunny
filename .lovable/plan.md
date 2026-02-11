@@ -1,51 +1,66 @@
 
 
-# خطة تحسين CLS في صفحة المطعم
+# إصلاح CLS 0.33 في صفحة المطعم
 
 ## المشكلة
-صفحة المطعم `/mahmoud` تعاني من CLS بسبب عدة مصادر:
-
-1. **FOUT من الخطوط الـ Async**: تحويل Google Fonts إلى `media="print"` أزال render-blocking لكن أدخل مشكلة FOUT - النص يُرسم بخط النظام ثم يتبدل لخط Cairo/Tajawal مما يسبب layout shift
-2. **قسم أزرار التبديل مفقود من الـ Skeleton**: المحتوى الفعلي يحتوي أزرار grid/list بينما الـ Skeleton لا يحتويها
-3. **قسم الفئات مشروط**: الـ Skeleton يعرض فئات دائماً لكن المحتوى الفعلي يخفيها إذا لم توجد فئات
+ثلاثة عناصر في الـ Skeleton لا تطابق المحتوى الفعلي، مما يسبب انزياح تخطيط (Layout Shift) عند تحميل البيانات.
 
 ## التغييرات المطلوبة
 
-### 1. إصلاح FOUT باستخدام `font-display: optional` + Self-hosting (index.html)
+### 1. إصلاح أزرار الهيدر (Skeleton Header)
+**المشكلة**: الـ Skeleton يعرض placeholder واحد (`h-9 w-24`) بينما المحتوى الفعلي يعرض زرين بداخل `div.flex.items-center.gap-2`.
 
-بدلاً من `media="print"` الذي يسبب FOUT، نعيد الخط الأساسي (Cairo 600,700) كـ render-blocking (ضروري لمنع CLS) ونُبقي الأوزان الثانوية فقط كـ async:
+**الحل**: استبدال الـ placeholder الواحد بـ `div` يحتوي زرين بنفس أبعاد الأزرار الفعلية:
+- زر المشاركة: `h-9 w-20`
+- زر إدارة المطعم: `h-9 w-28`
+- ملفوفين في `div.flex.items-center.gap-2` لمطابقة البنية الفعلية
 
-- إعادة `Cairo:wght@600;700 + Tajawal:wght@400;500` إلى `rel="stylesheet"` عادي (بدون media="print") لأنها الأوزان المرئية فوراً
-- إبقاء `Cairo:wght@400;500 + Tajawal:wght@700` كـ async (media="print") لأنها تُستخدم في أقسام تحت الطي
+### 2. إصلاح أيقونات التواصل (Skeleton Info)
+**المشكلة**: الـ Skeleton يعرض أيقونتين ثابتتين بينما المحتوى الفعلي يعرض 1-3 أيقونات حسب البيانات (الفروع دائماً موجودة + فيسبوك وإنستجرام مشروطين).
 
-### 2. إضافة أزرار التبديل للـ Skeleton (Restaurant.tsx)
+**الحل**: عرض 3 أيقونات في الـ Skeleton (أقصى حالة ممكنة) بنفس الأبعاد (`w-9 h-9 rounded-xl`) لتغطية كل الحالات. هذا يضمن أن أي عدد أقل من الأيقونات لن يسبب shift لأن العناصر تنكمش فقط (لا تتمدد).
 
-إضافة placeholder لأزرار grid/list في الـ Skeleton بعد قسم الفئات وقبل كروت المنيو، بنفس الأبعاد والمحاذاة.
+### 3. إصلاح View Toggle (عدم تطابق CSS class)
+**المشكلة**: الـ Skeleton يستخدم `container mx-auto` بينما المحتوى الفعلي يستخدم `container` بدون `mx-auto`.
 
-### 3. إضافة `font-display: swap` مع size-adjust في CSS (index.css)
+**الحل**: إزالة `mx-auto` من الـ Skeleton ليطابق المحتوى الفعلي بالضبط.
 
-إضافة `@font-face` override مع `size-adjust` لتقليل الفرق بين خط النظام والخط العربي عند التبديل.
-
-## النتيجة المتوقعة
-
-| المؤشر | قبل | بعد |
-|--------|------|------|
-| CLS | مرتفع (FOUT + skeleton mismatch) | قريب من 0 |
-| Render-blocking | 0ms | ~165ms (CSS الخطوط الأساسية فقط) |
-| LCP | بدون تغيير | بدون تغيير |
+---
 
 ## التفاصيل التقنية
 
-### index.html
-- السطر 15: إزالة `media="print" onload="this.media='all'"` من رابط الخطوط الأساسية (Cairo 600,700 + Tajawal 400,500)
-- إبقاء السطر 16 كما هو (الأوزان الثانوية async)
+### ملف: `src/pages/Restaurant.tsx`
 
-### src/pages/Restaurant.tsx
-- إضافة بعد Skeleton Categories (سطر 318) وقبل Skeleton Menu Cards (سطر 320):
-```text
-Skeleton View Toggle:
-  container px-4 flex justify-end gap-2 py-4
-    div w-11 h-11 bg-muted animate-pulse rounded-md
-    div w-11 h-11 bg-muted animate-pulse rounded-md
+**تغيير 1** - سطر 295 (Skeleton Header الجزء الأيمن):
 ```
+قبل:  <div className="h-9 w-24 bg-muted animate-pulse rounded" />
+بعد:  <div className="flex items-center gap-2">
+        <div className="h-9 w-20 bg-muted animate-pulse rounded-md" />
+        <div className="h-9 w-28 bg-muted animate-pulse rounded-md" />
+      </div>
+```
+
+**تغيير 2** - سطر 303-306 (Skeleton Info icons):
+```
+قبل:  <div className="flex items-center gap-3">
+        <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
+        <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
+      </div>
+بعد:  <div className="flex items-center gap-3">
+        <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
+        <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
+        <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
+      </div>
+```
+
+**تغيير 3** - سطر 320 (Skeleton View Toggle):
+```
+قبل:  <div className="container mx-auto px-4 flex justify-end gap-2 py-4">
+بعد:  <div className="container px-4 flex justify-end gap-2 py-4">
+```
+
+## النتيجة المتوقعة
+- CLS ينخفض من 0.33 إلى قريب من 0
+- لا تأثير على التصميم أو الأداء
+- الـ Skeleton يطابق المحتوى الفعلي بدقة في جميع الحالات
 
