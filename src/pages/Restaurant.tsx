@@ -316,6 +316,11 @@ ${orderText}
             </div>
           </div>
         </div>
+        {/* Skeleton View Toggle */}
+        <div className="container mx-auto px-4 flex justify-end gap-2 py-4">
+          <div className="w-11 h-11 bg-muted animate-pulse rounded-md" />
+          <div className="w-11 h-11 bg-muted animate-pulse rounded-md" />
+        </div>
         {/* Skeleton Menu Cards */}
         <div className="container mx-auto px-4 py-4">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
