@@ -292,7 +292,10 @@ ${orderText}
               <div className="w-12 h-12 rounded-full bg-muted animate-pulse" />
               <div className="h-6 w-32 bg-muted animate-pulse rounded" />
             </div>
-            <div className="h-9 w-24 bg-muted animate-pulse rounded" />
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-20 bg-muted animate-pulse rounded-md" />
+              <div className="h-9 w-28 bg-muted animate-pulse rounded-md" />
+            </div>
           </div>
         </div>
         {/* Skeleton Cover */}
@@ -301,6 +304,7 @@ ${orderText}
         <div className="bg-white border-b">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
               <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
               <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
             </div>
@@ -317,7 +321,7 @@ ${orderText}
           </div>
         </div>
         {/* Skeleton View Toggle */}
-        <div className="container mx-auto px-4 flex justify-end gap-2 py-4">
+        <div className="container px-4 flex justify-end gap-2 py-4">
           <div className="w-11 h-11 bg-muted animate-pulse rounded-md" />
           <div className="w-11 h-11 bg-muted animate-pulse rounded-md" />
         </div>
