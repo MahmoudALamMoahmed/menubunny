@@ -7,7 +7,7 @@ const CDN_HOSTNAME = 'menuss.b-cdn.net';
 
 const COVER_COMPRESSION_OPTIONS = {
   maxSizeMB: 3,
-  maxWidthOrHeight: 2800,
+  maxWidthOrHeight: 3500,
   useWebWorker: true,
   fileType: 'image/webp' as const,
   initialQuality: 0.95,
