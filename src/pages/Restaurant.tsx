@@ -303,10 +303,12 @@ ${orderText}
         {/* Skeleton Info */}
         <div className="bg-white border-b">
           <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
-              <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
-              <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
+            <div className="flex items-center gap-4 text-sm text-gray-600">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
+                <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
+                <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
+              </div>
             </div>
           </div>
         </div>
@@ -326,7 +328,7 @@ ${orderText}
           <div className="w-11 h-11 bg-muted animate-pulse rounded-md" />
         </div>
         {/* Skeleton Menu Cards */}
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 pb-32">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {[1,2,3,4,5,6].map(i => (
               <div key={i} className="bg-white rounded-lg overflow-hidden shadow-sm">
