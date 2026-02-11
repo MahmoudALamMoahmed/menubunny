@@ -50,9 +50,9 @@ export default function Restaurant() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   
   // React Query - جلب فئات القائمة (المتاحة فقط)
-  const { data: categories = [] } = useCategories(restaurantId);
+  const { data: categories = [], isLoading: loadingCategories } = useCategories(restaurantId);
   // React Query - جلب أصناف القائمة مع فلترة حسب الفئة النشطة
-  const { data: filteredMenuItems = [] } = useMenuItems(restaurantId, activeCategory);
+  const { data: filteredMenuItems = [], isLoading: loadingMenuItems } = useMenuItems(restaurantId, activeCategory);
   // React Query - جلب أحجام الأصناف المتاحة
   const { data: sizes = [] } = useSizes(restaurantId);
   // React Query - جلب الإضافات المتاحة
@@ -282,7 +282,7 @@ ${orderText}
   };
 
   // حالة التحميل - عرض Skeleton بدل spinner لتقليل CLS
-  if (loadingRestaurant) {
+  if (loadingRestaurant || loadingCategories || loadingMenuItems) {
     return (
       <div className="min-h-screen bg-gray-50" dir="rtl">
         {/* Skeleton Header */}
