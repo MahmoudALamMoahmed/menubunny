@@ -44,13 +44,13 @@ export default function ImageUploader({
 
   const aspectClasses = {
     square: 'aspect-square',
-    cover: 'aspect-[12/9]',
+    cover: 'aspect-[16/9]',
     logo: 'aspect-square max-w-[150px]',
   };
 
   const aspectRatioValues = {
     square: 1,
-    cover: 12 / 9,
+    cover: 16 / 6,
     logo: 1,
   };
 
