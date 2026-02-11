@@ -11,12 +11,14 @@ interface ImageCropperProps {
   onClose: () => void;
   onCropComplete: (croppedImage: Blob) => void;
   aspectRatio?: number;
+  targetWidth?: number;
 }
 
 async function getCroppedImg(
   imageSrc: string,
   pixelCrop: Area,
-  rotation = 0
+  rotation = 0,
+  targetWidth?: number
 ): Promise<Blob> {
   const image = await createImage(imageSrc);
   const canvas = document.createElement('canvas');
@@ -72,9 +74,28 @@ async function getCroppedImg(
     pixelCrop.height
   );
 
+  // Resize to targetWidth if specified
+  let finalCanvas = croppedCanvas;
+  if (targetWidth && croppedCanvas.width !== targetWidth) {
+    const resizedCanvas = document.createElement('canvas');
+    const resizedCtx = resizedCanvas.getContext('2d');
+    if (!resizedCtx) throw new Error('No 2d context');
+
+    const scale = targetWidth / croppedCanvas.width;
+    resizedCanvas.width = targetWidth;
+    resizedCanvas.height = Math.round(croppedCanvas.height * scale);
+
+    resizedCtx.drawImage(
+      croppedCanvas,
+      0, 0, croppedCanvas.width, croppedCanvas.height,
+      0, 0, resizedCanvas.width, resizedCanvas.height
+    );
+    finalCanvas = resizedCanvas;
+  }
+
   // Return as blob
   return new Promise((resolve, reject) => {
-    croppedCanvas.toBlob(
+    finalCanvas.toBlob(
       (blob) => {
         if (blob) {
           resolve(blob);
@@ -115,6 +136,7 @@ export default function ImageCropper({
   onClose,
   onCropComplete,
   aspectRatio = 1,
+  targetWidth,
 }: ImageCropperProps) {
   // UI State - موقع القص والتكبير والدوران ومنطقة القص
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
@@ -144,7 +166,7 @@ export default function ImageCropper({
     
     setProcessing(true);
     try {
-      const croppedImage = await getCroppedImg(image, croppedAreaPixels, rotation);
+      const croppedImage = await getCroppedImg(image, croppedAreaPixels, rotation, targetWidth);
       onCropComplete(croppedImage);
       onClose();
     } catch (error) {
