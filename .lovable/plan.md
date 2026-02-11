@@ -1,87 +1,71 @@
 
 
-# إصلاح CLS 0.32 — مطابقة هيكل الـ Skeleton مع المحتوى الفعلي
+# إصلاح CLS 0.09 + تحسين LCP 2.06s
 
-## المشكلة الجذرية
-الـ Skeleton والمحتوى الفعلي لهم **بنية HTML مختلفة**، مش بس أبعاد مختلفة. عند انتهاء التحميل، React يشيل الـ Skeleton بالكامل ويحط المحتوى الفعلي، وأي فرق في الهيكل يسبب Layout Shift.
+## المشاكل المتبقية
 
-## الفروق المكتشفة والحلول
+### 1. CLS 0.0857 — صورة الغلاف (المشكلة الرئيسية)
+الصورة الرئيسية للغلاف تستخدم `max-w-full max-h-full object-contain` داخل flex container. عندما الصورة تتحمل، العنصر يتمدد من 0x0 إلى حجمه الطبيعي مما يسبب layout shift داخل الـ viewport.
 
-### 1. قسم الأيقونات (Info) — هيكل مختلف
+**الحل:** تغيير `max-w-full max-h-full` إلى `w-full h-full` على صورة الغلاف الرئيسية. بما أن الحاوية لها ارتفاع ثابت (`h-56 sm:h-64 md:h-80 lg:h-96`)، الصورة هتاخد المساحة كاملة فوراً بدون ما تستنى التحميل.
 
-**Skeleton الحالي:**
-```text
-div.bg-white.border-b
-  div.container.mx-auto.px-4.py-4
-    div.flex.items-center.gap-3        <-- الأيقونات مباشرة
-```
+### 2. CLS 0.0084 — أزرار طريقة العرض (بسيط)
+فرق طفيف بين حجم الـ skeleton (`w-11 h-11`) وحجم الأزرار الفعلية (`p-3` + icon `w-5 h-5`). الزر الفعلي حجمه 44px (p-3 = 12px كل جانب + 20px أيقونة = 44px) وهو نفس `w-11 h-11` (44px). الفرق غالباً من `border` الموجود على الأزرار الفعلية وغير موجود على الـ skeleton.
 
-**المحتوى الفعلي:**
-```text
-div.bg-white.border-b
-  div.container.mx-auto.px-4.py-4
-    div.flex.items-center.gap-4        <-- wrapper إضافي
-      div.flex.items-center.gap-3      <-- الأيقونات هنا
-```
+**الحل:** إضافة `border border-transparent` على الـ skeleton placeholders لمطابقة الـ box model.
 
-**الحل:** إضافة الـ wrapper div بنفس الـ classes (`flex items-center gap-4 text-sm text-gray-600`) في الـ Skeleton.
+### 3. LCP 2.06s — صورة الـ blur هي الـ LCP
+المتصفح يختار صورة الـ blur (`blur-xl scale-110`) كـ LCP لأنها تغطي مساحة أكبر من الصورة الرئيسية. المشكلة مش في سرعة التحميل (نفس الـ URL) لكن في أن الـ blur image مش المحتوى الأساسي.
 
-### 2. قسم الفئات (Categories) — عرض مشروط
+**الحل:** إضافة `fetchpriority="high"` على صورة الـ blur أيضاً (هي نفس الـ URL فعلياً فلن تسبب طلب إضافي) + إضافة `decoding="sync"` لضمان الرسم الفوري.
 
-**Skeleton الحالي:** يعرض الفئات دائماً  
-**المحتوى الفعلي:** `{categories.length > 0 && ...}` — مشروط
-
-**الحل:** بما أن البيانات لم تُحمل بعد أثناء الـ Skeleton، لا نعرف إن كان المطعم له فئات أم لا. الحل الأسلم هو **إبقاء الفئات في الـ Skeleton** لأن معظم المطاعم لها فئات. لكن لو مطعم mahmoud مفيهوش فئات، يجب حذف قسم الفئات من الـ Skeleton.
-
-### 3. قسم المنيو — classes مختلفة
-
-**Skeleton:** `container mx-auto px-4 py-4`  
-**الفعلي:** `container mx-auto px-4 pb-32`
-
-**الحل:** تغيير الـ Skeleton ليستخدم `pb-32` بدل `py-4`.
+---
 
 ## التفاصيل التقنية
 
 ### ملف: `src/pages/Restaurant.tsx`
 
-**تغيير 1** — Skeleton Info (سطر ~304-312):
+**تغيير 1** — صورة الغلاف الرئيسية (سطر ~398):
 ```tsx
 // قبل:
-<div className="bg-white border-b">
-  <div className="container mx-auto px-4 py-4">
-    <div className="flex items-center gap-3">
-      <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
-      <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
-      <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
-    </div>
-  </div>
-</div>
+className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border-4 border-white/20"
 
 // بعد:
-<div className="bg-white border-b">
-  <div className="container mx-auto px-4 py-4">
-    <div className="flex items-center gap-4 text-sm text-gray-600">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
-        <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
-        <div className="w-9 h-9 bg-muted animate-pulse rounded-xl" />
-      </div>
-    </div>
-  </div>
-</div>
+className="w-full h-full object-contain rounded-2xl shadow-2xl border-4 border-white/20"
 ```
 
-**تغيير 2** — Skeleton Menu Cards container (سطر ~329):
+**تغيير 2** — صورة الـ blur (سطر ~390):
 ```tsx
 // قبل:
-<div className="container mx-auto px-4 py-4">
+className="absolute inset-0 w-full h-full object-cover blur-xl scale-110"
+
+// بعد: إضافة fetchpriority و decoding
+<img 
+  src={getCoverImageUrl(restaurant.cover_image_url)} 
+  alt="" 
+  aria-hidden="true"
+  className="absolute inset-0 w-full h-full object-cover blur-xl scale-110"
+  // @ts-ignore
+  fetchpriority="high"
+  decoding="sync"
+/>
+```
+
+**تغيير 3** — Skeleton View Toggle (سطر ~327-328):
+```tsx
+// قبل:
+<div className="w-11 h-11 bg-muted animate-pulse rounded-md" />
+<div className="w-11 h-11 bg-muted animate-pulse rounded-md" />
 
 // بعد:
-<div className="container mx-auto px-4 pb-32">
+<div className="w-11 h-11 bg-muted animate-pulse rounded-md border border-transparent" />
+<div className="w-11 h-11 bg-muted animate-pulse rounded-md border border-transparent" />
 ```
 
 ## النتيجة المتوقعة
-- CLS ينخفض بشكل كبير لأن الهيكل أصبح متطابق
-- الـ wrapper div المفقود كان يسبب فرق في حساب المسافات مما يحرك كل العناصر تحته
-- تغيير `py-4` إلى `pb-32` يضمن أن قسم المنيو لا يتحرك عند التبديل
+
+| المؤشر | قبل | بعد |
+|--------|------|------|
+| CLS | 0.09 | قريب من 0 |
+| LCP | 2.06s | أسرع (decoding sync + صورة تاخد المساحة فوراً) |
 
