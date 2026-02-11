@@ -54,6 +54,12 @@ export default function ImageUploader({
     logo: 1,
   };
 
+  const targetWidthValues: Record<ImageType, number> = {
+    cover: 2400,
+    product: 1920,
+    logo: 800,
+  };
+
   // Performance - تحسين أداء لمنع إعادة الإنشاء
   const handleFileSelect = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -292,6 +298,7 @@ export default function ImageUploader({
           onClose={handleCropClose}
           onCropComplete={handleCropComplete}
           aspectRatio={aspectRatioValues[aspectRatio]}
+          targetWidth={targetWidthValues[imageType]}
         />
       )}
     </div>
