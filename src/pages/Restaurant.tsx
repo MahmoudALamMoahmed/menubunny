@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -64,6 +64,22 @@ export default function Restaurant() {
   const branchIds = useMemo(() => branches.map(b => b.id), [branches]);
   // React Query - جلب مناطق التوصيل النشطة للفروع
   const { data: deliveryAreas = [] } = useDeliveryAreas(branchIds.length > 0 ? branchIds : undefined);
+
+  // Preload cover image for faster LCP
+  useEffect(() => {
+    if (restaurant?.cover_image_url) {
+      const url = getCoverImageUrl(restaurant.cover_image_url);
+      if (!document.querySelector(`link[href="${url}"]`)) {
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = url;
+        // @ts-ignore
+        link.fetchpriority = 'high';
+        document.head.appendChild(link);
+      }
+    }
+  }, [restaurant?.cover_image_url]);
 
   // UI State - حالات واجهة المستخدم (السلة، بيانات العميل، نوع العرض، المنتج المحدد، الفرع، المنطقة، طريقة الدفع)
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -402,6 +418,7 @@ ${orderText}
               loading="eager"
               // @ts-ignore
               fetchpriority="high"
+              decoding="sync"
             />
           </div>
         )}
