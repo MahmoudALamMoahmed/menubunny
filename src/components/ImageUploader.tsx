@@ -55,7 +55,7 @@ export default function ImageUploader({
   };
 
   const targetWidthValues: Record<ImageType, number> = {
-    cover: 2800,
+    cover: 3500,
     product: 1920,
     logo: 800,
   };
