@@ -324,8 +324,8 @@ ${orderText}
         </div>
         {/* Skeleton View Toggle */}
         <div className="container px-4 flex justify-end gap-2 py-4">
-          <div className="w-11 h-11 bg-muted animate-pulse rounded-md" />
-          <div className="w-11 h-11 bg-muted animate-pulse rounded-md" />
+           <div className="w-11 h-11 bg-muted animate-pulse rounded-md border border-transparent" />
+          <div className="w-11 h-11 bg-muted animate-pulse rounded-md border border-transparent" />
         </div>
         {/* Skeleton Menu Cards */}
         <div className="container mx-auto px-4 pb-32">
@@ -387,7 +387,10 @@ ${orderText}
             src={getCoverImageUrl(restaurant.cover_image_url)} 
             alt="" 
             aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover blur-xl scale-110" 
+            className="absolute inset-0 w-full h-full object-cover blur-xl scale-110"
+            // @ts-ignore
+            fetchpriority="high"
+            decoding="sync"
           />
         )}
         {restaurant.cover_image_url && (
@@ -395,7 +398,7 @@ ${orderText}
             <img 
               src={getCoverImageUrl(restaurant.cover_image_url)} 
               alt={restaurant.name} 
-              className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border-4 border-white/20" 
+              className="w-full h-full object-contain rounded-2xl shadow-2xl border-4 border-white/20" 
               loading="eager"
               // @ts-ignore
               fetchpriority="high"
