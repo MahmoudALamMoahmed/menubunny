@@ -1,46 +1,57 @@
 
 
-# إصلاح: الضغط بيلغي الـ resize بتاع الـ cropper
+# تغيير حجم عرض صورة الغلاف على صفحة المطعم
 
-## المشكلة الجذرية
+## المشكلة الحقيقية
 
-التدفق الحالي:
+الـ `targetWidth` والـ `maxWidthOrHeight` بيتحكموا في **دقة/resolution** الملف المرفوع فقط (عدد البكسلات المحفوظة في الملف). الصورة بتترفع 2800px عرض فعلا (الـ console أكد ده).
 
-1. الـ Cropper بيقص الصورة ويعمل resize لـ 2800px عرض (صح)
-2. الـ Blob بيروح لـ `handleUpload` → `uploadToBunny` → `compressImage`
-3. `browser-image-compression` بتاخد الصورة 2800px وممكن **تصغّرها** عشان تحقق `maxSizeMB: 3`
-4. النتيجة: الصورة بتطلع أصغر من 2800px
-
-## الحل
-
-### 1. `src/lib/bunny.ts` - زيادة `maxSizeMB` للغلاف
-
-غلاف بعرض 2800px بصيغة WebP ممكن يكون أكبر من 3MB. نزود الحد لـ 5MB:
+لكن **حجم العرض على الشاشة** يتحكم فيه الـ CSS في `src/pages/Restaurant.tsx`:
 
 ```
-maxSizeMB: 5  (بدل 3)
+سطر 398: <div className="relative w-full h-56 sm:h-64 md:h-80 lg:h-96 overflow-hidden">
+سطر 404: className="max-w-full max-h-full object-contain ..."
 ```
 
-### 2. `src/components/ImageCropper.tsx` - إضافة console.log للتأكد
+- الـ container ارتفاعه ثابت (h-56 للموبايل حتى h-96 للديسكتوب)
+- `object-contain` بيحافظ على نسبة الصورة ويعرضها كاملة داخل الحدود — فالصورة مش بتملا المساحة كلها
 
-إضافة log بعد الـ resize عشان نتأكد إن الأبعاد صح:
+## الحل: التحكم في حجم العرض عبر CSS
 
-```
-console.log('Cropped dimensions:', croppedCanvas.width, 'x', croppedCanvas.height);
-console.log('Final dimensions after resize:', finalCanvas.width, 'x', finalCanvas.height);
-```
+### خيارات التعديل في `src/pages/Restaurant.tsx`
 
-### 3. `src/components/ImageUploader.tsx` - إضافة log بعد الضغط
+**الطريقة الاحترافية**: تغيير طريقة عرض الغلاف ليملأ المساحة بالكامل مثل أغلب المواقع الحديثة:
 
-إضافة log في `handleUpload` لمعرفة أبعاد الصورة بعد الضغط عشان نشوف إذا الضغط بيغير الأبعاد:
+1. تغيير الـ container class لضبط الارتفاع حسب ما تحب:
+   - مثلا: `h-64 sm:h-72 md:h-96 lg:h-[500px]` لغلاف أكبر
+   - أو `h-48 sm:h-56 md:h-64 lg:h-80` لغلاف أصغر
 
-```
-console.log('File size before compression:', file.size);
-// بعد الضغط
-console.log('File size after compression:', compressedFile.size);
-```
+2. تغيير طريقة عرض الصورة من `object-contain` (بيظهر الصورة كاملة مع فراغات) إلى `object-cover` (بيملا المساحة كلها مع قص الأطراف الزائدة):
+   - إزالة الـ wrapper div الإضافي (اللي فيه `p-2` و `border` و `shadow`)
+   - جعل الصورة `w-full h-full object-cover` مباشرة
 
-## النتيجة المتوقعة
+3. الإبقاء على blur placeholder كخلفية كما هو
 
-- صورة الغلاف هتطلع 2800px عرض فعلا بعد الرفع
-- الـ logs هتساعدنا نتأكد إن كل خطوة شغالة صح
+### التعديلات المطلوبة
+
+#### `src/pages/Restaurant.tsx`
+
+- تعديل الـ cover container (حوالي سطر 398-416):
+  - تغيير ارتفاع الـ container حسب القيم المطلوبة
+  - تبسيط عرض الصورة: إزالة الـ wrapper div وجعل الصورة `w-full h-full object-cover` مباشرة
+  - الإبقاء على blur background كما هو
+- تعديل Skeleton cover ليطابق نفس الارتفاعات الجديدة (سطر 314)
+
+#### ملاحظة عن `targetWidth` و `maxWidthOrHeight`
+
+هذه القيم تتحكم فقط في **جودة الملف** وليس حجم العرض:
+- **targetWidth = 2800**: يعني الملف المحفوظ 2800px عرض (جودة عالية)
+- يمكن تقليلها لتوفير مساحة التخزين وسرعة التحميل بدون أي تأثير على الحجم المعروض
+- القيمة المثالية للغلاف: 1920-2400px (كافية لأي شاشة)
+
+## النتيجة
+
+- التحكم الكامل في حجم الغلاف المعروض عبر CSS
+- الصورة تملأ المساحة بالكامل بشكل احترافي
+- لا حاجة لتغيير إعدادات الضغط أو القص لتغيير حجم العرض
+
