@@ -44,18 +44,18 @@ export default function ImageUploader({
 
   const aspectClasses = {
     square: 'aspect-square',
-    cover: 'aspect-[16/9]',
+    cover: 'aspect-[12/9]',
     logo: 'aspect-square max-w-[150px]',
   };
 
   const aspectRatioValues = {
     square: 1,
-    cover: 16 / 9,
+    cover: 12 / 9,
     logo: 1,
   };
 
   const targetWidthValues: Record<ImageType, number> = {
-    cover: 3500,
+    cover: 2400,
     product: 1920,
     logo: 800,
   };
