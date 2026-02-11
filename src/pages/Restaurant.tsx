@@ -331,10 +331,12 @@ ${orderText}
         {/* Skeleton Categories */}
         <div className="bg-white border-b">
           <div className="container mx-auto px-4 py-4">
-            <div className="flex gap-2">
-              {[1,2,3,4].map(i => (
-                <div key={i} className="h-8 w-16 bg-muted animate-pulse rounded-md" />
-              ))}
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex gap-2 overflow-x-auto pb-3">
+                {[1,2,3,4].map(i => (
+                  <div key={i} className="h-8 w-16 bg-muted animate-pulse rounded-md" />
+                ))}
+              </div>
             </div>
           </div>
         </div>
