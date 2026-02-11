@@ -1,57 +1,58 @@
 
+# التحكم في أبعاد صورة الغلاف بعد القص
 
-# إصلاح CLS المتبقي (0.0051)
+## المشكلة
 
-## تحليل السبب
+`maxWidthOrHeight` في `browser-image-compression` لا يكبّر الصور -- فقط يصغّرها. فلو الصورة المقصوصة 1200px عرض والحد 3500px، تبقى 1200px كما هي. لهذا تغيير القيمة لا يؤثر.
 
-بمقارنة الـ Skeleton مع المحتوى الفعلي، وجدت فروقات صغيرة في **قسم الفئات (Categories)**:
-
-| العنصر | Skeleton | الفعلي |
-|--------|----------|--------|
-| الحاوية الخارجية | `flex gap-2` مباشرة | `flex items-center justify-between flex-wrap gap-4` ثم بداخلها `flex gap-2 overflow-x-auto pb-3` |
-| padding سفلي | لا يوجد | `pb-3` (للـ scrollbar) |
-| حجم الأزرار | `h-8 w-16` ثابت | Button component بـ `size="sm"` (ممكن يختلف قليلاً) |
-
-الـ `pb-3` الإضافي في الفئات الفعلية يزيد ارتفاع القسم بـ 12px عن الـ skeleton، وهذا يدفع كل شيء تحته (أزرار العرض + الوجبات) للأسفل = layout shift.
-
-الناف بار السفلي `fixed bottom-0` فهو خارج الـ document flow ولا يسبب shift.
+الأبعاد الفعلية تتحدد من:
+1. حجم الصورة الأصلية المرفوعة
+2. منطقة القص (`pixelCrop`) في `ImageCropper.tsx` -- الكانفاس يُنشأ بنفس أبعاد البكسل المقصوصة بالضبط (سطر 59-60)
 
 ## الحل
 
-### ملف: `src/pages/Restaurant.tsx`
+إضافة خطوة **resize** داخل دالة `getCroppedImg` في `ImageCropper.tsx` تعتمد على `targetWidth` يُمرر حسب نوع الصورة.
 
-**تغيير واحد** -- مطابقة هيكل الـ Skeleton للفئات مع الفعلي (سطر 332-340):
+### التغييرات
 
-```tsx
-// قبل (Skeleton):
-<div className="bg-white border-b">
-  <div className="container mx-auto px-4 py-4">
-    <div className="flex gap-2">
-      {[1,2,3,4].map(i => (
-        <div key={i} className="h-8 w-16 bg-muted animate-pulse rounded-md" />
-      ))}
-    </div>
-  </div>
-</div>
+#### 1. `src/components/ImageCropper.tsx`
 
-// بعد (مطابق للفعلي):
-<div className="bg-white border-b">
-  <div className="container mx-auto px-4 py-4">
-    <div className="flex items-center justify-between flex-wrap gap-4">
-      <div className="flex gap-2 overflow-x-auto pb-3">
-        {[1,2,3,4].map(i => (
-          <div key={i} className="h-8 w-16 bg-muted animate-pulse rounded-md" />
-        ))}
-      </div>
-    </div>
-  </div>
-</div>
+- تعديل دالة `getCroppedImg` لتقبل `targetWidth` اختياري
+- بعد القص، إذا كان `targetWidth` محدد وعرض الصورة المقصوصة مختلف، يتم رسمها على كانفاس جديد بالعرض المطلوب مع الحفاظ على نسبة العرض للارتفاع
+
+```text
+getCroppedImg(imageSrc, pixelCrop, rotation, targetWidth?)
+  1. قص الصورة كالمعتاد (الكود الحالي)
+  2. إذا targetWidth موجود وعرض القص != targetWidth:
+     - إنشاء كانفاس ثالث بعرض targetWidth
+     - حساب الارتفاع: targetWidth / aspectRatio
+     - رسم الصورة المقصوصة على الكانفاس الجديد (resize)
+  3. إرجاع الـ Blob من الكانفاس النهائي
 ```
 
-هذا يضمن أن الـ skeleton يحجز نفس المساحة بالضبط (بما فيها الـ `pb-3`) فلما المحتوى الفعلي يظهر، لا يحصل أي انزياح.
+- تعديل الـ Props لتقبل `targetWidth` اختياري
+- تمرير `targetWidth` إلى `getCroppedImg` عند التأكيد
 
-## النتيجة المتوقعة
+#### 2. `src/components/ImageUploader.tsx`
 
-| المؤشر | قبل | بعد |
-|--------|------|------|
-| CLS | 0.0051 | ~0 |
+- إضافة mapping لكل `imageType` إلى `targetWidth`:
+
+| imageType | targetWidth |
+|-----------|-------------|
+| cover     | 2400        |
+| product   | 1920        |
+| logo      | 800         |
+
+- تمرير `targetWidth` كـ prop إلى `ImageCropper`
+
+#### 3. `src/lib/bunny.ts`
+
+- إرجاع `maxWidthOrHeight` للغلاف إلى 2400 (بدل 3500) لأن الـ resize أصبح يتم في خطوة القص
+- هذا يجعل `maxWidthOrHeight` شبكة أمان فقط (fallback) في حالة تعطيل القص
+
+## النتيجة
+
+- صورة الغلاف ستكون دائما 2400px عرض بعد القص (أو أي قيمة تحددها)
+- لو الصورة الأصلية أصغر، يتم تكبيرها للعرض المطلوب
+- لو أكبر، يتم تصغيرها
+- التغيير يحتاج إعادة رفع الصورة لتطبيقه
