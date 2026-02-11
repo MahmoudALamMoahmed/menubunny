@@ -1,71 +1,29 @@
 
 
-# إصلاح CLS 0.09 + تحسين LCP 2.06s
+# إصلاح مسافة البوردر حول صورة الغلاف
 
-## المشاكل المتبقية
+## المشكلة
+بعد تغيير `max-w-full max-h-full` إلى `w-full h-full` لحل CLS، الصورة أصبحت تأخذ كامل مساحة الحاوية كعنصر HTML، لكن `object-contain` يحافظ على نسبة العرض للارتفاع فيترك فراغ على اليمين واليسار. البوردر (`border-4 border-white/20`) يلتف حول العنصر كاملاً وليس حول الجزء المرئي من الصورة.
 
-### 1. CLS 0.0857 — صورة الغلاف (المشكلة الرئيسية)
-الصورة الرئيسية للغلاف تستخدم `max-w-full max-h-full object-contain` داخل flex container. عندما الصورة تتحمل، العنصر يتمدد من 0x0 إلى حجمه الطبيعي مما يسبب layout shift داخل الـ viewport.
-
-**الحل:** تغيير `max-w-full max-h-full` إلى `w-full h-full` على صورة الغلاف الرئيسية. بما أن الحاوية لها ارتفاع ثابت (`h-56 sm:h-64 md:h-80 lg:h-96`)، الصورة هتاخد المساحة كاملة فوراً بدون ما تستنى التحميل.
-
-### 2. CLS 0.0084 — أزرار طريقة العرض (بسيط)
-فرق طفيف بين حجم الـ skeleton (`w-11 h-11`) وحجم الأزرار الفعلية (`p-3` + icon `w-5 h-5`). الزر الفعلي حجمه 44px (p-3 = 12px كل جانب + 20px أيقونة = 44px) وهو نفس `w-11 h-11` (44px). الفرق غالباً من `border` الموجود على الأزرار الفعلية وغير موجود على الـ skeleton.
-
-**الحل:** إضافة `border border-transparent` على الـ skeleton placeholders لمطابقة الـ box model.
-
-### 3. LCP 2.06s — صورة الـ blur هي الـ LCP
-المتصفح يختار صورة الـ blur (`blur-xl scale-110`) كـ LCP لأنها تغطي مساحة أكبر من الصورة الرئيسية. المشكلة مش في سرعة التحميل (نفس الـ URL) لكن في أن الـ blur image مش المحتوى الأساسي.
-
-**الحل:** إضافة `fetchpriority="high"` على صورة الـ blur أيضاً (هي نفس الـ URL فعلياً فلن تسبب طلب إضافي) + إضافة `decoding="sync"` لضمان الرسم الفوري.
-
----
+## الحل
+إرجاع `max-w-full max-h-full` بدل `w-full h-full` على الصورة (لأن هذا يجعل البوردر يلتصق بالصورة المرئية)، وحل مشكلة CLS بطريقة أخرى: إضافة `min-w-full min-h-full` على الحاوية الأب (`div.relative.w-full.h-full.flex`) لضمان أنها تحجز المساحة فوراً ولا يحدث shift.
 
 ## التفاصيل التقنية
 
 ### ملف: `src/pages/Restaurant.tsx`
 
-**تغيير 1** — صورة الغلاف الرئيسية (سطر ~398):
+**تغيير واحد** -- سطر 401:
 ```tsx
 // قبل:
-className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border-4 border-white/20"
-
-// بعد:
 className="w-full h-full object-contain rounded-2xl shadow-2xl border-4 border-white/20"
-```
-
-**تغيير 2** — صورة الـ blur (سطر ~390):
-```tsx
-// قبل:
-className="absolute inset-0 w-full h-full object-cover blur-xl scale-110"
-
-// بعد: إضافة fetchpriority و decoding
-<img 
-  src={getCoverImageUrl(restaurant.cover_image_url)} 
-  alt="" 
-  aria-hidden="true"
-  className="absolute inset-0 w-full h-full object-cover blur-xl scale-110"
-  // @ts-ignore
-  fetchpriority="high"
-  decoding="sync"
-/>
-```
-
-**تغيير 3** — Skeleton View Toggle (سطر ~327-328):
-```tsx
-// قبل:
-<div className="w-11 h-11 bg-muted animate-pulse rounded-md" />
-<div className="w-11 h-11 bg-muted animate-pulse rounded-md" />
 
 // بعد:
-<div className="w-11 h-11 bg-muted animate-pulse rounded-md border border-transparent" />
-<div className="w-11 h-11 bg-muted animate-pulse rounded-md border border-transparent" />
+className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border-4 border-white/20"
 ```
+
+ولمنع CLS، الحاوية الأب (سطر 397) عندها بالفعل `w-full h-full` وهي داخل حاوية ذات ارتفاع ثابت (`h-56 sm:h-64 md:h-80 lg:h-96`)، فالمساحة محجوزة بالفعل والـ shift الذي كان يحدث سببه أن الصورة كانت تدفع الحاوية -- لكن بما أن الحاوية لها ارتفاع ثابت، الصورة بداخلها لن تسبب shift خارجي. سنحتاج التأكد بالاختبار.
 
 ## النتيجة المتوقعة
-
-| المؤشر | قبل | بعد |
-|--------|------|------|
-| CLS | 0.09 | قريب من 0 |
-| LCP | 2.06s | أسرع (decoding sync + صورة تاخد المساحة فوراً) |
+- البوردر يلتصق بالصورة مباشرة بدون فراغات
+- CLS يبقى منخفض لأن الحاوية الأب لها ارتفاع ثابت
 
