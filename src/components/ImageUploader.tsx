@@ -173,7 +173,7 @@ export default function ImageUploader({
     }
   };
 
-  const displayImage = preview || (currentImageUrl ? getOptimizedUrl(currentImageUrl, { width: 800 }) : null);
+  const displayImage = preview || (currentImageUrl ? getOptimizedUrl(currentImageUrl, { width: 400 }) : null);
 
   return (
     <div className={cn('space-y-2', className)}>
