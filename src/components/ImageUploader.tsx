@@ -43,7 +43,7 @@ export default function ImageUploader({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const aspectClasses = {
-    square: 'aspect-square',
+    square: 'aspect-square max-w-[180px]',
     cover: 'aspect-[16/9]',
     logo: 'aspect-square max-w-[150px]',
   };
