@@ -115,8 +115,8 @@ export default function ShareDialog({ restaurantName, username }: ShareDialogPro
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <Share2 className="w-4 h-4 ml-1" />
-          مشاركة
+          <Share2 className="w-4 h-4" />
+         {/*  مشاركة */}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md" dir="rtl">
