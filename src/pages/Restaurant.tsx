@@ -501,8 +501,8 @@ ${orderText}
           </div> : viewType === 'grid' ? <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filteredMenuItems.map(item => <Card key={item.id} className="overflow-hidden h-full flex flex-col cursor-pointer" onClick={() => openProductDialog(item)}>
                 <CardContent className="p-2 flex-1 flex flex-col">
-                  {item.image_url && <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden mb-4">
-                      <img src={getMenuItemUrl(item.image_url, 'medium')} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                  {item.image_url && <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4 flex items-center justify-center">
+                      <img src={getMenuItemUrl(item.image_url, 'medium')} alt={item.name} className="w-full h-full object-contain" loading="lazy" />
                     </div>}
                   <div className="p-2 flex-1">
                     <h3 className="font-semibold text-sm sm:text-lg text-gray-800 mb-2">{item.name}</h3>
@@ -547,8 +547,8 @@ ${orderText}
                       </span>
                     </div>
 
-                    {item.image_url && <div className="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src={getMenuItemUrl(item.image_url, 'medium')} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+                    {item.image_url && <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+                        <img src={getMenuItemUrl(item.image_url, 'medium')} alt={item.name} className="w-full h-full object-contain" loading="lazy" />
                       </div>}
                   </div>
                 </CardContent>

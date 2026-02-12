@@ -102,8 +102,8 @@ export default function ProductDetailsDialog({
         <div className="space-y-4">
           {/* صورة المنتج */}
           {item.image_url && (
-            <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
-              <img src={getMenuItemUrl(item.image_url, 'large')} alt={item.name} className="w-full h-full object-cover" />
+            <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+              <img src={getMenuItemUrl(item.image_url, 'large')} alt={item.name} className="w-full h-full object-contain" />
             </div>
           )}
           
