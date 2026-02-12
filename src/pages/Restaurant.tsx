@@ -395,7 +395,7 @@ ${orderText}
       </div>
 
       {/* Cover Image - صورة الغلاف (img tag للـ blur بدل background-image لتجنب طلب مزدوج) */}
-      <div className="relative w-full h-56 sm:h-64 md:h-80 lg:h-96 overflow-hidden">
+      <div className="relative w-full h-56 sm:h-64 md:h-80 lg:h-96 overflow-hidden bg-white">
         {restaurant.cover_image_url && (
           <div className="relative w-full h-full flex items-center justify-center z-10 p-2">
             <img 
