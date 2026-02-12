@@ -394,14 +394,14 @@ ${orderText}
         </div>
       </div>
 
-      {/* Cover Image - صورة الغلاف */}
-      <div className="relative w-full overflow-hidden bg-gradient-to-b from-muted/40 to-background">
+      {/* Cover Image - صورة الغلاف (img tag للـ blur بدل background-image لتجنب طلب مزدوج) */}
+      <div className="relative w-full h-56 sm:h-64 md:h-80 lg:h-96 overflow-hidden">
         {restaurant.cover_image_url && (
-          <div className="relative w-full flex items-center justify-center px-3 sm:px-6 md:px-8 py-3">
+          <div className="relative w-full h-full flex items-center justify-center p-2">
             <img 
               src={getCoverImageUrl(restaurant.cover_image_url)} 
               alt={restaurant.name} 
-              className="w-full h-full object-cover object-center rounded-xl sm:rounded-2xl md:rounded-3xl max-h-[250px] sm:max-h-[300px] md:max-h-[380px] lg:max-h-[420px] shadow-[0_8px_30px_rgba(0,0,0,0.08)] ring-1 ring-black/5" 
+              className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border-4 border-white/20" 
               loading="eager"
               // @ts-ignore
               fetchpriority="high"
