@@ -25,6 +25,7 @@ export type Database = {
           is_active: boolean | null
           name: string
           orange_cash: string | null
+          order_mode: string | null
           phone: string | null
           restaurant_id: string
           updated_at: string
@@ -42,6 +43,7 @@ export type Database = {
           is_active?: boolean | null
           name: string
           orange_cash?: string | null
+          order_mode?: string | null
           phone?: string | null
           restaurant_id: string
           updated_at?: string
@@ -59,6 +61,7 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           orange_cash?: string | null
+          order_mode?: string | null
           phone?: string | null
           restaurant_id?: string
           updated_at?: string
@@ -252,45 +255,71 @@ export type Database = {
       }
       orders: {
         Row: {
+          branch_id: string | null
           created_at: string
+          customer_address: string | null
           customer_name: string
           customer_phone: string
+          delivery_area_id: string | null
           id: string
           is_confirmed: boolean | null
           items: Json
           notes: string | null
+          payment_method: string | null
           restaurant_id: string
           status: string | null
           total_price: number
           updated_at: string
         }
         Insert: {
+          branch_id?: string | null
           created_at?: string
+          customer_address?: string | null
           customer_name: string
           customer_phone: string
+          delivery_area_id?: string | null
           id?: string
           is_confirmed?: boolean | null
           items: Json
           notes?: string | null
+          payment_method?: string | null
           restaurant_id: string
           status?: string | null
           total_price: number
           updated_at?: string
         }
         Update: {
+          branch_id?: string | null
           created_at?: string
+          customer_address?: string | null
           customer_name?: string
           customer_phone?: string
+          delivery_area_id?: string | null
           id?: string
           is_confirmed?: boolean | null
           items?: Json
           notes?: string | null
+          payment_method?: string | null
           restaurant_id?: string
           status?: string | null
           total_price?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_delivery_area_id_fkey"
+            columns: ["delivery_area_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_areas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_restaurant_id_fkey"
             columns: ["restaurant_id"]
