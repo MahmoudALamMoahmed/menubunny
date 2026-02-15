@@ -290,7 +290,8 @@ export default function BranchesManagement() {
     is_active: true,
     vodafone_cash: '',
     etisalat_cash: '',
-    orange_cash: ''
+    orange_cash: '',
+    order_mode: 'whatsapp'
   });
   
   // إدارة المناطق
@@ -344,7 +345,8 @@ export default function BranchesManagement() {
       is_active: true,
       vodafone_cash: '',
       etisalat_cash: '',
-      orange_cash: ''
+      orange_cash: '',
+      order_mode: 'whatsapp'
     });
     setEditingBranch(null);
   };
@@ -362,7 +364,8 @@ export default function BranchesManagement() {
       is_active: branch.is_active,
       vodafone_cash: branch.vodafone_cash || '',
       etisalat_cash: branch.etisalat_cash || '',
-      orange_cash: branch.orange_cash || ''
+      orange_cash: branch.orange_cash || '',
+      order_mode: (branch as any).order_mode || 'whatsapp'
     });
     setShowDialog(true);
   };
@@ -748,6 +751,26 @@ export default function BranchesManagement() {
                 onChange={(e) => setFormData(prev => ({ ...prev, working_hours: e.target.value }))}
                 placeholder="يومياً من 9 ص إلى 11 م"
               />
+            </div>
+
+            {/* Order Mode */}
+            <div className="space-y-2 border-t pt-4">
+              <Label className="text-base font-semibold">طريقة استقبال الطلبات</Label>
+              <Select value={formData.order_mode} onValueChange={(value) => setFormData(prev => ({ ...prev, order_mode: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر طريقة استقبال الطلبات" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="whatsapp">واتساب فقط</SelectItem>
+                  <SelectItem value="dashboard">لوحة التحكم فقط</SelectItem>
+                  <SelectItem value="both">واتساب + لوحة التحكم</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {formData.order_mode === 'whatsapp' && 'العميل يرسل الطلب عبر واتساب فقط'}
+                {formData.order_mode === 'dashboard' && 'الطلبات تظهر في صفحة الطلبات بلوحة التحكم'}
+                {formData.order_mode === 'both' && 'العميل يختار بين واتساب أو إرسال مباشر للمطعم'}
+              </p>
             </div>
 
             {/* Payment Methods */}

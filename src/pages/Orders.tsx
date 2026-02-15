@@ -137,7 +137,11 @@ export default function Orders() {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2"><span className="font-medium">الاسم:</span><span>{order.customer_name}</span></div>
                           <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400" /><span className="font-medium">الهاتف:</span><span dir="ltr">{order.customer_phone}</span></div>
-                          {order.notes && (<div className="flex items-start gap-2"><MapPin className="w-4 h-4 text-gray-400 mt-1" /><span className="font-medium">العنوان:</span><span className="flex-1">{order.notes}</span></div>)}
+                          {(order as any).customer_address && (<div className="flex items-start gap-2"><MapPin className="w-4 h-4 text-gray-400 mt-1" /><span className="font-medium">العنوان:</span><span className="flex-1">{(order as any).customer_address}</span></div>)}
+                          {!(order as any).customer_address && order.notes && (<div className="flex items-start gap-2"><MapPin className="w-4 h-4 text-gray-400 mt-1" /><span className="font-medium">ملاحظات:</span><span className="flex-1">{order.notes}</span></div>)}
+                          {(order as any).payment_method && (order as any).payment_method !== 'cash' && (
+                            <div className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-gray-400" /><span className="font-medium">طريقة الدفع:</span><span>{(order as any).payment_method === 'vodafone' ? 'فودافون كاش' : (order as any).payment_method === 'etisalat' ? 'اتصالات كاش' : (order as any).payment_method === 'orange' ? 'اورانج كاش' : 'الدفع عند الاستلام'}</span></div>
+                          )}
                         </div>
                       </div>
                       {/* تفاصيل الطلب */}

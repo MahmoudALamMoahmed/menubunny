@@ -22,6 +22,7 @@ import BranchesDialog from '@/components/BranchesDialog';
 import ShareDialog from '@/components/ShareDialog';
 import { getLogoUrl, getCoverImageUrl, getCoverBlurUrl, getMenuItemUrl } from '@/lib/bunny';
 import { useRestaurant, useCategories, useMenuItems, useSizes, useExtras, useBranches, useDeliveryAreas } from '@/hooks/useRestaurantData';
+import { supabase } from '@/integrations/supabase/client';
 
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -182,27 +183,86 @@ export default function Restaurant() {
     return getTotalPrice() + getDeliveryPrice();
   };
 
-  // إرسال الطلب عبر واتساب - بناء رسالة الطلب وفتح رابط واتساب
-  const sendOrderToWhatsApp = async () => {
-    if (cart.length === 0 || !customerName || !customerAddress || !customerPhone || !restaurant) return;
+  // التحقق من صحة بيانات الطلب قبل الإرسال
+  const validateOrder = (): boolean => {
+    if (cart.length === 0 || !customerName || !customerAddress || !customerPhone || !restaurant) return false;
     
     if (branches.length > 0 && !selectedBranch) {
-      toast({
-        title: 'اختر الفرع',
-        description: 'يرجى اختيار الفرع الذي تريد الطلب منه',
-        variant: 'destructive'
-      });
-      return;
+      toast({ title: 'اختر الفرع', description: 'يرجى اختيار الفرع الذي تريد الطلب منه', variant: 'destructive' });
+      return false;
     }
 
     if (selectedBranch && getAreasForBranch(selectedBranch).length > 0 && !selectedArea) {
-      toast({
-        title: 'اختر المنطقة',
-        description: 'يرجى اختيار منطقة التوصيل',
-        variant: 'destructive'
-      });
-      return;
+      toast({ title: 'اختر المنطقة', description: 'يرجى اختيار منطقة التوصيل', variant: 'destructive' });
+      return false;
     }
+    return true;
+  };
+
+  // تفريغ السلة وإعادة تعيين البيانات بعد إرسال الطلب بنجاح
+  const resetOrderState = () => {
+    setCart([]);
+    setShowCartDialog(false);
+    setCustomerName('');
+    setCustomerAddress('');
+    setCustomerPhone('');
+    setSelectedBranch('');
+    setSelectedArea('');
+    setPaymentMethod('cash');
+  };
+
+  // الحصول على order_mode للفرع المختار
+  const getSelectedBranchOrderMode = (): string => {
+    if (!selectedBranch) return 'whatsapp';
+    const branch = branches.find(b => b.id === selectedBranch);
+    return (branch as any)?.order_mode || 'whatsapp';
+  };
+
+  // إرسال الطلب للوحة التحكم (حفظ في قاعدة البيانات)
+  const sendOrderToDashboard = async () => {
+    if (!validateOrder() || !restaurant) return;
+
+    try {
+      const branch = branches.find(b => b.id === selectedBranch);
+      const area = deliveryAreas.find(a => a.id === selectedArea);
+      
+      const orderItems = cart.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        total: item.price * item.quantity,
+        size: item.selectedSize ? { id: item.selectedSize.id, name: item.selectedSize.name, price: item.selectedSize.price } : undefined,
+        extras: item.selectedExtras?.map(e => ({ id: e.id, name: e.name, price: e.price })),
+      }));
+
+      const { error } = await supabase.from('orders').insert({
+        restaurant_id: restaurant.id,
+        branch_id: selectedBranch || null,
+        delivery_area_id: selectedArea || null,
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        customer_address: customerAddress,
+        payment_method: paymentMethod,
+        items: orderItems as any,
+        total_price: getFinalTotal(),
+        notes: area ? `المنطقة: ${area.name} - الفرع: ${branch?.name || ''}` : (branch?.name ? `الفرع: ${branch.name}` : null),
+        status: 'pending',
+      });
+
+      if (error) throw error;
+
+      resetOrderState();
+      toast({ title: 'تم إرسال الطلب', description: 'تم إرسال طلبك بنجاح وسيتم التواصل معك قريباً' });
+    } catch (error) {
+      console.error('خطأ في إرسال الطلب:', error);
+      toast({ title: 'خطأ', description: 'حدث خطأ في إرسال الطلب، يرجى المحاولة مرة أخرى', variant: 'destructive' });
+    }
+  };
+
+  // إرسال الطلب عبر واتساب - بناء رسالة الطلب وفتح رابط واتساب
+  const sendOrderToWhatsApp = async () => {
+    if (!validateOrder()) return;
 
     try {
       const totalPrice = getTotalPrice();
@@ -271,18 +331,8 @@ ${orderText}
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
 
-      setCart([]);
-      setShowCartDialog(false);
-      setCustomerName('');
-      setCustomerAddress('');
-      setCustomerPhone('');
-      setSelectedBranch('');
-      setSelectedArea('');
-      setPaymentMethod('cash');
-      toast({
-        title: 'تم إرسال الطلب',
-        description: 'تم إرسال طلبك عبر واتساب بنجاح'
-      });
+      resetOrderState();
+      toast({ title: 'تم إرسال الطلب', description: 'تم إرسال طلبك عبر واتساب بنجاح' });
     } catch (error) {
       console.error('خطأ عام:', error);
       toast({
@@ -831,10 +881,25 @@ ${orderText}
                         <Input id="customerPhone" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="رقم هاتفك" />
                       </div>
                       
-                      {/* زر إرسال الطلب عبر واتساب */}
-                      <Button onClick={sendOrderToWhatsApp} disabled={cart.length === 0 || !customerName || !customerAddress || !customerPhone} className="w-full bg-green-600 hover:bg-green-700">
-                        إرسال الطلب واتساب
-                      </Button>
+                      {/* أزرار إرسال الطلب حسب order_mode الفرع */}
+                      {(() => {
+                        const orderMode = getSelectedBranchOrderMode();
+                        const isDisabled = cart.length === 0 || !customerName || !customerAddress || !customerPhone;
+                        return (
+                          <div className="space-y-2">
+                            {(orderMode === 'whatsapp' || orderMode === 'both') && (
+                              <Button onClick={sendOrderToWhatsApp} disabled={isDisabled} className="w-full bg-green-600 hover:bg-green-700">
+                                إرسال الطلب واتساب
+                              </Button>
+                            )}
+                            {(orderMode === 'dashboard' || orderMode === 'both') && (
+                              <Button onClick={sendOrderToDashboard} disabled={isDisabled} className="w-full">
+                                إرسال الطلب للمطعم
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </DialogContent>
