@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      branch_staff: {
+        Row: {
+          branch_id: string
+          created_at: string
+          email: string
+          id: string
+          restaurant_id: string
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          email: string
+          id?: string
+          restaurant_id: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          restaurant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branch_staff_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_staff_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branches: {
         Row: {
           address: string | null
@@ -429,7 +471,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_staff_branch_id: { Args: { _user_id: string }; Returns: string }
+      get_staff_restaurant_id: { Args: { _user_id: string }; Returns: string }
+      is_branch_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

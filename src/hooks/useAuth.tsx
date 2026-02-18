@@ -7,11 +7,21 @@ interface PendingRestaurant {
   restaurantName: string;
 }
 
+interface BranchStaffInfo {
+  user_id: string;
+  branch_id: string;
+  restaurant_id: string;
+  email: string;
+  restaurantUsername: string | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   username: string | null;
+  branchStaffInfo: BranchStaffInfo | null;
+  isBranchStaff: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, username: string, restaurantName: string) => Promise<{ error: any; needsEmailConfirmation: boolean }>;
   signOut: () => Promise<void>;
@@ -24,13 +34,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const PENDING_RESTAURANT_KEY = 'pending_restaurant_data';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Auth State - حالة المستخدم والجلسة والتحميل واسم المستخدم
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState<string | null>(null);
+  const [branchStaffInfo, setBranchStaffInfo] = useState<BranchStaffInfo | null>(null);
 
-  // دالة مساعدة لجلب اسم المستخدم
+  // دالة مساعدة لجلب اسم المستخدم (لصاحب المطعم)
   const fetchUsername = async (userId: string) => {
     const { data, error } = await supabase
       .from('restaurants')
@@ -45,13 +55,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // دالة لجلب بيانات موظف الفرع إذا كان المستخدم موظفاً
+  const fetchBranchStaffInfo = async (userId: string): Promise<BranchStaffInfo | null> => {
+    const { data, error } = await supabase
+      .from('branch_staff')
+      .select('*, restaurants(username)')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    return {
+      user_id: data.user_id,
+      branch_id: data.branch_id,
+      restaurant_id: data.restaurant_id,
+      email: data.email,
+      restaurantUsername: (data.restaurants as any)?.username ?? null,
+    };
+  };
+
+  // دالة لتحديد نوع المستخدم (موظف فرع أم صاحب مطعم)
+  const resolveUserType = async (userId: string) => {
+    const staffInfo = await fetchBranchStaffInfo(userId);
+    if (staffInfo) {
+      setBranchStaffInfo(staffInfo);
+      setUsername(null);
+    } else {
+      setBranchStaffInfo(null);
+      await fetchUsername(userId);
+    }
+  };
+
   // دالة لإنشاء المطعم إذا لم يكن موجوداً (idempotent)
   const ensureRestaurantExists = async (): Promise<{ created: boolean; error: any }> => {
     if (!user) {
       return { created: false, error: { message: 'No authenticated user' } };
     }
 
-    // تحقق من وجود مطعم مرتبط بالمستخدم
     const { data: existingRestaurant, error: checkError } = await supabase
       .from('restaurants')
       .select('id, username')
@@ -59,12 +99,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .single();
 
     if (existingRestaurant) {
-      // المطعم موجود بالفعل
       setUsername(existingRestaurant.username);
       return { created: false, error: null };
     }
 
-    // جلب بيانات المطعم المعلقة من التخزين المحلي
     const pendingDataStr = localStorage.getItem(PENDING_RESTAURANT_KEY);
     if (!pendingDataStr) {
       return { created: false, error: { message: 'No pending restaurant data found' } };
@@ -78,7 +116,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { created: false, error: { message: 'Invalid pending restaurant data' } };
     }
 
-    // إنشاء المطعم
     const { error: insertError } = await supabase
       .from('restaurants')
       .insert({
@@ -89,7 +126,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
     if (insertError) {
-      // إذا كان الخطأ بسبب duplicate، يعني المطعم تم إنشاؤه بالفعل
       if (insertError.code === '23505') {
         localStorage.removeItem(PENDING_RESTAURANT_KEY);
         await fetchUsername(user.id);
@@ -98,33 +134,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { created: false, error: insertError };
     }
 
-    // تم الإنشاء بنجاح - حذف البيانات المعلقة وتحديث اسم المستخدم
     localStorage.removeItem(PENDING_RESTAURANT_KEY);
     setUsername(pendingData.username);
     return { created: true, error: null };
   };
 
-  // Auth Listener - مستمع لتغييرات حالة المصادقة من Supabase + جلب الجلسة الحالية
+  // Auth Listener
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        // تحديث الحالة بشكل متزامن فقط - لا await هنا!
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // استخدام setTimeout لتأجيل استدعاءات Supabase ومنع deadlock
         if (session?.user) {
           setTimeout(() => {
-            fetchUsername(session.user.id);
+            resolveUserType(session.user.id);
           }, 0);
         } else {
           setUsername(null);
+          setBranchStaffInfo(null);
         }
       }
     );
 
-    // التحقق من الجلسة الحالية
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -132,7 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (session?.user) {
         setTimeout(() => {
-          fetchUsername(session.user.id);
+          resolveUserType(session.user.id);
         }, 0);
       }
     });
@@ -140,60 +173,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // دالة تسجيل الدخول عبر Supabase Auth
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
   };
 
-  // دالة إنشاء حساب جديد مع حفظ بيانات المطعم في localStorage لإنشائها لاحقاً
   const signUp = async (email: string, password: string, username: string, restaurantName: string) => {
     const redirectUrl = `${window.location.origin}/`;
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: redirectUrl,
-      },
+      options: { emailRedirectTo: redirectUrl },
     });
 
-    if (error) {
-      return { error, needsEmailConfirmation: false };
-    }
+    if (error) return { error, needsEmailConfirmation: false };
 
-    // في بعض إعدادات المصادقة يتم إرجاع نجاح بدون إرسال إيميل إذا كان البريد مسجلاً مسبقاً
-    // يتم تمييز ذلك عادةً بأن identities تكون مصفوفة فارغة
     const identities = data.user?.identities;
     const isAlreadyRegistered = Array.isArray(identities) && identities.length === 0;
     if (isAlreadyRegistered) {
-      return {
-        error: { message: 'User already registered' },
-        needsEmailConfirmation: false,
-      };
+      return { error: { message: 'User already registered' }, needsEmailConfirmation: false };
     }
 
     if (!data.user) {
-      return {
-        error: { message: 'Unexpected signup response' },
-        needsEmailConfirmation: false,
-      };
+      return { error: { message: 'Unexpected signup response' }, needsEmailConfirmation: false };
     }
 
-    // حفظ بيانات المطعم في التخزين المحلي لإنشائها لاحقاً بعد التأكيد/الدخول
     const pendingData: PendingRestaurant = { username, restaurantName };
     localStorage.setItem(PENDING_RESTAURANT_KEY, JSON.stringify(pendingData));
 
-    // إذا لم يتم إرجاع session فهذا يعني غالباً أن المستخدم يحتاج لتأكيد الإيميل
     const needsEmailConfirmation = !data.session;
-
     return { error: null, needsEmailConfirmation };
   };
 
-  // دالة تسجيل الخروج من Supabase Auth
   const signOut = async () => {
     await supabase.auth.signOut();
   };
@@ -203,6 +215,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     loading,
     username,
+    branchStaffInfo,
+    isBranchStaff: !!branchStaffInfo,
     signIn,
     signUp,
     signOut,

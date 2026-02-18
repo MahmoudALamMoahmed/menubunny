@@ -2,10 +2,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Phone, MapPin, Calendar, DollarSign, Package } from 'lucide-react';
+import { ArrowRight, Phone, MapPin, Calendar, DollarSign, Package, Building2 } from 'lucide-react';
 import { useRestaurant } from '@/hooks/useRestaurantData';
-import { useAdminOrders } from '@/hooks/useAdminData';
+import { useAdminOrders, useBranchOrders } from '@/hooks/useAdminData';
 import { useUpdateOrderStatus } from '@/hooks/useAdminMutations';
+import { useAuth } from '@/hooks/useAuth';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Order = Tables<'orders'>;
@@ -22,11 +23,24 @@ interface OrderItem {
 export default function Orders() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
+  const { isBranchStaff, branchStaffInfo } = useAuth();
 
-  // React Query - جلب بيانات المطعم
-  const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
-  // React Query - جلب جميع الطلبات (بدون فلترة) للأدمن
-  const { data: orders = [], isLoading: ordersLoading } = useAdminOrders(restaurant?.id);
+  // React Query - جلب بيانات المطعم (للمالك فقط - الموظف يستخدم restaurant_id من branchStaffInfo)
+  const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(
+    isBranchStaff ? branchStaffInfo?.restaurantUsername ?? undefined : username
+  );
+
+  // جلب الطلبات: إما كل طلبات المطعم (للمالك) أو طلبات الفرع فقط (للموظف)
+  const { data: allOrders = [], isLoading: allOrdersLoading } = useAdminOrders(
+    isBranchStaff ? undefined : restaurant?.id
+  );
+  const { data: branchOrders = [], isLoading: branchOrdersLoading } = useBranchOrders(
+    isBranchStaff ? branchStaffInfo?.branch_id : undefined
+  );
+
+  const orders = isBranchStaff ? branchOrders : allOrders;
+  const ordersLoading = isBranchStaff ? branchOrdersLoading : allOrdersLoading;
+
   // React Query Mutation - تحديث حالة الطلب مع إعادة جلب تلقائية
   const updateStatusMut = useUpdateOrderStatus(restaurant?.id);
 
@@ -84,18 +98,32 @@ export default function Orders() {
     );
   }
 
+  const effectiveUsername = isBranchStaff ? branchStaffInfo?.restaurantUsername : username;
+
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <Button variant="outline" onClick={() => navigate(`/${username}/dashboard`)} className="flex items-center gap-2">
-              <ArrowRight className="w-4 h-4" />
-              العودة للوحة التحكم
-            </Button>
+            {!isBranchStaff && (
+              <Button variant="outline" onClick={() => navigate(`/${username}/dashboard`)} className="flex items-center gap-2">
+                <ArrowRight className="w-4 h-4" />
+                العودة للوحة التحكم
+              </Button>
+            )}
             <div>
               <h1 className="text-3xl font-bold text-gray-900">الطلبات</h1>
-              <p className="text-gray-600">إدارة طلبات {restaurant?.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-gray-600">
+                  {isBranchStaff ? 'طلبات فرعك' : `إدارة طلبات ${restaurant?.name}`}
+                </p>
+                {isBranchStaff && (
+                  <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+                    <Building2 className="w-3 h-3" />
+                    موظف فرع
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -106,7 +134,9 @@ export default function Orders() {
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Package className="w-12 h-12 text-gray-400 mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">لا توجد طلبات</h3>
-                <p className="text-gray-600 text-center">لم يتم استلام أي طلبات حتى الآن</p>
+                <p className="text-gray-600 text-center">
+                  {isBranchStaff ? 'لم يتم استلام أي طلبات لفرعك حتى الآن' : 'لم يتم استلام أي طلبات حتى الآن'}
+                </p>
               </CardContent>
             </Card>
           ) : (

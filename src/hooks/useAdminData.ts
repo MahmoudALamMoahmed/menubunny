@@ -147,3 +147,60 @@ export function useAdminOrders(restaurantId: string | undefined) {
     refetchOnWindowFocus: false,
   });
 }
+
+// React Query - جلب طلبات فرع محدد (لموظف الفرع)
+export function useBranchOrders(branchId: string | undefined) {
+  return useQuery({
+    queryKey: ['branch_orders', branchId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('branch_id', branchId!)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!branchId,
+    staleTime: 1000 * 60,
+    gcTime: ADMIN_GC,
+    refetchOnWindowFocus: false,
+  });
+}
+
+// React Query - جلب قائمة حسابات موظفي الفروع لمطعم معين
+export function useBranchStaffList(restaurantId: string | undefined) {
+  return useQuery({
+    queryKey: ['branch_staff_list', restaurantId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('branch_staff')
+        .select('*')
+        .eq('restaurant_id', restaurantId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!restaurantId,
+    staleTime: ADMIN_STALE,
+    gcTime: ADMIN_GC,
+    refetchOnWindowFocus: false,
+  });
+}
+
+// React Query - التحقق هل المستخدم الحالي موظف فرع
+export function useCurrentStaffInfo() {
+  return useQuery({
+    queryKey: ['current_staff_info'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('branch_staff')
+        .select('*, branches(name, restaurant_id), restaurants(username)')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: ADMIN_STALE,
+    gcTime: ADMIN_GC,
+    refetchOnWindowFocus: false,
+  });
+}

@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.bunny-delete]
 verify_jwt = false
+
+[functions.create-branch-staff]
+verify_jwt = false
+
+[functions.delete-branch-staff]
+verify_jwt = false

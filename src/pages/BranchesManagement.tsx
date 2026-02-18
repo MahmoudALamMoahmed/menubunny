@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRestaurant } from '@/hooks/useRestaurantData';
-import { useAdminBranches, useAdminDeliveryAreas } from '@/hooks/useAdminData';
+import { useAdminBranches, useAdminDeliveryAreas, useBranchStaffList } from '@/hooks/useAdminData';
 import {
   useSaveBranch, useDeleteBranch, useToggleBranchActive,
   useSaveDeliveryArea, useDeleteDeliveryArea,
@@ -28,7 +28,12 @@ import {
   Navigation,
   GripVertical,
   Search,
-  Filter
+  Filter,
+  UserPlus,
+  Mail,
+  Lock,
+  UserX,
+  User,
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -38,6 +43,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import {
   DndContext,
@@ -59,6 +65,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { supabase } from '@/integrations/supabase/client';
 
 // واجهة props لكارت الفرع القابل للسحب (DnD)
 interface SortableBranchCardProps {
@@ -67,8 +74,11 @@ interface SortableBranchCardProps {
   onEdit: (branch: Branch) => void;
   onDelete: (branchId: string) => void;
   onOpenAreas: (branch: Branch) => void;
+  onManageAccount: (branch: Branch) => void;
   areasCount: number;
+  staffEmail: string | null;
 }
+
 
 // مكون كارت الفرع مع دعم السحب والإفلات (DnD) وأزرار التحكم
 function SortableBranchCard({ 
@@ -77,9 +87,10 @@ function SortableBranchCard({
   onEdit, 
   onDelete, 
   onOpenAreas,
-  areasCount 
+  onManageAccount,
+  areasCount,
+  staffEmail,
 }: SortableBranchCardProps) {
-  // DnD Hook - ربط العنصر بنظام السحب والإفلات
   const {
     attributes,
     listeners,
@@ -122,28 +133,46 @@ function SortableBranchCard({
         <CardContent className="space-y-3">
           {branch.address && (
             <div className="flex items-start gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-              <span className="text-gray-600">{branch.address}</span>
+              <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+              <span className="text-muted-foreground">{branch.address}</span>
             </div>
           )}
           {branch.phone && (
             <div className="flex items-center gap-2 text-sm">
-              <Phone className="w-4 h-4 text-gray-400" />
-              <span className="text-gray-600">{branch.phone}</span>
+              <Phone className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground">{branch.phone}</span>
             </div>
           )}
           {branch.delivery_phone && (
             <div className="flex items-center gap-2 text-sm">
               <Phone className="w-4 h-4 text-primary" />
-              <span className="text-gray-600">دليفري: {branch.delivery_phone}</span>
+              <span className="text-muted-foreground">دليفري: {branch.delivery_phone}</span>
             </div>
           )}
           
           <div className="flex items-center gap-2 text-sm">
             <Navigation className="w-4 h-4 text-green-500" />
-            <span className="text-gray-600">
+            <span className="text-muted-foreground">
               {areasCount} مناطق توصيل
             </span>
+          </div>
+
+          {/* قسم حساب الفرع */}
+          <div className="pt-2 border-t">
+            {staffEmail ? (
+              <div className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <User className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-xs text-muted-foreground truncate">{staffEmail}</span>
+                </div>
+                <Badge variant="secondary" className="text-xs shrink-0 mr-2">حساب موظف</Badge>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <UserPlus className="w-4 h-4" />
+                <span>لا يوجد حساب للفرع</span>
+              </div>
+            )}
           </div>
           
           <div className="flex gap-2 pt-2 border-t">
@@ -158,12 +187,18 @@ function SortableBranchCard({
             </Button>
             <Button 
               variant="outline" 
-              size="sm" 
-              className="flex-1"
+              size="sm"
+              onClick={() => onManageAccount(branch)}
+              title={staffEmail ? 'إدارة حساب الفرع' : 'إضافة حساب للفرع'}
+            >
+              {staffEmail ? <UserX className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
               onClick={() => onEdit(branch)}
             >
-              <Edit2 className="w-4 h-4 ml-1" />
-              تعديل
+              <Edit2 className="w-4 h-4" />
             </Button>
             <Button 
               variant="destructive" 
@@ -265,6 +300,7 @@ export default function BranchesManagement() {
   const { data: branches = [], isLoading: branchesLoading } = useAdminBranches(restaurantId);
   const branchIds = branches.length > 0 ? branches.map(b => b.id) : undefined;
   const { data: deliveryAreas = [], isLoading: areasLoading } = useAdminDeliveryAreas(branchIds);
+  const { data: staffList = [], refetch: refetchStaff } = useBranchStaffList(restaurantId);
   
   const dataLoading = branchesLoading || areasLoading;
 
@@ -312,6 +348,14 @@ export default function BranchesManagement() {
   
   // Active dragging branch
   const [activeDragBranch, setActiveDragBranch] = useState<Branch | null>(null);
+
+  // Staff account management state
+  const [showAccountDialog, setShowAccountDialog] = useState(false);
+  const [selectedBranchForAccount, setSelectedBranchForAccount] = useState<Branch | null>(null);
+  const [accountForm, setAccountForm] = useState({ email: '', password: '' });
+  const [accountLoading, setAccountLoading] = useState(false);
+  const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
+  const [staffToDelete, setStaffToDelete] = useState<{ userId: string; branchName: string } | null>(null);
 
   // Filtered branches
   const filteredBranches = branches.filter(branch => {
@@ -543,6 +587,98 @@ export default function BranchesManagement() {
     setAreaForm({ name: area.name, delivery_price: area.delivery_price });
   };
 
+  // دالة مساعدة - إيجاد حساب موظف الفرع
+  const getBranchStaffEmail = (branchId: string): string | null => {
+    const staff = staffList.find(s => s.branch_id === branchId);
+    return staff?.email ?? null;
+  };
+
+  // فتح حوار إدارة حساب الفرع
+  const openManageAccountDialog = (branch: Branch) => {
+    setSelectedBranchForAccount(branch);
+    const staffEmail = getBranchStaffEmail(branch.id);
+    if (staffEmail) {
+      // يوجد حساب - عرض حوار الحذف
+      const staff = staffList.find(s => s.branch_id === branch.id);
+      if (staff) {
+        setStaffToDelete({ userId: staff.user_id, branchName: branch.name });
+        setDeleteAccountDialogOpen(true);
+      }
+    } else {
+      // لا يوجد حساب - فتح حوار الإنشاء
+      setAccountForm({ email: '', password: '' });
+      setShowAccountDialog(true);
+    }
+  };
+
+  // إنشاء حساب موظف فرع
+  const handleCreateStaffAccount = async () => {
+    if (!selectedBranchForAccount || !restaurant || !accountForm.email || !accountForm.password) {
+      toast({ title: 'خطأ', description: 'يرجى إدخال الإيميل وكلمة المرور', variant: 'destructive' });
+      return;
+    }
+    if (accountForm.password.length < 6) {
+      toast({ title: 'خطأ', description: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل', variant: 'destructive' });
+      return;
+    }
+
+    setAccountLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await supabase.functions.invoke('create-branch-staff', {
+        body: {
+          branch_id: selectedBranchForAccount.id,
+          restaurant_id: restaurant.id,
+          email: accountForm.email,
+          password: accountForm.password,
+        },
+      });
+
+      if (response.error || response.data?.error) {
+        toast({
+          title: 'خطأ',
+          description: response.data?.error || 'حدث خطأ أثناء إنشاء الحساب',
+          variant: 'destructive',
+        });
+      } else {
+        toast({ title: 'تم بنجاح', description: `تم إنشاء حساب للفرع ${selectedBranchForAccount.name}` });
+        setShowAccountDialog(false);
+        setAccountForm({ email: '', password: '' });
+        refetchStaff();
+      }
+    } catch {
+      toast({ title: 'خطأ', description: 'حدث خطأ غير متوقع', variant: 'destructive' });
+    }
+    setAccountLoading(false);
+  };
+
+  // حذف حساب موظف فرع
+  const handleDeleteStaffAccount = async () => {
+    if (!staffToDelete) return;
+    setAccountLoading(true);
+    try {
+      const response = await supabase.functions.invoke('delete-branch-staff', {
+        body: { staff_user_id: staffToDelete.userId },
+      });
+
+      if (response.error || response.data?.error) {
+        toast({
+          title: 'خطأ',
+          description: response.data?.error || 'حدث خطأ أثناء حذف الحساب',
+          variant: 'destructive',
+        });
+      } else {
+        toast({ title: 'تم الحذف', description: `تم حذف حساب فرع ${staffToDelete.branchName}` });
+        setDeleteAccountDialogOpen(false);
+        setStaffToDelete(null);
+        refetchStaff();
+      }
+    } catch {
+      toast({ title: 'خطأ', description: 'حدث خطأ غير متوقع', variant: 'destructive' });
+    }
+    setAccountLoading(false);
+  };
+
   if (authLoading || restaurantLoading || dataLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
@@ -638,7 +774,9 @@ export default function BranchesManagement() {
                   onEdit={openEditDialog}
                   onDelete={openDeleteDialog}
                   onOpenAreas={openAreasDialog}
+                  onManageAccount={openManageAccountDialog}
                   areasCount={getBranchAreas(branch.id).length}
+                  staffEmail={getBranchStaffEmail(branch.id)}
                 />
               ))}
             </div>
@@ -937,6 +1075,75 @@ export default function BranchesManagement() {
         description="هل أنت متأكد من حذف هذه المنطقة؟"
         isLoading={deleteAreaMut.isPending}
       />
+
+      {/* Create Staff Account Dialog */}
+      <Dialog open={showAccountDialog} onOpenChange={(open) => { setShowAccountDialog(open); if (!open) setAccountForm({ email: '', password: '' }); }}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-primary" />
+              إضافة حساب للفرع: {selectedBranchForAccount?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              سيتمكن صاحب هذا الحساب من تسجيل الدخول ورؤية طلبات هذا الفرع فقط.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="staffEmail" className="flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                البريد الإلكتروني
+              </Label>
+              <Input
+                id="staffEmail"
+                type="email"
+                value={accountForm.email}
+                onChange={(e) => setAccountForm(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="branch@restaurant.com"
+                disabled={accountLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="staffPassword" className="flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                كلمة المرور
+              </Label>
+              <Input
+                id="staffPassword"
+                type="password"
+                value={accountForm.password}
+                onChange={(e) => setAccountForm(prev => ({ ...prev, password: e.target.value }))}
+                placeholder="6 أحرف على الأقل"
+                disabled={accountLoading}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <Button variant="outline" onClick={() => setShowAccountDialog(false)} disabled={accountLoading}>
+                إلغاء
+              </Button>
+              <Button onClick={handleCreateStaffAccount} disabled={accountLoading}>
+                {accountLoading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2" />
+                ) : (
+                  <UserPlus className="w-4 h-4 ml-2" />
+                )}
+                إنشاء الحساب
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Staff Account Confirmation */}
+      <DeleteConfirmDialog
+        open={deleteAccountDialogOpen}
+        onOpenChange={(open) => { setDeleteAccountDialogOpen(open); if (!open) setStaffToDelete(null); }}
+        onConfirm={handleDeleteStaffAccount}
+        title="حذف حساب الفرع"
+        description={`هل أنت متأكد من حذف حساب فرع "${staffToDelete?.branchName}"؟ لن يستطيع الموظف تسجيل الدخول بعد ذلك.`}
+        isLoading={accountLoading}
+      />
     </div>
   );
 }
+
