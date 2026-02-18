@@ -10,7 +10,9 @@ const Header = () => {
   const {
     user,
     username,
-    signOut
+    signOut,
+    isBranchStaff,
+    branchStaffInfo,
   } = useAuth();
   // دالة تسجيل الخروج والتوجيه للرئيسية
   const handleSignOut = async () => {
@@ -57,9 +59,15 @@ const Header = () => {
           <div className="hidden md:flex items-center gap-3">
             {user ? <div className="flex items-center gap-3">
                 <span className="font-cairo text-sm text-muted-foreground">مرحباً {user.email}</span>
-                <Button variant="secondary" onClick={() => username && navigate(`/${username}`)} disabled={!username} className="font-cairo">
-                 الدخول لمطعمك
-                </Button>
+                {isBranchStaff && branchStaffInfo ? (
+                  <Button variant="secondary" onClick={() => navigate(`/${branchStaffInfo.restaurantUsername}/orders`)} className="font-cairo">
+                    طلبات فرعي
+                  </Button>
+                ) : (
+                  <Button variant="secondary" onClick={() => username && navigate(`/${username}`)} disabled={!username} className="font-cairo">
+                    الدخول لمطعمك
+                  </Button>
+                )}
                 <Button variant="outline" onClick={handleSignOut}>
                   <LogOut className="w-4 h-4 ml-1" />
                   تسجيل الخروج
@@ -91,14 +99,23 @@ const Header = () => {
                     <div className="px-3 py-2 text-sm text-muted-foreground font-cairo">
                       مرحباً {user.email}
                     </div>
-                    <Button variant="secondary" className="w-full font-cairo" onClick={() => {
-                if (username) {
-                  navigate(`/${username}`);
-                  setIsMenuOpen(false);
-                }
-              }} disabled={!username}>
-                      الدخول لمطعمك
-                    </Button>
+                    {isBranchStaff && branchStaffInfo ? (
+                      <Button variant="secondary" className="w-full font-cairo" onClick={() => {
+                        navigate(`/${branchStaffInfo.restaurantUsername}/orders`);
+                        setIsMenuOpen(false);
+                      }}>
+                        طلبات فرعي
+                      </Button>
+                    ) : (
+                      <Button variant="secondary" className="w-full font-cairo" onClick={() => {
+                        if (username) {
+                          navigate(`/${username}`);
+                          setIsMenuOpen(false);
+                        }
+                      }} disabled={!username}>
+                        الدخول لمطعمك
+                      </Button>
+                    )}
                     <Button variant="outline" className="w-full font-cairo" onClick={() => {
                 handleSignOut();
                 setIsMenuOpen(false);

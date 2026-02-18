@@ -76,7 +76,7 @@ export default function Auth() {
   // حساب قوة كلمة المرور
   const passwordStrength = getPasswordStrength(password);
   
-  const { signIn, signUp, user, ensureRestaurantExists, branchStaffInfo, isBranchStaff } = useAuth();
+  const { signIn, signUp, user, ensureRestaurantExists, branchStaffInfo, isBranchStaff, userTypeLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -122,6 +122,7 @@ export default function Auth() {
   useEffect(() => {
     const handleUserSession = async () => {
       if (!user) return;
+      if (userTypeLoading) return; // انتظر حتى تكتمل بيانات نوع المستخدم
 
       // إذا كان موظف فرع → توجيهه لصفحة الطلبات مباشرة
       if (isBranchStaff && branchStaffInfo) {
@@ -147,7 +148,7 @@ export default function Auth() {
     };
     
     handleUserSession();
-  }, [user, isBranchStaff, branchStaffInfo, navigate, ensureRestaurantExists, toast]);
+  }, [user, isBranchStaff, branchStaffInfo, userTypeLoading, navigate, ensureRestaurantExists, toast]);
 
   // معالج تسجيل الدخول (form submit) عبر Supabase Auth
   const handleSignIn = async (e: React.FormEvent) => {
