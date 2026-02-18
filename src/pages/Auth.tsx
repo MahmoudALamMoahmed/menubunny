@@ -76,7 +76,7 @@ export default function Auth() {
   // حساب قوة كلمة المرور
   const passwordStrength = getPasswordStrength(password);
   
-  const { signIn, signUp, user, ensureRestaurantExists } = useAuth();
+  const { signIn, signUp, user, ensureRestaurantExists, branchStaffInfo, isBranchStaff } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -118,11 +118,19 @@ export default function Auth() {
     setIsResending(false);
   };
 
-  // Auth Redirect - عند تسجيل الدخول بنجاح، إنشاء المطعم والتوجيه
+  // Auth Redirect - عند تسجيل الدخول بنجاح، توجيه حسب نوع المستخدم
   useEffect(() => {
     const handleUserSession = async () => {
-      if (user) {
-        // محاولة إنشاء المطعم إذا لم يكن موجوداً
+      if (!user) return;
+
+      // إذا كان موظف فرع → توجيهه لصفحة الطلبات مباشرة
+      if (isBranchStaff && branchStaffInfo) {
+        navigate(`/${branchStaffInfo.restaurantUsername}/orders`);
+        return;
+      }
+
+      // إذا كان صاحب مطعم → إنشاء المطعم إذا لزم والتوجيه
+      if (!isBranchStaff) {
         const { created, error } = await ensureRestaurantExists();
         
         if (created) {
@@ -139,7 +147,7 @@ export default function Auth() {
     };
     
     handleUserSession();
-  }, [user, navigate, ensureRestaurantExists, toast]);
+  }, [user, isBranchStaff, branchStaffInfo, navigate, ensureRestaurantExists, toast]);
 
   // معالج تسجيل الدخول (form submit) عبر Supabase Auth
   const handleSignIn = async (e: React.FormEvent) => {
