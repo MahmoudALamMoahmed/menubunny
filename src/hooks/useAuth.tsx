@@ -19,6 +19,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  userTypeLoading: boolean;
   username: string | null;
   branchStaffInfo: BranchStaffInfo | null;
   isBranchStaff: boolean;
@@ -37,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userTypeLoading, setUserTypeLoading] = useState(true);
   const [username, setUsername] = useState<string | null>(null);
   const [branchStaffInfo, setBranchStaffInfo] = useState<BranchStaffInfo | null>(null);
 
@@ -76,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // دالة لتحديد نوع المستخدم (موظف فرع أم صاحب مطعم)
   const resolveUserType = async (userId: string) => {
+    setUserTypeLoading(true);
     const staffInfo = await fetchBranchStaffInfo(userId);
     if (staffInfo) {
       setBranchStaffInfo(staffInfo);
@@ -84,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setBranchStaffInfo(null);
       await fetchUsername(userId);
     }
+    setUserTypeLoading(false);
   };
 
   // دالة لإنشاء المطعم إذا لم يكن موجوداً (idempotent)
@@ -154,6 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setUsername(null);
           setBranchStaffInfo(null);
+          setUserTypeLoading(false);
         }
       }
     );
@@ -214,6 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
+    userTypeLoading,
     username,
     branchStaffInfo,
     isBranchStaff: !!branchStaffInfo,
