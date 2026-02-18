@@ -1,219 +1,143 @@
 
-# نظام حسابات الفروع - Branch Staff Accounts
+# إصلاح توجيه موظف الفرع بعد تسجيل الدخول
 
-## الفكرة العامة
+## تشخيص المشكلة
 
-إنشاء نظام يمكّن صاحب المطعم من إضافة حساب (إيميل + كلمة مرور) لكل فرع، بحيث يستطيع موظف الفرع تسجيل الدخول ورؤية طلبات فرعه فقط، دون أي صلاحيات أخرى.
+المشكلة الجوهرية هي **سباق التزامن (Race Condition)** بين:
+- **`useEffect` في `Auth.tsx`**: يُراقب تغيّر `user` ويحاول التوجيه فوراً
+- **`resolveUserType` في `useAuth.tsx`**: دالة غير متزامنة تجلب بيانات الموظف من قاعدة البيانات
 
-## تصميم الحل
+عند تسجيل الدخول:
+1. `user` يُعيَّن (المستخدم دخل)
+2. `useEffect` في Auth.tsx يُشتغَل على الفور
+3. في هذه اللحظة `isBranchStaff = false` (لأن بيانات الموظف لم تُجلب بعد)
+4. يُوجَّه المستخدم لـ `/` كأنه صاحب مطعم
+5. بعد ثانية تصل بيانات الموظف لكن التوجيه تمّ خطأً
 
-### نوع المستخدم
+**النتيجة**: موظف الفرع يجد نفسه في الصفحة الرئيسية مع زر "الدخول لمطعمك" معطّل (صحيح أمنياً لكن بدون بديل مناسب).
 
-- **صاحب المطعم** (`owner`): يرى كل شيء، يتحكم في كل شيء.
-- **موظف فرع** (`branch_staff`): يسجل دخوله من نفس صفحة `/auth`، يُعاد توجيهه تلقائياً لصفحة طلبات فرعه فقط.
+## الحل المقترح
 
-### لماذا نفس صفحة تسجيل الدخول؟
+### المبدأ: إضافة حالة "loading" للتحقق من نوع المستخدم
 
-- أبسط للمستخدم
-- لا داعي لرابط منفصل
-- بعد الدخول، النظام يحدد تلقائياً هل هو صاحب مطعم أم موظف فرع ويوجهه بشكل مناسب
+إضافة state جديدة `userTypeLoading` في `useAuth.tsx` تبقى `true` حتى تنتهي `resolveUserType` من عملها. بهذا يعرف كل مكون متى يكون النوع جاهزاً فعلاً.
 
 ---
 
 ## التعديلات المطلوبة
 
-### 1. قاعدة البيانات (Migration)
+### 1. `src/hooks/useAuth.tsx` - إضافة `userTypeLoading`
 
-**جدول `branch_staff`** - ربط مستخدمي Supabase Auth بالفروع:
-
-```text
-branch_staff:
-  - id           uuid (PK)
-  - user_id      uuid → auth.users (NOT NULL, UNIQUE)
-  - branch_id    uuid → branches (NOT NULL)
-  - restaurant_id uuid → restaurants (NOT NULL)
-  - created_at   timestamptz
+إضافة state جديدة:
+```typescript
+const [userTypeLoading, setUserTypeLoading] = useState(true);
 ```
 
-**سبب الاختيار**: 
-- `user_id` له `UNIQUE` constraint → كل مستخدم مرتبط بفرع واحد فقط
-- `restaurant_id` مُخزن مباشرةً للوصول السريع بدون JOIN معقد
-
-**دالة Security Definer** لتجنب recursion في RLS:
-```sql
-create or replace function public.get_staff_branch_id(_user_id uuid)
-returns uuid language sql stable security definer
-set search_path = public as $$
-  select branch_id from public.branch_staff where user_id = _user_id
-$$;
-
-create or replace function public.get_staff_restaurant_id(_user_id uuid)
-returns uuid language sql stable security definer
-set search_path = public as $$
-  select restaurant_id from public.branch_staff where user_id = _user_id
-$$;
+تعديل `resolveUserType`:
+```typescript
+const resolveUserType = async (userId: string) => {
+  setUserTypeLoading(true);   // ← ابدأ التحميل
+  const staffInfo = await fetchBranchStaffInfo(userId);
+  if (staffInfo) {
+    setBranchStaffInfo(staffInfo);
+    setUsername(null);
+  } else {
+    setBranchStaffInfo(null);
+    await fetchUsername(userId);
+  }
+  setUserTypeLoading(false);  // ← انتهى التحميل
+};
 ```
 
-**تعديل RLS على جدول `orders`**:
-- إضافة Policy جديدة تسمح لموظف الفرع برؤية طلبات فرعه فقط:
-```sql
-CREATE POLICY "branch_staff_can_view_their_branch_orders"
-ON public.orders FOR SELECT
-USING (
-  branch_id = public.get_staff_branch_id(auth.uid())
-);
-
-CREATE POLICY "branch_staff_can_update_their_branch_orders"  
-ON public.orders FOR UPDATE
-USING (
-  branch_id = public.get_staff_branch_id(auth.uid())
-);
+عند تسجيل الخروج، إعادة تعيين الحالة:
+```typescript
+// في onAuthStateChange عندما session تكون null
+setUserTypeLoading(false);
 ```
 
-**RLS على جدول `branch_staff`**:
-```sql
--- صاحب المطعم يرى ويدير موظفي فروعه
-CREATE POLICY "owners_manage_branch_staff" ON public.branch_staff
-FOR ALL USING (
-  EXISTS (
-    SELECT 1 FROM restaurants
-    WHERE restaurants.id = branch_staff.restaurant_id
-    AND restaurants.owner_id = auth.uid()
-  )
-);
--- الموظف يرى سجله فقط
-CREATE POLICY "staff_see_own_record" ON public.branch_staff
-FOR SELECT USING (user_id = auth.uid());
-```
+تصدير `userTypeLoading` في السياق (context).
 
 ---
 
-### 2. صفحة إدارة الفروع (`BranchesManagement.tsx`)
+### 2. `src/pages/Auth.tsx` - إصلاح منطق التوجيه
 
-إضافة قسم "حساب الفرع" داخل كل كارت فرع يحتوي على:
+**المشكلة الحالية**: `useEffect` يعتمد فقط على `user` و`isBranchStaff`، ولا ينتظر اكتمال جلب البيانات.
 
-**الحالة A - لا يوجد حساب بعد**:
-- زر "إضافة حساب للفرع"
-- يفتح Dialog يطلب: الإيميل + كلمة المرور
+**الإصلاح**: إضافة `userTypeLoading` كشرط:
 
-**الحالة B - يوجد حساب**:
-- عرض الإيميل المرتبط بالفرع
-- زر "حذف الحساب"
+```typescript
+const { signIn, signUp, user, ensureRestaurantExists, 
+        branchStaffInfo, isBranchStaff, userTypeLoading } = useAuth();
 
-**كيف يتم الإنشاء؟**
-- صاحب المطعم يكتب الإيميل وكلمة المرور
-- يتم استدعاء Edge Function تستخدم `supabase_admin` (service role) لإنشاء المستخدم في Supabase Auth وإدخال سجل في `branch_staff`
-- **سبب Edge Function**: العميل (browser) لا يستطيع إنشاء مستخدمين آخرين - يتطلب service role key
+useEffect(() => {
+  const handleUserSession = async () => {
+    if (!user) return;
+    if (userTypeLoading) return; // ← انتظر حتى تكتمل البيانات
 
----
+    if (isBranchStaff && branchStaffInfo) {
+      navigate(`/${branchStaffInfo.restaurantUsername}/orders`);
+      return;
+    }
 
-### 3. Edge Function جديدة: `create-branch-staff`
-
-```text
-Input:
-  - branch_id: string
-  - restaurant_id: string
-  - email: string
-  - password: string
-
-Logic:
-  1. التحقق أن المستدعي هو صاحب المطعم (من auth token)
-  2. إنشاء مستخدم في Supabase Auth (service role)
-  3. إدخال سجل في branch_staff
+    if (!isBranchStaff) {
+      const { created, error } = await ensureRestaurantExists();
+      if (created) { toast(...) }
+      if (!error || error.message === 'No pending restaurant data found') {
+        navigate('/');
+      }
+    }
+  };
   
-Output:
-  - { success: true, user_id: "..." }
-  - أو { error: "..." }
+  handleUserSession();
+}, [user, isBranchStaff, branchStaffInfo, userTypeLoading, navigate, ...]);
 ```
 
 ---
 
-### 4. Edge Function جديدة: `delete-branch-staff`
+### 3. `src/components/Header.tsx` - تحسين تجربة موظف الفرع
 
-```text
-Input:
-  - staff_user_id: string
+حالياً زر "الدخول لمطعمك" معطّل لأن `username = null` لموظف الفرع. يجب إضافة زر مخصص لموظف الفرع بدلاً منه:
 
-Logic:
-  1. التحقق أن المستدعي هو صاحب المطعم
-  2. حذف المستخدم من Supabase Auth (service role)
-  3. حذف السجل من branch_staff (cascade)
-  
-Output:
-  - { success: true }
+**للمالك** → زر "الدخول لمطعمك" (موجود)  
+**لموظف الفرع** → زر "صفحة الطلبات" يوجهه لـ `/{restaurantUsername}/orders`
+
+```typescript
+const { user, username, signOut, isBranchStaff, branchStaffInfo } = useAuth();
+
+// في مكان الزر:
+{user ? (
+  <div className="flex items-center gap-3">
+    <span>مرحباً {user.email}</span>
+    
+    {isBranchStaff && branchStaffInfo ? (
+      // زر مخصص لموظف الفرع
+      <Button onClick={() => navigate(`/${branchStaffInfo.restaurantUsername}/orders`)}>
+        طلبات فرعي
+      </Button>
+    ) : (
+      // زر المالك العادي
+      <Button onClick={() => username && navigate(`/${username}`)} disabled={!username}>
+        الدخول لمطعمك
+      </Button>
+    )}
+    
+    <Button variant="outline" onClick={handleSignOut}>تسجيل الخروج</Button>
+  </div>
+) : (...)}
 ```
 
 ---
 
-### 5. تعديل `useAuth.tsx` - منطق التوجيه بعد الدخول
-
-حالياً: بعد الدخول، يتم التوجيه لـ `/`
-المطلوب: التحقق هل المستخدم موظف فرع أم صاحب مطعم
-
-```text
-بعد تسجيل الدخول:
-  1. check if user has a record in branch_staff
-     - YES → navigate to `/{restaurant_username}/{branch_username}/orders` (أو أي route مناسب)
-     - NO  → السلوك الحالي (التوجيه للرئيسية كصاحب مطعم)
-```
-
----
-
-### 6. تعديل صفحة الطلبات (`Orders.tsx`)
-
-إضافة منطق فلترة ذكي:
-- **إذا صاحب المطعم**: يرى كل الطلبات (السلوك الحالي)
-- **إذا موظف فرع**: يرى فقط طلبات فرعه (مع إضافة badge يوضح اسم الفرع)
-
----
-
-## تدفق البيانات الكامل
-
-```text
-صاحب المطعم
-  │
-  ├── يفتح صفحة الفروع
-  ├── يضغط "إضافة حساب" على فرع معين
-  ├── يكتب الإيميل + كلمة المرور
-  └── يضغط "إنشاء"
-        │
-        ▼
-   Edge Function (create-branch-staff)
-        │
-        ├── ينشئ مستخدم في Supabase Auth
-        └── يدخل سجل في branch_staff
-              { user_id, branch_id, restaurant_id }
-
-موظف الفرع
-  │
-  ├── يفتح /auth ويسجل دخوله بإيميله
-  ├── useAuth يتحقق: هل هذا المستخدم في branch_staff؟
-  └── نعم → يوجهه لصفحة الطلبات بفرعه فقط
-        │
-        ▼
-   /:username/orders
-   (يرى فقط orders حيث branch_id = فرعه)
-```
-
----
-
-## الملفات المتأثرة
+## ملخص الملفات المتأثرة
 
 | الملف | التعديل |
 |---|---|
-| Migration SQL | إنشاء جدول `branch_staff` + دوال + RLS policies |
-| `src/hooks/useAuth.tsx` | إضافة `branchStaffInfo` state + منطق توجيه الموظفين |
-| `src/pages/BranchesManagement.tsx` | إضافة قسم "حساب الفرع" في كل كارت فرع |
-| `src/hooks/useAdminData.ts` | hook جديد `useBranchStaffList` لجلب حسابات موظفي الفروع |
-| `supabase/functions/create-branch-staff/index.ts` | Edge Function جديدة لإنشاء حساب موظف |
-| `supabase/functions/delete-branch-staff/index.ts` | Edge Function جديدة لحذف حساب موظف |
-| `src/pages/Orders.tsx` | فلترة تلقائية حسب نوع المستخدم (صاحب/موظف) |
+| `src/hooks/useAuth.tsx` | إضافة `userTypeLoading` state وتصديرها |
+| `src/pages/Auth.tsx` | إضافة `userTypeLoading` كشرط للانتظار قبل التوجيه |
+| `src/components/Header.tsx` | إضافة زر "طلبات فرعي" المخصص لموظف الفرع |
 
----
+## الأمان - لا تغيير
 
-## ملاحظات أمنية
-
-- **RLS** على `orders` تمنع موظف الفرع من رؤية طلبات فروع أخرى حتى لو حاول مباشرةً من قاعدة البيانات
-- **دوال Security Definer** تمنع حلقات RLS اللانهائية
-- **Service Role** محمي داخل Edge Function فقط، لا يُشارك مع العميل أبداً
-- موظف الفرع **لا يستطيع** إنشاء حسابات أو تعديل المنيو أو أي شيء غير صفحة الطلبات
+- RLS على قاعدة البيانات تبقى كما هي (موظف الفرع لا يرى إلا طلبات فرعه)
+- الموظف لا يستطيع الوصول لصفحات الإدارة (Dashboard, MenuManagement, etc.) لأنها تتحقق من `owner_id`
+- التوجيه في الفرونت هو للتسهيل فقط، والحماية الفعلية في قاعدة البيانات
