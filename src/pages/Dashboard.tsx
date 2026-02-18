@@ -18,7 +18,7 @@ import {
 export default function Dashboard() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isBranchStaff, branchStaffInfo, userTypeLoading } = useAuth();
   
   // React Query - جلب بيانات المطعم
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
@@ -43,10 +43,16 @@ export default function Dashboard() {
 
   // Auth Guard - توجيه المستخدم غير المسجل لصفحة تسجيل الدخول
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authLoading || userTypeLoading) return;
+    if (!user) {
       navigate('/auth');
+      return;
     }
-  }, [authLoading, user, navigate]);
+    // Guard - موظف الفرع لا يملك صلاحية الدخول لهذه الصفحة
+    if (isBranchStaff && branchStaffInfo) {
+      navigate(`/${branchStaffInfo.restaurantUsername}/branch-orders`);
+    }
+  }, [authLoading, userTypeLoading, user, isBranchStaff, branchStaffInfo, navigate]);
 
   // Data Sync - مزامنة بيانات المطعم من React Query إلى نموذج التعديل المحلي
   useEffect(() => {
