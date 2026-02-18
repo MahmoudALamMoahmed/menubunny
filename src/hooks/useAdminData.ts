@@ -187,20 +187,3 @@ export function useBranchStaffList(restaurantId: string | undefined) {
   });
 }
 
-// React Query - التحقق هل المستخدم الحالي موظف فرع
-export function useCurrentStaffInfo() {
-  return useQuery({
-    queryKey: ['current_staff_info'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('branch_staff')
-        .select('*, branches(name, restaurant_id), restaurants(username)')
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    staleTime: ADMIN_STALE,
-    gcTime: ADMIN_GC,
-    refetchOnWindowFocus: false,
-  });
-}
