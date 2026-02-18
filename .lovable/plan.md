@@ -1,143 +1,103 @@
 
-# إصلاح توجيه موظف الفرع بعد تسجيل الدخول
+# فصل صفحة طلبات الفرع + تنظيف الكود القديم
 
-## تشخيص المشكلة
+## ما سيتم حذفه من الكود القديم
 
-المشكلة الجوهرية هي **سباق التزامن (Race Condition)** بين:
-- **`useEffect` في `Auth.tsx`**: يُراقب تغيّر `user` ويحاول التوجيه فوراً
-- **`resolveUserType` في `useAuth.tsx`**: دالة غير متزامنة تجلب بيانات الموظف من قاعدة البيانات
+### في `Orders.tsx` (صفحة الأدمن):
+- حذف `isBranchStaff` و`branchStaffInfo` من `useAuth()` (لن تُستخدم بعد الآن)
+- حذف `useBranchOrders` بالكامل (الـ hook وكل استخدامه)
+- حذف المنطق الشرطي `isBranchStaff ? branchOrders : allOrders`
+- حذف badge "موظف فرع" وشرط `{!isBranchStaff && ...}` من الـ UI
+- حذف المتغير `effectiveUsername` (غير مستخدم أصلاً في الكود الحالي)
+- حذف import الـ `Building2` icon (يستخدمه فقط badge الموظف)
+- النتيجة: صفحة `Orders.tsx` تصبح **للمالك فقط** بكود نظيف بدون شروط
 
-عند تسجيل الدخول:
-1. `user` يُعيَّن (المستخدم دخل)
-2. `useEffect` في Auth.tsx يُشتغَل على الفور
-3. في هذه اللحظة `isBranchStaff = false` (لأن بيانات الموظف لم تُجلب بعد)
-4. يُوجَّه المستخدم لـ `/` كأنه صاحب مطعم
-5. بعد ثانية تصل بيانات الموظف لكن التوجيه تمّ خطأً
+### في `Auth.tsx`:
+- تغيير الـ redirect من `/${restaurantUsername}/orders` إلى `/${restaurantUsername}/branch-orders`
 
-**النتيجة**: موظف الفرع يجد نفسه في الصفحة الرئيسية مع زر "الدخول لمطعمك" معطّل (صحيح أمنياً لكن بدون بديل مناسب).
-
-## الحل المقترح
-
-### المبدأ: إضافة حالة "loading" للتحقق من نوع المستخدم
-
-إضافة state جديدة `userTypeLoading` في `useAuth.tsx` تبقى `true` حتى تنتهي `resolveUserType` من عملها. بهذا يعرف كل مكون متى يكون النوع جاهزاً فعلاً.
+### في `Header.tsx`:
+- تغيير رابط زر "طلبات فرعي" من `/${restaurantUsername}/orders` إلى `/${restaurantUsername}/branch-orders`
 
 ---
 
-## التعديلات المطلوبة
+## ما سيُضاف
 
-### 1. `src/hooks/useAuth.tsx` - إضافة `userTypeLoading`
+### 1. صفحة جديدة `src/pages/BranchOrders.tsx`
+صفحة مستقلة كاملة تحتوي على:
 
-إضافة state جديدة:
-```typescript
-const [userTypeLoading, setUserTypeLoading] = useState(true);
-```
+**Guards للأمان:**
+- إذا لم يكن مسجل دخول → توجيه لـ `/auth`
+- إذا كان مسجل دخول لكن ليس موظف فرع (أي مالك) → توجيه لـ `/:username/orders`
 
-تعديل `resolveUserType`:
-```typescript
-const resolveUserType = async (userId: string) => {
-  setUserTypeLoading(true);   // ← ابدأ التحميل
-  const staffInfo = await fetchBranchStaffInfo(userId);
-  if (staffInfo) {
-    setBranchStaffInfo(staffInfo);
-    setUsername(null);
-  } else {
-    setBranchStaffInfo(null);
-    await fetchUsername(userId);
-  }
-  setUserTypeLoading(false);  // ← انتهى التحميل
-};
-```
+**المحتوى:**
+- Header بسيط: اسم المطعم + badge "موظف فرع" + زر تسجيل خروج فقط
+- قائمة الطلبات باستخدام `useBranchOrders` من `useAdminData`
+- أزرار تحديث حالة الطلب باستخدام `useUpdateOrderStatus`
+- نفس تصميم بطاقات الطلبات الموجودة (كود مشترك منسوخ ومنظف)
 
-عند تسجيل الخروج، إعادة تعيين الحالة:
-```typescript
-// في onAuthStateChange عندما session تكون null
-setUserTypeLoading(false);
-```
+### 2. إضافة Guard في صفحات الأدمن
 
-تصدير `userTypeLoading` في السياق (context).
-
----
-
-### 2. `src/pages/Auth.tsx` - إصلاح منطق التوجيه
-
-**المشكلة الحالية**: `useEffect` يعتمد فقط على `user` و`isBranchStaff`، ولا ينتظر اكتمال جلب البيانات.
-
-**الإصلاح**: إضافة `userTypeLoading` كشرط:
+في كل صفحة: `Dashboard`, `Orders`, `MenuManagement`, `FooterManagement`, `BranchesManagement`:
 
 ```typescript
-const { signIn, signUp, user, ensureRestaurantExists, 
-        branchStaffInfo, isBranchStaff, userTypeLoading } = useAuth();
+const { isBranchStaff, branchStaffInfo, userTypeLoading } = useAuth();
 
 useEffect(() => {
-  const handleUserSession = async () => {
-    if (!user) return;
-    if (userTypeLoading) return; // ← انتظر حتى تكتمل البيانات
-
-    if (isBranchStaff && branchStaffInfo) {
-      navigate(`/${branchStaffInfo.restaurantUsername}/orders`);
-      return;
-    }
-
-    if (!isBranchStaff) {
-      const { created, error } = await ensureRestaurantExists();
-      if (created) { toast(...) }
-      if (!error || error.message === 'No pending restaurant data found') {
-        navigate('/');
-      }
-    }
-  };
-  
-  handleUserSession();
-}, [user, isBranchStaff, branchStaffInfo, userTypeLoading, navigate, ...]);
+  if (userTypeLoading) return;
+  if (isBranchStaff && branchStaffInfo) {
+    navigate(`/${branchStaffInfo.restaurantUsername}/branch-orders`);
+  }
+}, [isBranchStaff, branchStaffInfo, userTypeLoading, navigate]);
 ```
 
----
-
-### 3. `src/components/Header.tsx` - تحسين تجربة موظف الفرع
-
-حالياً زر "الدخول لمطعمك" معطّل لأن `username = null` لموظف الفرع. يجب إضافة زر مخصص لموظف الفرع بدلاً منه:
-
-**للمالك** → زر "الدخول لمطعمك" (موجود)  
-**لموظف الفرع** → زر "صفحة الطلبات" يوجهه لـ `/{restaurantUsername}/orders`
-
+### 3. تحديث `App.tsx`
+إضافة route جديد:
 ```typescript
-const { user, username, signOut, isBranchStaff, branchStaffInfo } = useAuth();
-
-// في مكان الزر:
-{user ? (
-  <div className="flex items-center gap-3">
-    <span>مرحباً {user.email}</span>
-    
-    {isBranchStaff && branchStaffInfo ? (
-      // زر مخصص لموظف الفرع
-      <Button onClick={() => navigate(`/${branchStaffInfo.restaurantUsername}/orders`)}>
-        طلبات فرعي
-      </Button>
-    ) : (
-      // زر المالك العادي
-      <Button onClick={() => username && navigate(`/${username}`)} disabled={!username}>
-        الدخول لمطعمك
-      </Button>
-    )}
-    
-    <Button variant="outline" onClick={handleSignOut}>تسجيل الخروج</Button>
-  </div>
-) : (...)}
+const BranchOrders = lazy(() => import("./pages/BranchOrders"));
+// ...
+<Route path="/:username/branch-orders" element={<BranchOrders />} />
 ```
 
 ---
 
 ## ملخص الملفات المتأثرة
 
-| الملف | التعديل |
-|---|---|
-| `src/hooks/useAuth.tsx` | إضافة `userTypeLoading` state وتصديرها |
-| `src/pages/Auth.tsx` | إضافة `userTypeLoading` كشرط للانتظار قبل التوجيه |
-| `src/components/Header.tsx` | إضافة زر "طلبات فرعي" المخصص لموظف الفرع |
+| الملف | نوع التغيير | التفاصيل |
+|---|---|---|
+| `src/pages/BranchOrders.tsx` | **إنشاء جديد** | صفحة طلبات الفرع المستقلة |
+| `src/App.tsx` | **تعديل** | إضافة route الجديد |
+| `src/pages/Orders.tsx` | **تنظيف + guard** | حذف كل كود الموظف، إضافة guard للمالك فقط |
+| `src/pages/Auth.tsx` | **تعديل بسيط** | تغيير redirect الموظف لـ `branch-orders` |
+| `src/components/Header.tsx` | **تعديل بسيط** | تغيير رابط "طلبات فرعي" لـ `branch-orders` |
+| `src/pages/Dashboard.tsx` | **إضافة guard** | طرد موظف الفرع لـ `branch-orders` |
+| `src/pages/MenuManagement.tsx` | **إضافة guard** | طرد موظف الفرع لـ `branch-orders` |
+| `src/pages/FooterManagement.tsx` | **إضافة guard** | طرد موظف الفرع لـ `branch-orders` |
+| `src/pages/BranchesManagement.tsx` | **إضافة guard** | طرد موظف الفرع لـ `branch-orders` |
 
-## الأمان - لا تغيير
+---
 
-- RLS على قاعدة البيانات تبقى كما هي (موظف الفرع لا يرى إلا طلبات فرعه)
-- الموظف لا يستطيع الوصول لصفحات الإدارة (Dashboard, MenuManagement, etc.) لأنها تتحقق من `owner_id`
-- التوجيه في الفرونت هو للتسهيل فقط، والحماية الفعلية في قاعدة البيانات
+## تدفق المستخدم بعد التغيير
+
+```text
+موظف الفرع يسجل الدخول
+        ↓
+Auth.tsx → navigate(`/{restaurantUsername}/branch-orders`)
+        ↓
+صفحة BranchOrders.tsx:
+  - Guard يتحقق: هل هو موظف فرع؟ ✓
+  - يرى طلبات فرعه فقط (RLS تحميه من الباك-اند)
+  - لا يوجد أي رابط لصفحات الأدمن
+
+لو حاول الدخول لـ /dashboard أو /orders أو أي صفحة أدمن عبر URL
+        ↓
+Guard في الصفحة يكتشف isBranchStaff = true
+        ↓
+يُعاد توجيهه فوراً إلى /{restaurantUsername}/branch-orders
+```
+
+---
+
+## الأمان - طبقتان
+
+- **طبقة 1 (قاعدة البيانات)**: RLS تمنع الموظف من رؤية أو تعديل أي بيانات خارج فرعه حتى لو تجاوز الـ Guards
+- **طبقة 2 (Frontend Guards)**: كل صفحة أدمن تطرده فوراً، وصفحة BranchOrders لا تحتوي على أي روابط للأدمن
