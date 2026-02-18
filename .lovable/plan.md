@@ -1,103 +1,51 @@
 
-# فصل صفحة طلبات الفرع + تنظيف الكود القديم
+# تنظيف الكود المهمل وإصلاح التضارب
 
-## ما سيتم حذفه من الكود القديم
+## ما وجدته بعد المراجعة الشاملة
 
-### في `Orders.tsx` (صفحة الأدمن):
-- حذف `isBranchStaff` و`branchStaffInfo` من `useAuth()` (لن تُستخدم بعد الآن)
-- حذف `useBranchOrders` بالكامل (الـ hook وكل استخدامه)
-- حذف المنطق الشرطي `isBranchStaff ? branchOrders : allOrders`
-- حذف badge "موظف فرع" وشرط `{!isBranchStaff && ...}` من الـ UI
-- حذف المتغير `effectiveUsername` (غير مستخدم أصلاً في الكود الحالي)
-- حذف import الـ `Building2` icon (يستخدمه فقط badge الموظف)
-- النتيجة: صفحة `Orders.tsx` تصبح **للمالك فقط** بكود نظيف بدون شروط
+### المشكلة 1 - `useAdminData.ts`: Hook مهمل تماماً
 
-### في `Auth.tsx`:
-- تغيير الـ redirect من `/${restaurantUsername}/orders` إلى `/${restaurantUsername}/branch-orders`
+`useCurrentStaffInfo` (السطر 191-205) لم يُستخدم في **أي ملف** في المشروع. كان مُخصصاً للنظام القديم قبل نقل منطق التحقق من نوع المستخدم داخل `useAuth.tsx`. الحل: **حذفه**.
 
-### في `Header.tsx`:
-- تغيير رابط زر "طلبات فرعي" من `/${restaurantUsername}/orders` إلى `/${restaurantUsername}/branch-orders`
+### المشكلة 2 - `Orders.tsx`: نقص في شرط التحميل
+
+السطر 87 في `Orders.tsx` يتحقق من `authLoading` لكن لا يتحقق من `userTypeLoading`. هذا يعني أن الصفحة قد تبدأ في عرض بيانات المطعم وجلب الطلبات **قبل اكتمال التحقق من نوع المستخدم**، مما قد يؤدي إلى لحظة عرض خاطئة لموظف الفرع قبل أن يُطرد بالـ Guard.
+
+```typescript
+// الحالي (خطأ):
+if (authLoading || restaurantLoading || ordersLoading) {
+
+// الصحيح:
+if (authLoading || userTypeLoading || restaurantLoading || ordersLoading) {
+```
 
 ---
 
-## ما سيُضاف
+## الملفات السليمة - لا تحتاج تعديل
 
-### 1. صفحة جديدة `src/pages/BranchOrders.tsx`
-صفحة مستقلة كاملة تحتوي على:
+| الملف | الحالة |
+|---|---|
+| `useAuth.tsx` | نظيف - `userTypeLoading` صحيح |
+| `Auth.tsx` | نظيف - redirect لـ `branch-orders` صحيح |
+| `BranchesManagement.tsx` | نظيف - guard يعمل صحيح |
+| `BranchOrders.tsx` | نظيف - guard وبيانات صحيحة |
+| `useAdminMutations.ts` | نظيف - `useUpdateOrderStatus` يدعم كلا النوعين |
 
-**Guards للأمان:**
-- إذا لم يكن مسجل دخول → توجيه لـ `/auth`
-- إذا كان مسجل دخول لكن ليس موظف فرع (أي مالك) → توجيه لـ `/:username/orders`
+---
 
-**المحتوى:**
-- Header بسيط: اسم المطعم + badge "موظف فرع" + زر تسجيل خروج فقط
-- قائمة الطلبات باستخدام `useBranchOrders` من `useAdminData`
-- أزرار تحديث حالة الطلب باستخدام `useUpdateOrderStatus`
-- نفس تصميم بطاقات الطلبات الموجودة (كود مشترك منسوخ ومنظف)
+## التعديلات المطلوبة
 
-### 2. إضافة Guard في صفحات الأدمن
+### 1. `src/hooks/useAdminData.ts` - حذف `useCurrentStaffInfo`
+حذف الـ hook كاملاً (السطور 191-205) لأنه مهمل ولا يُستخدم في أي مكان.
 
-في كل صفحة: `Dashboard`, `Orders`, `MenuManagement`, `FooterManagement`, `BranchesManagement`:
-
-```typescript
-const { isBranchStaff, branchStaffInfo, userTypeLoading } = useAuth();
-
-useEffect(() => {
-  if (userTypeLoading) return;
-  if (isBranchStaff && branchStaffInfo) {
-    navigate(`/${branchStaffInfo.restaurantUsername}/branch-orders`);
-  }
-}, [isBranchStaff, branchStaffInfo, userTypeLoading, navigate]);
-```
-
-### 3. تحديث `App.tsx`
-إضافة route جديد:
-```typescript
-const BranchOrders = lazy(() => import("./pages/BranchOrders"));
-// ...
-<Route path="/:username/branch-orders" element={<BranchOrders />} />
-```
+### 2. `src/pages/Orders.tsx` - إضافة `userTypeLoading` لشرط التحميل
+تعديل السطر 87 ليشمل `userTypeLoading` في شرط التحميل.
 
 ---
 
 ## ملخص الملفات المتأثرة
 
-| الملف | نوع التغيير | التفاصيل |
+| الملف | نوع التعديل | التفاصيل |
 |---|---|---|
-| `src/pages/BranchOrders.tsx` | **إنشاء جديد** | صفحة طلبات الفرع المستقلة |
-| `src/App.tsx` | **تعديل** | إضافة route الجديد |
-| `src/pages/Orders.tsx` | **تنظيف + guard** | حذف كل كود الموظف، إضافة guard للمالك فقط |
-| `src/pages/Auth.tsx` | **تعديل بسيط** | تغيير redirect الموظف لـ `branch-orders` |
-| `src/components/Header.tsx` | **تعديل بسيط** | تغيير رابط "طلبات فرعي" لـ `branch-orders` |
-| `src/pages/Dashboard.tsx` | **إضافة guard** | طرد موظف الفرع لـ `branch-orders` |
-| `src/pages/MenuManagement.tsx` | **إضافة guard** | طرد موظف الفرع لـ `branch-orders` |
-| `src/pages/FooterManagement.tsx` | **إضافة guard** | طرد موظف الفرع لـ `branch-orders` |
-| `src/pages/BranchesManagement.tsx` | **إضافة guard** | طرد موظف الفرع لـ `branch-orders` |
-
----
-
-## تدفق المستخدم بعد التغيير
-
-```text
-موظف الفرع يسجل الدخول
-        ↓
-Auth.tsx → navigate(`/{restaurantUsername}/branch-orders`)
-        ↓
-صفحة BranchOrders.tsx:
-  - Guard يتحقق: هل هو موظف فرع؟ ✓
-  - يرى طلبات فرعه فقط (RLS تحميه من الباك-اند)
-  - لا يوجد أي رابط لصفحات الأدمن
-
-لو حاول الدخول لـ /dashboard أو /orders أو أي صفحة أدمن عبر URL
-        ↓
-Guard في الصفحة يكتشف isBranchStaff = true
-        ↓
-يُعاد توجيهه فوراً إلى /{restaurantUsername}/branch-orders
-```
-
----
-
-## الأمان - طبقتان
-
-- **طبقة 1 (قاعدة البيانات)**: RLS تمنع الموظف من رؤية أو تعديل أي بيانات خارج فرعه حتى لو تجاوز الـ Guards
-- **طبقة 2 (Frontend Guards)**: كل صفحة أدمن تطرده فوراً، وصفحة BranchOrders لا تحتوي على أي روابط للأدمن
+| `src/hooks/useAdminData.ts` | **حذف hook** | حذف `useCurrentStaffInfo` المهمل |
+| `src/pages/Orders.tsx` | **إصلاح بسيط** | إضافة `userTypeLoading` لشرط التحميل |
