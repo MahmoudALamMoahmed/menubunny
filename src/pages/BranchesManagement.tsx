@@ -287,7 +287,7 @@ type Branch = Tables<'branches'>;
 export default function BranchesManagement() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isBranchStaff, branchStaffInfo, userTypeLoading } = useAuth();
   const { toast } = useToast();
   // React Query - للوصول المباشر للكاش عند التحديث المتفائل
   const queryClient = useQueryClient();
@@ -371,10 +371,16 @@ export default function BranchesManagement() {
 
   // Auth Guard - توجيه المستخدم غير المسجل لصفحة تسجيل الدخول
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authLoading || userTypeLoading) return;
+    if (!user) {
       navigate('/auth');
+      return;
     }
-  }, [authLoading, user, navigate]);
+    // Guard - موظف الفرع لا يملك صلاحية الدخول لهذه الصفحة
+    if (isBranchStaff && branchStaffInfo) {
+      navigate(`/${branchStaffInfo.restaurantUsername}/branch-orders`);
+    }
+  }, [authLoading, userTypeLoading, user, isBranchStaff, branchStaffInfo, navigate]);
 
 
   // إعادة تعيين نموذج الفرع

@@ -126,7 +126,7 @@ export default function Auth() {
 
       // إذا كان موظف فرع → توجيهه لصفحة الطلبات مباشرة
       if (isBranchStaff && branchStaffInfo) {
-        navigate(`/${branchStaffInfo.restaurantUsername}/orders`);
+        navigate(`/${branchStaffInfo.restaurantUsername}/branch-orders`);
         return;
       }
 

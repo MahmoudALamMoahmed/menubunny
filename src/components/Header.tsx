@@ -60,7 +60,7 @@ const Header = () => {
             {user ? <div className="flex items-center gap-3">
                 <span className="font-cairo text-sm text-muted-foreground">مرحباً {user.email}</span>
                 {isBranchStaff && branchStaffInfo ? (
-                  <Button variant="secondary" onClick={() => navigate(`/${branchStaffInfo.restaurantUsername}/orders`)} className="font-cairo">
+                  <Button variant="secondary" onClick={() => navigate(`/${branchStaffInfo.restaurantUsername}/branch-orders`)} className="font-cairo">
                     طلبات فرعي
                   </Button>
                 ) : (
@@ -101,7 +101,7 @@ const Header = () => {
                     </div>
                     {isBranchStaff && branchStaffInfo ? (
                       <Button variant="secondary" className="w-full font-cairo" onClick={() => {
-                        navigate(`/${branchStaffInfo.restaurantUsername}/orders`);
+                        navigate(`/${branchStaffInfo.restaurantUsername}/branch-orders`);
                         setIsMenuOpen(false);
                       }}>
                         طلبات فرعي

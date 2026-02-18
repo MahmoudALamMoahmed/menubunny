@@ -414,7 +414,8 @@ export function useSaveRestaurant(username: string | undefined) {
 // ─── Order Mutations (عمليات الطلبات) ───────────────────────
 
 // React Query Mutation - تحديث حالة الطلب (مثلاً: جديد → قيد التحضير → مكتمل)
-export function useUpdateOrderStatus(restaurantId: string | undefined) {
+// يدعم كلا نوعي الكاش: admin_orders (للمالك) و branch_orders (لموظف الفرع)
+export function useUpdateOrderStatus(restaurantOrBranchId: string | undefined, isBranch = false) {
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -428,7 +429,11 @@ export function useUpdateOrderStatus(restaurantId: string | undefined) {
     },
     onSuccess: () => {
       toast({ title: 'تم التحديث', description: 'تم تحديث حالة الطلب بنجاح' });
-      qc.invalidateQueries({ queryKey: ['admin_orders', restaurantId] });
+      if (isBranch) {
+        qc.invalidateQueries({ queryKey: ['branch_orders', restaurantOrBranchId] });
+      } else {
+        qc.invalidateQueries({ queryKey: ['admin_orders', restaurantOrBranchId] });
+      }
     },
     onError: () => {
       toast({ title: 'خطأ', description: 'حدث خطأ في تحديث الطلب', variant: 'destructive' });
