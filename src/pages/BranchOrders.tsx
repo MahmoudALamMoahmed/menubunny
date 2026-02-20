@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,11 +8,16 @@ import { useBranchOrders } from '@/hooks/useAdminData';
 import { useUpdateOrderStatus } from '@/hooks/useAdminMutations';
 import { useAuth } from '@/hooks/useAuth';
 import OrderCard from '@/components/OrderCard';
+import OrderFilters from '@/components/OrderFilters';
 
 export default function BranchOrders() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { user, loading, isBranchStaff, branchStaffInfo, userTypeLoading, signOut } = useAuth();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [timeFilter, setTimeFilter] = useState<number | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading || userTypeLoading) return;
@@ -24,6 +29,20 @@ export default function BranchOrders() {
     isBranchStaff ? branchStaffInfo?.branch_id : undefined
   );
   const updateStatusMut = useUpdateOrderStatus(branchStaffInfo?.branch_id, true);
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!order.id.toLowerCase().includes(q) && !order.customer_name.toLowerCase().includes(q) && !order.customer_phone.includes(q)) return false;
+      }
+      if (timeFilter !== null) {
+        if (new Date(order.created_at).getTime() < Date.now() - timeFilter * 3600000) return false;
+      }
+      if (statusFilter && order.status !== statusFilter) return false;
+      return true;
+    });
+  }, [orders, searchQuery, timeFilter, statusFilter]);
 
   const handleUpdateStatus = (orderId: string, newStatus: string, isConfirmed?: boolean) => {
     updateStatusMut.mutate({ orderId, status: newStatus, isConfirmed });
@@ -68,17 +87,30 @@ export default function BranchOrders() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        <OrderFilters
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          timeFilter={timeFilter}
+          onTimeFilterChange={setTimeFilter}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          totalCount={orders.length}
+          filteredCount={filteredOrders.length}
+        />
+
         <div className="space-y-4">
-          {orders.length === 0 ? (
+          {filteredOrders.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Package className="w-12 h-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">لا توجد طلبات</h3>
-                <p className="text-muted-foreground text-center">لم يتم استلام أي طلبات لفرعك حتى الآن</p>
+                <p className="text-muted-foreground text-center">
+                  {orders.length > 0 ? 'لا توجد طلبات تطابق الفلاتر المحددة' : 'لم يتم استلام أي طلبات لفرعك حتى الآن'}
+                </p>
               </CardContent>
             </Card>
           ) : (
-            orders.map((order) => (
+            filteredOrders.map((order) => (
               <OrderCard
                 key={order.id}
                 order={order}
