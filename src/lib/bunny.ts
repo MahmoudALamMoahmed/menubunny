@@ -14,7 +14,7 @@ const COVER_COMPRESSION_OPTIONS = {
 };
 
 const LOGO_COMPRESSION_OPTIONS = {
-  maxSizeMB: 1,
+  maxSizeMB: 0.1,
   maxWidthOrHeight: 800,
   useWebWorker: true,
   fileType: 'image/webp' as const,
@@ -22,7 +22,7 @@ const LOGO_COMPRESSION_OPTIONS = {
 };
 
 const PRODUCT_COMPRESSION_OPTIONS = {
-  maxSizeMB: 1,
+  maxSizeMB: 0.1,
   maxWidthOrHeight: 1920,
   useWebWorker: true,
   fileType: 'image/webp' as const,
