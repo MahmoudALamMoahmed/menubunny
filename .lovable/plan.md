@@ -1,40 +1,28 @@
 
-# اضافة زر تفعيل/ايقاف صوت التنبيه
 
-## الفكرة
-اضافة زر (Switch) في صفحتي الطلبات (Orders و BranchOrders) يسمح بتفعيل او ايقاف صوت التنبيه عند وصول طلب جديد. يتم حفظ التفضيل في localStorage حتى يبقى محفوظاً بعد اغلاق المتصفح.
+# اصلاح وتفعيل انيميشن عداد الطلبات المعلقة
+
+## المشكلة
+الكلاس `animate-scale-in` مستخدم في صفحتي Orders و BranchOrders لكنه **غير معرّف** في ملف `tailwind.config.ts`. الملف يحتوي فقط على انيميشن accordion-down و accordion-up، مما يعني أن الانيميشن لا يعمل حالياً.
+
+## الحل
+اضافة تعريف keyframe و animation لـ `scale-in` في `tailwind.config.ts`.
 
 ## التغييرات
 
-### 1. `src/hooks/useOrdersRealtime.ts`
-- اضافة قراءة تفضيل الصوت من localStorage قبل تشغيله
-- المفتاح: `notification_sound_enabled` (القيمة الافتراضية: `true` - مفعل)
-- تعديل سطر `playNotificationSound()` ليتحقق من التفضيل اولاً
-
-### 2. `src/hooks/useNotificationSound.ts` (ملف جديد)
-- Hook بسيط يدير حالة تفعيل/ايقاف الصوت
-- يقرأ ويكتب في localStorage
-- يرجع `{ soundEnabled, toggleSound }`
-
-### 3. `src/pages/Orders.tsx`
-- استيراد `useNotificationSound` و مكون `Switch`
-- اضافة زر Switch بجانب عداد الطلبات المعلقة مع ايقونة صوت (Volume2/VolumeX)
-
-### 4. `src/pages/BranchOrders.tsx`
-- نفس التغيير: اضافة Switch للتحكم بالصوت
-
-## التفاصيل التقنية
-
+### `tailwind.config.ts`
+اضافة في قسم `keyframes`:
 ```text
-localStorage key: "notification_sound_enabled"
-القيمة الافتراضية: "true" (مفعل)
-
-useNotificationSound() -> { soundEnabled: boolean, toggleSound: () => void }
-
-useOrdersRealtime - قبل playNotificationSound():
-  if (localStorage.getItem('notification_sound_enabled') !== 'false') {
-    playNotificationSound();
-  }
+'scale-in': {
+  '0%': { transform: 'scale(0.7)', opacity: '0' },
+  '100%': { transform: 'scale(1)', opacity: '1' }
+}
 ```
 
-الزر سيظهر بجانب كارت العداد كـ Switch صغير مع ايقونة مكبر صوت، مما يجعل الوصول اليه سهلاً ومباشراً.
+اضافة في قسم `animation`:
+```text
+'scale-in': 'scale-in 0.3s ease-out'
+```
+
+هذا سيجعل الرقم يظهر بتأثير تكبير سلس كل مرة يتغير فيها عدد الطلبات المعلقة (بفضل `key={pendingCount}` الموجود اصلاً).
+
