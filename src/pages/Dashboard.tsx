@@ -9,12 +9,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useAuth } from '@/hooks/useAuth';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useSaveRestaurant } from '@/hooks/useAdminMutations';
-import { useAdminOrders } from '@/hooks/useAdminData';
-import { useOrdersRealtime } from '@/hooks/useOrdersRealtime';
 import ImageUploader from '@/components/ImageUploader';
 import { getCoverPublicId, getLogoPublicId } from '@/lib/bunny';
 import { 
-  Settings, Menu, BarChart3, ShoppingBag, ArrowLeft, Save, Eye, Building2, Store, Clock
+  Settings, Menu, BarChart3, ShoppingBag, ArrowLeft, Save, Eye, Building2, Store
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -26,18 +24,6 @@ export default function Dashboard() {
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
   // React Query Mutation - حفظ/تحديث بيانات المطعم
   const saveRestaurantMut = useSaveRestaurant(username);
-  
-  // React Query - جلب الطلبات للعداد
-  const { data: orders = [] } = useAdminOrders(restaurant?.id);
-  
-  // Real-time - تحديث فوري عند وصول طلبات جديدة
-  useOrdersRealtime({
-    filterColumn: 'restaurant_id',
-    filterValue: restaurant?.id,
-    queryKey: ['admin_orders', restaurant?.id],
-  });
-  
-  const pendingCount = orders.filter(o => o.status === 'pending').length;
   
   // UI State - حالة فتح حوار المعلومات وبيانات النموذج
   const [infoDialogOpen, setInfoDialogOpen] = useState(false);
@@ -141,26 +127,6 @@ export default function Dashboard() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
-          {/* Pending Orders Counter */}
-          {restaurant && (
-            <Card className={`mb-6 border-2 ${pendingCount > 0 ? 'border-orange-400 bg-orange-50' : 'border-muted'}`}>
-              <CardContent className="flex items-center justify-between py-5">
-                <div className="flex items-center gap-4">
-                  <div className={`flex items-center justify-center w-14 h-14 rounded-full ${pendingCount > 0 ? 'bg-orange-100 text-orange-600' : 'bg-muted text-muted-foreground'}`}>
-                    <Clock className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <p className={`text-3xl font-bold ${pendingCount > 0 ? 'text-orange-600' : 'text-muted-foreground'}`}>{pendingCount}</p>
-                    <p className="text-sm text-muted-foreground">طلبات جديدة بانتظار المراجعة</p>
-                  </div>
-                </div>
-                <Button variant={pendingCount > 0 ? 'default' : 'outline'} onClick={() => navigate(`/${restaurant.username}/orders`)}>
-                  <ShoppingBag className="w-4 h-4 ml-2" />
-                  عرض الطلبات
-                </Button>
-              </CardContent>
-            </Card>
-          )}
           <Card>
             <CardHeader>
               <CardTitle>إجراءات سريعة</CardTitle>
