@@ -1,27 +1,40 @@
 
-# نقل عداد الطلبات المعلقة من Dashboard الى صفحات الطلبات
+# اضافة زر تفعيل/ايقاف صوت التنبيه
 
 ## الفكرة
-نقل كارت عداد الطلبات المعلقة (pending) من صفحة Dashboard الى صفحتي Orders و BranchOrders، مع تنظيف كود Dashboard من كل ما يتعلق بالعداد.
+اضافة زر (Switch) في صفحتي الطلبات (Orders و BranchOrders) يسمح بتفعيل او ايقاف صوت التنبيه عند وصول طلب جديد. يتم حفظ التفضيل في localStorage حتى يبقى محفوظاً بعد اغلاق المتصفح.
 
 ## التغييرات
 
-### 1. `src/pages/Dashboard.tsx` - ازالة العداد بالكامل
-- حذف استيراد `useAdminOrders` و `useOrdersRealtime` و `Clock`
-- حذف استدعاء `useAdminOrders` و `useOrdersRealtime` و حساب `pendingCount`
-- حذف كارت العداد من الـ JSX (سطر 144-163)
+### 1. `src/hooks/useOrdersRealtime.ts`
+- اضافة قراءة تفضيل الصوت من localStorage قبل تشغيله
+- المفتاح: `notification_sound_enabled` (القيمة الافتراضية: `true` - مفعل)
+- تعديل سطر `playNotificationSound()` ليتحقق من التفضيل اولاً
 
-### 2. `src/pages/Orders.tsx` - اضافة العداد
-- اضافة استيراد `Clock` من lucide-react
-- حساب `pendingCount` من الـ orders الموجودة اصلاً (البيانات محملة بالفعل)
-- اضافة كارت العداد فوق الفلاتر مباشرة (بدون زر "عرض الطلبات" لاننا اصلاً في صفحة الطلبات)
+### 2. `src/hooks/useNotificationSound.ts` (ملف جديد)
+- Hook بسيط يدير حالة تفعيل/ايقاف الصوت
+- يقرأ ويكتب في localStorage
+- يرجع `{ soundEnabled, toggleSound }`
 
-### 3. `src/pages/BranchOrders.tsx` - اضافة العداد
-- اضافة استيراد `Clock` من lucide-react
-- حساب `pendingCount` من الـ orders الموجودة اصلاً
-- اضافة نفس كارت العداد فوق الفلاتر
+### 3. `src/pages/Orders.tsx`
+- استيراد `useNotificationSound` و مكون `Switch`
+- اضافة زر Switch بجانب عداد الطلبات المعلقة مع ايقونة صوت (Volume2/VolumeX)
 
-## ملاحظات
-- لا حاجة لاستيرادات جديدة للبيانات لان Orders و BranchOrders تجلب الطلبات بالفعل عبر `useAdminOrders` و `useBranchOrders` وتستخدم `useOrdersRealtime` - كل شيء جاهز
-- الكارت في صفحات الطلبات لن يحتوي زر "عرض الطلبات" لان المستخدم موجود فعلاً في الصفحة
-- التحديث الفوري يعمل تلقائياً لان الـ hooks موجودة اصلاً
+### 4. `src/pages/BranchOrders.tsx`
+- نفس التغيير: اضافة Switch للتحكم بالصوت
+
+## التفاصيل التقنية
+
+```text
+localStorage key: "notification_sound_enabled"
+القيمة الافتراضية: "true" (مفعل)
+
+useNotificationSound() -> { soundEnabled: boolean, toggleSound: () => void }
+
+useOrdersRealtime - قبل playNotificationSound():
+  if (localStorage.getItem('notification_sound_enabled') !== 'false') {
+    playNotificationSound();
+  }
+```
+
+الزر سيظهر بجانب كارت العداد كـ Switch صغير مع ايقونة مكبر صوت، مما يجعل الوصول اليه سهلاً ومباشراً.
