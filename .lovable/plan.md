@@ -1,49 +1,27 @@
 
-
-# اضافة عداد الطلبات الجديدة (Pending) في لوحة التحكم مع تحديث فوري
+# نقل عداد الطلبات المعلقة من Dashboard الى صفحات الطلبات
 
 ## الفكرة
-
-اضافة كارت احصائي اعلى صفحة Dashboard يعرض عدد الطلبات المعلقة (pending) مع تحديث لحظي عبر Supabase Realtime باستخدام نفس الـ hook الموجود `useOrdersRealtime`.
+نقل كارت عداد الطلبات المعلقة (pending) من صفحة Dashboard الى صفحتي Orders و BranchOrders، مع تنظيف كود Dashboard من كل ما يتعلق بالعداد.
 
 ## التغييرات
 
-### ملف واحد فقط: `src/pages/Dashboard.tsx`
+### 1. `src/pages/Dashboard.tsx` - ازالة العداد بالكامل
+- حذف استيراد `useAdminOrders` و `useOrdersRealtime` و `Clock`
+- حذف استدعاء `useAdminOrders` و `useOrdersRealtime` و حساب `pendingCount`
+- حذف كارت العداد من الـ JSX (سطر 144-163)
 
-1. **استيراد** `useAdminOrders` و `useOrdersRealtime`
-2. **جلب الطلبات** عبر `useAdminOrders(restaurant?.id)` - نفس الطريقة المستخدمة في صفحة Orders
-3. **تفعيل Real-time** عبر استدعاء `useOrdersRealtime` بنفس الـ query key حتى يتم invalidate تلقائياً عند وصول طلب جديد
-4. **حساب العدد** بفلترة الطلبات محلياً: `orders.filter(o => o.status === 'pending').length`
-5. **عرض كارت** فوق قسم "اجراءات سريعة" يحتوي على:
-   - عدد الطلبات المعلقة بخط كبير
-   - نص "طلبات جديدة بانتظار المراجعة"
-   - زر للانتقال لصفحة الطلبات
-   - لون تمييزي (برتقالي/اصفر) عند وجود طلبات معلقة
+### 2. `src/pages/Orders.tsx` - اضافة العداد
+- اضافة استيراد `Clock` من lucide-react
+- حساب `pendingCount` من الـ orders الموجودة اصلاً (البيانات محملة بالفعل)
+- اضافة كارت العداد فوق الفلاتر مباشرة (بدون زر "عرض الطلبات" لاننا اصلاً في صفحة الطلبات)
 
-## التفاصيل التقنية
+### 3. `src/pages/BranchOrders.tsx` - اضافة العداد
+- اضافة استيراد `Clock` من lucide-react
+- حساب `pendingCount` من الـ orders الموجودة اصلاً
+- اضافة نفس كارت العداد فوق الفلاتر
 
-```typescript
-// الاستيرادات الجديدة
-import { useAdminOrders } from '@/hooks/useAdminData';
-import { useOrdersRealtime } from '@/hooks/useOrdersRealtime';
-
-// داخل الـ component
-const { data: orders = [] } = useAdminOrders(restaurant?.id);
-
-useOrdersRealtime({
-  filterColumn: 'restaurant_id',
-  filterValue: restaurant?.id,
-  queryKey: ['admin_orders', restaurant?.id],
-});
-
-const pendingCount = orders.filter(o => o.status === 'pending').length;
-```
-
-الكارت سيظهر فقط عند وجود مطعم مسجل (`restaurant` موجود). عند عدم وجود طلبات معلقة سيعرض "0" بلون محايد، وعند وجود طلبات سيتحول للون تنبيهي.
-
-## لماذا هذا النهج؟
-
-- اعادة استخدام `useAdminOrders` و `useOrdersRealtime` الموجودين بالفعل بدون كود جديد
-- نفس الـ query key (`admin_orders`) يعني ان البيانات مشتركة مع صفحة Orders بدون طلبات مكررة للسيرفر
-- التحديث الفوري يعمل تلقائياً لان الـ hook يعمل invalidate لنفس الـ key
-
+## ملاحظات
+- لا حاجة لاستيرادات جديدة للبيانات لان Orders و BranchOrders تجلب الطلبات بالفعل عبر `useAdminOrders` و `useBranchOrders` وتستخدم `useOrdersRealtime` - كل شيء جاهز
+- الكارت في صفحات الطلبات لن يحتوي زر "عرض الطلبات" لان المستخدم موجود فعلاً في الصفحة
+- التحديث الفوري يعمل تلقائياً لان الـ hooks موجودة اصلاً
