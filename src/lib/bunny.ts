@@ -22,11 +22,11 @@ const LOGO_COMPRESSION_OPTIONS = {
 };
 
 const PRODUCT_COMPRESSION_OPTIONS = {
-  maxSizeMB: 0.2,
-  maxWidthOrHeight: 1920,
+  maxSizeMB: 0.25,
+  maxWidthOrHeight: 1200,
   useWebWorker: true,
   fileType: 'image/webp' as const,
-  initialQuality: 0.85,
+  initialQuality: 0.8,
 };
 
 export type ImageType = 'cover' | 'logo' | 'product';
