@@ -71,8 +71,10 @@ export function useOrdersRealtime({ filterColumn, filterValue, queryKey }: UseOr
           // تحديث البيانات
           queryClient.invalidateQueries({ queryKey });
 
-          // تشغيل صوت التنبيه
-          playNotificationSound();
+          // تشغيل صوت التنبيه اذا كان مفعلاً
+          if (localStorage.getItem('notification_sound_enabled') !== 'false') {
+            playNotificationSound();
+          }
 
           // عرض اشعار
           toast({

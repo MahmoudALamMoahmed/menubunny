@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Package, Clock } from 'lucide-react';
+import { ArrowRight, Package, Clock, Volume2, VolumeX } from 'lucide-react';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useAdminOrders } from '@/hooks/useAdminData';
 import { useUpdateOrderStatus } from '@/hooks/useAdminMutations';
@@ -10,6 +10,8 @@ import { useAuth } from '@/hooks/useAuth';
 import OrderCard from '@/components/OrderCard';
 import OrderFilters from '@/components/OrderFilters';
 import { useOrdersRealtime } from '@/hooks/useOrdersRealtime';
+import { useNotificationSound } from '@/hooks/useNotificationSound';
+import { Switch } from '@/components/ui/switch';
 
 export default function Orders() {
   const { username } = useParams<{ username: string }>();
@@ -53,6 +55,7 @@ export default function Orders() {
   }, [orders, searchQuery, timeFilter, statusFilter]);
 
   const pendingCount = orders.filter(o => o.status === 'pending').length;
+  const { soundEnabled, toggleSound } = useNotificationSound();
 
   const handleUpdateStatus = (orderId: string, newStatus: string, isConfirmed?: boolean) => {
     updateStatusMut.mutate({ orderId, status: newStatus, isConfirmed });
@@ -87,13 +90,19 @@ export default function Orders() {
 
         {/* Pending Orders Counter */}
         <Card className={`mb-6 border-2 ${pendingCount > 0 ? 'border-orange-400 bg-orange-50' : 'border-muted'}`}>
-          <CardContent className="flex items-center gap-4 py-5">
-            <div className={`flex items-center justify-center w-14 h-14 rounded-full ${pendingCount > 0 ? 'bg-orange-100 text-orange-600' : 'bg-muted text-muted-foreground'}`}>
-              <Clock className="w-7 h-7" />
+          <CardContent className="flex items-center justify-between py-5">
+            <div className="flex items-center gap-4">
+              <div className={`flex items-center justify-center w-14 h-14 rounded-full ${pendingCount > 0 ? 'bg-orange-100 text-orange-600' : 'bg-muted text-muted-foreground'}`}>
+                <Clock className="w-7 h-7" />
+              </div>
+              <div>
+                <p className={`text-3xl font-bold ${pendingCount > 0 ? 'text-orange-600' : 'text-muted-foreground'}`}>{pendingCount}</p>
+                <p className="text-sm text-muted-foreground">طلبات جديدة بانتظار المراجعة</p>
+              </div>
             </div>
-            <div>
-              <p className={`text-3xl font-bold ${pendingCount > 0 ? 'text-orange-600' : 'text-muted-foreground'}`}>{pendingCount}</p>
-              <p className="text-sm text-muted-foreground">طلبات جديدة بانتظار المراجعة</p>
+            <div className="flex items-center gap-2">
+              {soundEnabled ? <Volume2 className="w-5 h-5 text-muted-foreground" /> : <VolumeX className="w-5 h-5 text-muted-foreground" />}
+              <Switch checked={soundEnabled} onCheckedChange={toggleSound} />
             </div>
           </CardContent>
         </Card>
