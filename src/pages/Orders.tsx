@@ -96,7 +96,7 @@ export default function Orders() {
                 <Clock className="w-7 h-7" />
               </div>
               <div>
-                <p className={`text-3xl font-bold ${pendingCount > 0 ? 'text-orange-600' : 'text-muted-foreground'}`}>{pendingCount}</p>
+              <p key={pendingCount} className={`text-3xl font-bold ${pendingCount > 0 ? 'text-orange-600 animate-scale-in' : 'text-muted-foreground'}`}>{pendingCount}</p>
                 <p className="text-sm text-muted-foreground">طلبات جديدة بانتظار المراجعة</p>
               </div>
             </div>
