@@ -981,7 +981,7 @@ export default function BranchesManagement() {
 
       {/* Delivery Areas Dialog */}
       <Dialog open={showAreasDialog} onOpenChange={(open) => { setShowAreasDialog(open); if (!open) { resetAreaForm(); setSelectedBranchForAreas(null); } }}>
-        <DialogContent className="max-w-lg max-h-[90vh]" dir="rtl">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle>
               مناطق التوصيل - {selectedBranchForAreas?.name}
