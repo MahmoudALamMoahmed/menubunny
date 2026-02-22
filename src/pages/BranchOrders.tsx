@@ -9,6 +9,7 @@ import { useUpdateOrderStatus } from '@/hooks/useAdminMutations';
 import { useAuth } from '@/hooks/useAuth';
 import OrderCard from '@/components/OrderCard';
 import OrderFilters from '@/components/OrderFilters';
+import { useOrdersRealtime } from '@/hooks/useOrdersRealtime';
 
 export default function BranchOrders() {
   const { username } = useParams<{ username: string }>();
@@ -29,6 +30,12 @@ export default function BranchOrders() {
     isBranchStaff ? branchStaffInfo?.branch_id : undefined
   );
   const updateStatusMut = useUpdateOrderStatus(branchStaffInfo?.branch_id, true);
+
+  useOrdersRealtime({
+    filterColumn: 'branch_id',
+    filterValue: branchStaffInfo?.branch_id,
+    queryKey: ['branch_orders', branchStaffInfo?.branch_id],
+  });
 
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
