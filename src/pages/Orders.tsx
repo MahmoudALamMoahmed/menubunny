@@ -9,6 +9,7 @@ import { useUpdateOrderStatus } from '@/hooks/useAdminMutations';
 import { useAuth } from '@/hooks/useAuth';
 import OrderCard from '@/components/OrderCard';
 import OrderFilters from '@/components/OrderFilters';
+import { useOrdersRealtime } from '@/hooks/useOrdersRealtime';
 
 export default function Orders() {
   const { username } = useParams<{ username: string }>();
@@ -30,6 +31,12 @@ export default function Orders() {
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
   const { data: orders = [], isLoading: ordersLoading } = useAdminOrders(restaurant?.id);
   const updateStatusMut = useUpdateOrderStatus(restaurant?.id);
+
+  useOrdersRealtime({
+    filterColumn: 'restaurant_id',
+    filterValue: restaurant?.id,
+    queryKey: ['admin_orders', restaurant?.id],
+  });
 
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
