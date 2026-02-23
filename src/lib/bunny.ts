@@ -6,16 +6,16 @@ const CDN_HOSTNAME = 'menuss.b-cdn.net';
 // ============ اعدادات ضغط الصور حسب النوع (غلاف/شعار/منتج) - Image Compression Options ============
 
 const COVER_COMPRESSION_OPTIONS = {
-  maxSizeMB: 5,
-  maxWidthOrHeight: 2400,
+  maxSizeMB: 0.4,
+  maxWidthOrHeight: 1600,
   useWebWorker: true,
   fileType: 'image/webp' as const,
-  initialQuality: 0.95,
+  initialQuality: 0.82,
 };
 
 const LOGO_COMPRESSION_OPTIONS = {
-  maxSizeMB: 1,
-  maxWidthOrHeight: 800,
+  maxSizeMB: 0.15,
+  maxWidthOrHeight: 600,
   useWebWorker: true,
   fileType: 'image/webp' as const,
   initialQuality: 0.9,
