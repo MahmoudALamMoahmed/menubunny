@@ -119,7 +119,7 @@ export default function BranchOrders() {
           </CardContent>
         </Card>
 
-        <OrderStats orders={orders} />
+        <OrderStats orders={orders} isBranchStaff />
 
         <OrderFilters
           searchQuery={searchQuery}

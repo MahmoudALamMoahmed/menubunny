@@ -11,9 +11,10 @@ interface Order {
 
 interface OrderStatsProps {
   orders: Order[];
+  isBranchStaff?: boolean;
 }
 
-export default function OrderStats({ orders }: OrderStatsProps) {
+export default function OrderStats({ orders, isBranchStaff = false }: OrderStatsProps) {
   const stats = useMemo(() => {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -26,15 +27,17 @@ export default function OrderStats({ orders }: OrderStatsProps) {
     return { todayCount: todayOrders.length, todayRevenue, avgValue, completedToday };
   }, [orders]);
 
-  const items = [
-    { label: 'طلبات اليوم', value: stats.todayCount, icon: ShoppingBag, color: 'text-blue-600 bg-blue-100' },
-    { label: 'إيرادات اليوم', value: `${stats.todayRevenue.toFixed(0)} ج.م`, icon: DollarSign, color: 'text-emerald-600 bg-emerald-100' },
-    { label: 'متوسط الطلب', value: `${stats.avgValue.toFixed(0)} ج.م`, icon: TrendingUp, color: 'text-purple-600 bg-purple-100' },
-    { label: 'تم التسليم', value: stats.completedToday, icon: CheckCircle, color: 'text-green-600 bg-green-100' },
+  const allItems = [
+    { label: 'طلبات اليوم', value: stats.todayCount, icon: ShoppingBag, color: 'text-blue-600 bg-blue-100', staffVisible: true },
+    { label: 'إيرادات اليوم', value: `${stats.todayRevenue.toFixed(0)} ج.م`, icon: DollarSign, color: 'text-emerald-600 bg-emerald-100', staffVisible: false },
+    { label: 'متوسط الطلب', value: `${stats.avgValue.toFixed(0)} ج.م`, icon: TrendingUp, color: 'text-purple-600 bg-purple-100', staffVisible: false },
+    { label: 'تم التسليم', value: stats.completedToday, icon: CheckCircle, color: 'text-green-600 bg-green-100', staffVisible: true },
   ];
 
+  const items = isBranchStaff ? allItems.filter(i => i.staffVisible) : allItems;
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div className={`grid grid-cols-2 ${items.length > 2 ? 'md:grid-cols-4' : ''} gap-3 mb-6`}>
       {items.map((item) => (
         <Card key={item.label}>
           <CardContent className="flex items-center gap-3 p-4">
