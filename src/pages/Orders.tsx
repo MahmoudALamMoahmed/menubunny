@@ -9,6 +9,7 @@ import { useUpdateOrderStatus } from '@/hooks/useAdminMutations';
 import { useAuth } from '@/hooks/useAuth';
 import OrderCard from '@/components/OrderCard';
 import OrderFilters from '@/components/OrderFilters';
+import OrderStats from '@/components/OrderStats';
 import { useOrdersRealtime } from '@/hooks/useOrdersRealtime';
 import { useNotificationSound } from '@/hooks/useNotificationSound';
 import { Switch } from '@/components/ui/switch';
@@ -106,6 +107,8 @@ export default function Orders() {
             </div>
           </CardContent>
         </Card>
+
+        <OrderStats orders={orders} />
 
         <OrderFilters
           searchQuery={searchQuery}
