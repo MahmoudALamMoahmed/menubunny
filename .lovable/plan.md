@@ -1,28 +1,25 @@
 
 
-# اصلاح وتفعيل انيميشن عداد الطلبات المعلقة
+# اخفاء الايرادات ومتوسط الطلب من صفحة موظف الفرع
 
 ## المشكلة
-الكلاس `animate-scale-in` مستخدم في صفحتي Orders و BranchOrders لكنه **غير معرّف** في ملف `tailwind.config.ts`. الملف يحتوي فقط على انيميشن accordion-down و accordion-up، مما يعني أن الانيميشن لا يعمل حالياً.
+حالياً كارت الاحصائيات يعرض 4 بطاقات متطابقة في صفحتي الطلبات (المالك والموظف). لكن بطاقتي "ايرادات اليوم" و"متوسط الطلب" معلومات مالية خاصة بصاحب المطعم ولا يجب ان يراها الموظف.
 
 ## الحل
-اضافة تعريف keyframe و animation لـ `scale-in` في `tailwind.config.ts`.
+اضافة prop اختياري `isBranchStaff` لمكون OrderStats. عندما يكون `true`، يتم عرض بطاقتين فقط (طلبات اليوم + تم التسليم) بدلاً من 4، مع تعديل الشبكة لتناسب العدد الجديد.
 
 ## التغييرات
 
-### `tailwind.config.ts`
-اضافة في قسم `keyframes`:
+### `src/components/OrderStats.tsx`
+- اضافة prop `isBranchStaff?: boolean` للـ interface
+- فلترة مصفوفة `items` لاخفاء "ايرادات اليوم" و"متوسط الطلب" عندما `isBranchStaff = true`
+- تعديل grid class ليكون `grid-cols-2` فقط عند عرض بطاقتين
+
+### `src/pages/BranchOrders.tsx`
+- تمرير `isBranchStaff` للمكون:
 ```text
-'scale-in': {
-  '0%': { transform: 'scale(0.7)', opacity: '0' },
-  '100%': { transform: 'scale(1)', opacity: '1' }
-}
+<OrderStats orders={orders} isBranchStaff />
 ```
 
-اضافة في قسم `animation`:
-```text
-'scale-in': 'scale-in 0.3s ease-out'
-```
-
-هذا سيجعل الرقم يظهر بتأثير تكبير سلس كل مرة يتغير فيها عدد الطلبات المعلقة (بفضل `key={pendingCount}` الموجود اصلاً).
+صفحة `Orders.tsx` تبقى كما هي بدون تغيير (تعرض الـ 4 بطاقات كاملة).
 
