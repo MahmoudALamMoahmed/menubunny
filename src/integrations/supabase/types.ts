@@ -466,6 +466,74 @@ export type Database = {
           },
         ]
       }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          kashier_order_id: string | null
+          kashier_session_id: string | null
+          payment_method: string | null
+          status: string
+          type: string
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          kashier_order_id?: string | null
+          kashier_session_id?: string | null
+          payment_method?: string | null
+          status?: string
+          type?: string
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          kashier_order_id?: string | null
+          kashier_session_id?: string | null
+          payment_method?: string | null
+          status?: string
+          type?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -474,6 +542,18 @@ export type Database = {
       get_staff_branch_id: { Args: { _user_id: string }; Returns: string }
       get_staff_restaurant_id: { Args: { _user_id: string }; Returns: string }
       is_branch_staff: { Args: { _user_id: string }; Returns: boolean }
+      process_failed_payment: {
+        Args: { p_kashier_order_id: string }
+        Returns: string
+      }
+      process_successful_payment: {
+        Args: {
+          p_amount: number
+          p_kashier_order_id: string
+          p_payment_method?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
