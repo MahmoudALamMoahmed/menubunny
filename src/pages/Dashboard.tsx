@@ -12,7 +12,7 @@ import { useSaveRestaurant } from '@/hooks/useAdminMutations';
 import ImageUploader from '@/components/ImageUploader';
 import { getCoverPublicId, getLogoPublicId } from '@/lib/bunny';
 import { 
-  Settings, Menu, BarChart3, ShoppingBag, ArrowLeft, Save, Eye, Building2, Store
+  Settings, Menu, BarChart3, ShoppingBag, ArrowLeft, Save, Eye, Building2, Store, Wallet
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -152,6 +152,10 @@ export default function Dashboard() {
               <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/orders`)}>
                 <ShoppingBag className="w-4 h-4 ml-2" />
                 الطلبات
+              </Button>
+              <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/wallet`)}>
+                <Wallet className="w-4 h-4 ml-2" />
+                المحفظة
               </Button>
               <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/analytics`)}>
                 <BarChart3 className="w-4 h-4 ml-2" />
