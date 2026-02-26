@@ -122,7 +122,6 @@ Deno.serve(async (req) => {
     const kashierBody = {
       expireAt,
       maxFailureAttempts: 3,
-      paymentType: "credit",
       amount: parsedAmount.toFixed(2),
       currency: "EGP",
       order: transaction.id,
