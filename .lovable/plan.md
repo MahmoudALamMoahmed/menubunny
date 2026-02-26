@@ -1,46 +1,19 @@
 
-# Fix: Add missing `customer` and `mode` fields to Kashier request
+
+# Fix: Remove `mode` field from Kashier request
 
 ## Problem
-Kashier API returns: `"customer" is required`
+Kashier API rejects the request with: `"mode" is not allowed`
 
-The `create-payment-session` Edge Function is missing the `customer` object and `mode` field in the request body.
+The `mode` field we added in the last fix is not accepted by the Kashier sessions API. The test/live mode is determined by the API endpoint URL itself (`test-api.kashier.io` vs `api.kashier.io`), not by a body parameter.
 
 ## Fix
-In `supabase/functions/create-payment-session/index.ts`, add two fields to the `kashierBody` object:
+In `supabase/functions/create-payment-session/index.ts`, remove the `mode: "test"` line from the `kashierBody` object (line ~137).
 
-1. **`customer`** - object with `email` and `reference` (user ID)
-   - Get user email from `auth.getUser()` 
-   - Use `userId` as the reference
-
-2. **`mode`** - set to `"test"` (required per docs)
-
-### Changes
-
-**File: `supabase/functions/create-payment-session/index.ts`**
-
-1. Replace `getClaims` with `getUser()` to also get the user's email:
-```typescript
-// Replace getClaims approach with getUser
-const { data: { user: authUser }, error: authError } = await userClient.auth.getUser();
-if (authError || !authUser) { /* return 401 */ }
-const userId = authUser.id;
-const userEmail = authUser.email || "";
-```
-
-2. Add `customer` and `mode` to the Kashier request body:
-```typescript
-const kashierBody = {
-  // ... existing fields ...
-  mode: "test",
-  customer: {
-    email: userEmail,
-    reference: userId,
-  },
-};
-```
+After deploying, I will test the wallet top-up flow end-to-end.
 
 ## Files Changed
 | File | Change |
 |---|---|
-| supabase/functions/create-payment-session/index.ts | Add `customer` object with email/reference + `mode: "test"` + switch from getClaims to getUser |
+| `supabase/functions/create-payment-session/index.ts` | Remove `mode: "test"` from kashierBody |
+
