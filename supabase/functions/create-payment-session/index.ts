@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
     console.log("Creating Kashier session for transaction:", transaction.id);
 
     const kashierRes = await fetch(
-      "https://test-api.kashier.io/v3/payment/sessions",
+      "https://api.kashier.io/v3/payment/sessions",
       {
         method: "POST",
         headers: {
