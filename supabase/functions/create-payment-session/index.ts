@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
     // بناء redirect URL
     const appUrl = req.headers.get("origin") || "https://menubunny.lovable.app";
     const redirectPath = username ? `/${username}/wallet?payment=done` : `/wallet?payment=done`;
-    const merchantRedirect = encodeURIComponent(`${appUrl}${redirectPath}`);
+    const merchantRedirect = `${appUrl}${redirectPath}`;
 
     // تحديد وقت الانتهاء (ساعة واحدة)
     const expireAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
