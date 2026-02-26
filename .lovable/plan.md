@@ -1,28 +1,46 @@
 
-# Fix: merchantRedirect URL encoding issue
+# Fix: Add missing `customer` and `mode` fields to Kashier request
 
 ## Problem
-The `create-payment-session` Edge Function is failing with:
-```
-"merchantRedirect" must be a valid URL
-```
+Kashier API returns: `"customer" is required`
 
-The cause is `encodeURIComponent()` wrapping the entire redirect URL, converting it from a valid URL like `https://menubunny.lovable.app/username/wallet?payment=done` into an encoded string like `https%3A%2F%2Fmenubunny...` which Kashier rejects.
+The `create-payment-session` Edge Function is missing the `customer` object and `mode` field in the request body.
 
 ## Fix
-In `supabase/functions/create-payment-session/index.ts`, remove the `encodeURIComponent` call:
+In `supabase/functions/create-payment-session/index.ts`, add two fields to the `kashierBody` object:
 
+1. **`customer`** - object with `email` and `reference` (user ID)
+   - Get user email from `auth.getUser()` 
+   - Use `userId` as the reference
+
+2. **`mode`** - set to `"test"` (required per docs)
+
+### Changes
+
+**File: `supabase/functions/create-payment-session/index.ts`**
+
+1. Replace `getClaims` with `getUser()` to also get the user's email:
 ```typescript
-// Before (broken):
-const merchantRedirect = encodeURIComponent(`${appUrl}${redirectPath}`);
-
-// After (fixed):
-const merchantRedirect = `${appUrl}${redirectPath}`;
+// Replace getClaims approach with getUser
+const { data: { user: authUser }, error: authError } = await userClient.auth.getUser();
+if (authError || !authUser) { /* return 401 */ }
+const userId = authUser.id;
+const userEmail = authUser.email || "";
 ```
 
-This is a one-line fix. After deploying, I'll test the wallet top-up flow end-to-end.
+2. Add `customer` and `mode` to the Kashier request body:
+```typescript
+const kashierBody = {
+  // ... existing fields ...
+  mode: "test",
+  customer: {
+    email: userEmail,
+    reference: userId,
+  },
+};
+```
 
 ## Files Changed
 | File | Change |
 |---|---|
-| supabase/functions/create-payment-session/index.ts | Remove `encodeURIComponent` from merchantRedirect |
+| supabase/functions/create-payment-session/index.ts | Add `customer` object with email/reference + `mode: "test"` + switch from getClaims to getUser |
