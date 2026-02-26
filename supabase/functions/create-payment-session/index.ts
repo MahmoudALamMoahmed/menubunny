@@ -134,7 +134,6 @@ Deno.serve(async (req) => {
       merchantId: KASHIER_MERCHANT_ID,
       serverWebhook: webhookUrl,
       description: `شحن محفظة - ${parsedAmount} ج.م`,
-      mode: "test",
       customer: {
         email: userEmail,
         reference: userId,
