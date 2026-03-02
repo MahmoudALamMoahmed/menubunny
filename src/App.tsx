@@ -17,6 +17,7 @@ const BranchesManagement = lazy(() => import("./pages/BranchesManagement"));
 const Orders = lazy(() => import("./pages/Orders"));
 const BranchOrders = lazy(() => import("./pages/BranchOrders"));
 const Wallet = lazy(() => import("./pages/Wallet"));
+const Analytics = lazy(() => import("./pages/Analytics"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // إعداد React Query Client لإدارة الكاش وجلب البيانات
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/:username/orders" element={<Orders />} />
               <Route path="/:username/branch-orders" element={<BranchOrders />} />
               <Route path="/:username/wallet" element={<Wallet />} />
+              <Route path="/:username/analytics" element={<Analytics />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
