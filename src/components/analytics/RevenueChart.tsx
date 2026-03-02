@@ -24,10 +24,10 @@ export default function RevenueChart({ data, isWeekly }: Props) {
           <p className="text-center text-muted-foreground py-8">لا توجد بيانات</p>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={formatted} margin={{ left: 20, right: 10 }}>
+            <AreaChart data={formatted} margin={{ left: 30, right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="label" fontSize={12} />
-              <YAxis fontSize={12} width={80} tickMargin={12} />
+              <YAxis fontSize={12} width={80} tickMargin={20} />
               <Tooltip formatter={(v: number) => [`${v.toLocaleString('ar-EG')} ج.م`, 'الإيرادات']} />
               <Area type="monotone" dataKey="revenue" stroke="hsl(14, 88%, 35%)" fill="hsl(14, 88%, 35%)" fillOpacity={0.2} />
             </AreaChart>
