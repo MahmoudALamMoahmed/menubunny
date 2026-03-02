@@ -18,10 +18,10 @@ export default function PeakHours({ data }: Props) {
           <p className="text-center text-muted-foreground py-8">لا توجد بيانات</p>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data}>
+            <BarChart data={data} margin={{ left: 10, right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="hour" fontSize={11} />
-              <YAxis fontSize={12} />
+              <YAxis fontSize={12} width={60} tickMargin={8} />
               <Tooltip formatter={(v: number) => [v, 'طلبات']} />
               <Bar dataKey="count" fill="hsl(271, 91%, 65%)" radius={[4, 4, 0, 0]} />
             </BarChart>
