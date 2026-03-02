@@ -24,10 +24,10 @@ export default function OrdersChart({ data, isWeekly }: Props) {
           <p className="text-center text-muted-foreground py-8">لا توجد بيانات</p>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={formatted}>
+            <BarChart data={formatted} margin={{ left: 10, right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="label" fontSize={12} />
-              <YAxis fontSize={12} />
+              <YAxis fontSize={12} width={60} tickMargin={8} />
               <Tooltip formatter={(v: number) => [v, 'طلبات']} />
               <Bar dataKey="orders" fill="hsl(14, 88%, 55%)" radius={[4, 4, 0, 0]} />
             </BarChart>
