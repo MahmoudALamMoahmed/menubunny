@@ -1,15 +1,89 @@
 
+# صفحة التقارير والتحليلات الشاملة
 
-# Switch Kashier from Test to Production
+## نظرة عامة
+بناء صفحة تقارير احترافية تعرض تحليلات شاملة لجميع الطلبات (وليس اليوم فقط)، مع فلاتر زمنية مرنة ورسوم بيانية تفاعلية باستخدام مكتبة Recharts المثبتة بالفعل.
 
-## Change
-Update the Kashier API endpoint URL from `test-api.kashier.io` to `api.kashier.io` in the `create-payment-session` Edge Function.
+## لماذا لا نستخدم Analytics Buckets من Supabase؟
+- الميزة لا تزال في **Private Alpha** وتحتاج طلب وصول خاص
+- مصممة لتحليل ملايين الصفوف - حجم بيانات الطلبات عندك لا يحتاجها
+- الحل الأمثل: جلب البيانات من جدول `orders` مباشرة وتحليلها على الـ frontend
 
-## File Changed
-| File | Change |
+---
+
+## الأقسام الرئيسية في صفحة التقارير
+
+### 1. شريط الفلاتر الزمنية
+- اختيار سريع: اليوم / آخر 7 أيام / آخر 30 يوم / آخر 3 شهور / كل الوقت
+- اختيار تاريخ مخصص (من - إلى) باستخدام مكون Calendar الموجود
+- فلتر حسب الفرع (اختياري)
+
+### 2. بطاقات الملخص (KPI Cards)
+- اجمالي الطلبات
+- اجمالي الايرادات (ج.م)
+- متوسط قيمة الطلب
+- الطلبات المكتملة مقابل الملغاة
+- معدل الالغاء (%)
+
+### 3. رسم بياني - الايرادات عبر الزمن
+- Area Chart يعرض الايرادات يوميا او اسبوعيا حسب الفترة المختارة
+- يتكيف تلقائيا: يومي للفترات القصيرة، اسبوعي للفترات الطويلة
+
+### 4. رسم بياني - عدد الطلبات عبر الزمن
+- Bar Chart يعرض عدد الطلبات لكل يوم/اسبوع
+
+### 5. رسم بياني دائري - توزيع حالات الطلبات
+- Pie Chart يوضح نسب: منتظر / مؤكد / قيد التحضير / جاهز / تم التسليم / ملغي
+
+### 6. رسم بياني - توزيع طرق الدفع
+- Pie Chart: كاش / بطاقة / محفظة الكترونية
+
+### 7. الاصناف الاكثر طلبا (Top Selling Items)
+- جدول مرتب يعرض اكثر 10 اصناف مبيعا مع الكمية والايرادات
+- يتم استخراجها من حقل `items` (JSONB) في كل طلب
+
+### 8. تحليل الفروع (Branch Performance)
+- جدول مقارنة بين الفروع: عدد الطلبات، الايرادات، متوسط الطلب
+- يظهر فقط اذا كان هناك اكثر من فرع
+
+### 9. اوقات الذروة (Peak Hours)
+- Bar Chart يعرض توزيع الطلبات حسب ساعات اليوم (0-23)
+- يساعد صاحب المطعم في تحديد اوقات الضغط
+
+---
+
+## التفاصيل التقنية
+
+### الملفات الجديدة
+| الملف | الوصف |
 |---|---|
-| `supabase/functions/create-payment-session/index.ts` (line 145) | Change `https://test-api.kashier.io/v3/payment/sessions` to `https://api.kashier.io/v3/payment/sessions` |
+| `src/pages/Analytics.tsx` | الصفحة الرئيسية للتقارير |
+| `src/hooks/useAnalyticsData.ts` | Hook مخصص لجلب وتحليل بيانات الطلبات |
+| `src/components/analytics/AnalyticsKPIs.tsx` | بطاقات المؤشرات الرئيسية |
+| `src/components/analytics/RevenueChart.tsx` | رسم الايرادات |
+| `src/components/analytics/OrdersChart.tsx` | رسم عدد الطلبات |
+| `src/components/analytics/StatusDistribution.tsx` | توزيع الحالات |
+| `src/components/analytics/PaymentMethods.tsx` | توزيع طرق الدفع |
+| `src/components/analytics/TopItems.tsx` | الاصناف الاكثر طلبا |
+| `src/components/analytics/BranchPerformance.tsx` | اداء الفروع |
+| `src/components/analytics/PeakHours.tsx` | اوقات الذروة |
+| `src/components/analytics/DateRangeFilter.tsx` | فلتر الفترة الزمنية |
 
-## Important Note
-Make sure your Kashier secrets (`KASHIER_API_KEY`, `KASHIER_SECRET_KEY`, `KASHIER_MERCHANT_ID`) are updated with the **production** credentials if they differ from the test ones. If Kashier gave you new keys for production, let me know and we'll update them.
+### الملفات المعدلة
+| الملف | التعديل |
+|---|---|
+| `src/App.tsx` | اضافة route جديد `/:username/analytics` |
 
+### منهجية جلب البيانات
+- استعلام واحد من جدول `orders` مع فلترة بـ `created_at` حسب الفترة المختارة
+- للتعامل مع حد Supabase (1000 صف): استخدام pagination لجلب جميع الطلبات في الفترة المحددة
+- جميع الحسابات والتجميعات تتم على الـ frontend باستخدام `useMemo` لتجنب اعادة الحساب عند كل render
+- لا حاجة لتعديل قاعدة البيانات - كل البيانات المطلوبة موجودة بالفعل في جدول `orders`
+
+### المكتبات المستخدمة (مثبتة بالفعل)
+- **Recharts** للرسوم البيانية
+- **date-fns** لمعالجة التواريخ
+- **Tailwind CSS** للتصميم المتجاوب و RTL
+
+### ملاحظة حول استخراج الاصناف الاكثر طلبا
+حقل `items` في جدول `orders` هو JSONB يحتوي على مصفوفة من الاصناف. سيتم عمل parse لهذا الحقل واستخراج اسم كل صنف والكمية والسعر لحساب الترتيب.
