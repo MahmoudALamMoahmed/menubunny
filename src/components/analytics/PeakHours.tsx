@@ -28,7 +28,7 @@ export default function PeakHours({ data }: Props) {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={data} margin={{ left: 5, right: 5, top: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="hour" fontSize={11} />
+                <XAxis dataKey="hour" fontSize={11} reversed={true} />
                 <YAxis
                   orientation="right"
                   fontSize={12}

@@ -34,7 +34,7 @@ export default function RevenueChart({ data, isWeekly }: Props) {
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={formatted} margin={{ left: 5, right: 5, top: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" fontSize={12} />
+                <XAxis dataKey="label" fontSize={12} reversed={true} />
                 <YAxis
                   orientation="right"
                   fontSize={12}
