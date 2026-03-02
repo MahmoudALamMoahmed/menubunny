@@ -1,89 +1,38 @@
 
-# صفحة التقارير والتحليلات الشاملة
 
-## نظرة عامة
-بناء صفحة تقارير احترافية تعرض تحليلات شاملة لجميع الطلبات (وليس اليوم فقط)، مع فلاتر زمنية مرنة ورسوم بيانية تفاعلية باستخدام مكتبة Recharts المثبتة بالفعل.
+# اصلاح مشاكل التصميم في صفحة التقارير
 
-## لماذا لا نستخدم Analytics Buckets من Supabase؟
-- الميزة لا تزال في **Private Alpha** وتحتاج طلب وصول خاص
-- مصممة لتحليل ملايين الصفوف - حجم بيانات الطلبات عندك لا يحتاجها
-- الحل الأمثل: جلب البيانات من جدول `orders` مباشرة وتحليلها على الـ frontend
+## المشاكل المكتشفة والحلول
 
----
+### 1. تداخل ارقام المحور Y مع الرسوم البيانية
+**السبب**: المحور Y لا يحتوي على `width` كافٍ ولا `padding` للتنسيق مع RTL.
 
-## الأقسام الرئيسية في صفحة التقارير
+**الحل**: في جميع الشارتات (RevenueChart, OrdersChart, PeakHours):
+- اضافة `width={60}` و `tickMargin={8}` على YAxis لاعطاء مسافة كافية للارقام
+- اضافة `margin={{ left: 10, right: 10 }}` على الـ Chart container لمنع القص
 
-### 1. شريط الفلاتر الزمنية
-- اختيار سريع: اليوم / آخر 7 أيام / آخر 30 يوم / آخر 3 شهور / كل الوقت
-- اختيار تاريخ مخصص (من - إلى) باستخدام مكون Calendar الموجود
-- فلتر حسب الفرع (اختياري)
+### 2. تداخل النصوص في الرسوم الدائرية (Pie Charts)
+**السبب**: الـ `label` النصي طويل (اسم + نسبة) مع `outerRadius` كبير مما يسبب تداخل.
 
-### 2. بطاقات الملخص (KPI Cards)
-- اجمالي الطلبات
-- اجمالي الايرادات (ج.م)
-- متوسط قيمة الطلب
-- الطلبات المكتملة مقابل الملغاة
-- معدل الالغاء (%)
+**الحل**: في StatusDistribution و PaymentMethods:
+- تصغير `outerRadius` الى 80
+- استخدام `label` مختصر يعرض النسبة فقط (مثل `25%`)
+- اضافة `Legend` اسفل الدائرة لعرض اسماء الحالات مع الالوان بدل وضعها على الدائرة
 
-### 3. رسم بياني - الايرادات عبر الزمن
-- Area Chart يعرض الايرادات يوميا او اسبوعيا حسب الفترة المختارة
-- يتكيف تلقائيا: يومي للفترات القصيرة، اسبوعي للفترات الطويلة
+### 3. عناوين الجداول (TableHead) ناحية اليسار
+**السبب**: مكون `TableHead` في `src/components/ui/table.tsx` يستخدم `text-left` بشكل ثابت.
 
-### 4. رسم بياني - عدد الطلبات عبر الزمن
-- Bar Chart يعرض عدد الطلبات لكل يوم/اسبوع
-
-### 5. رسم بياني دائري - توزيع حالات الطلبات
-- Pie Chart يوضح نسب: منتظر / مؤكد / قيد التحضير / جاهز / تم التسليم / ملغي
-
-### 6. رسم بياني - توزيع طرق الدفع
-- Pie Chart: كاش / بطاقة / محفظة الكترونية
-
-### 7. الاصناف الاكثر طلبا (Top Selling Items)
-- جدول مرتب يعرض اكثر 10 اصناف مبيعا مع الكمية والايرادات
-- يتم استخراجها من حقل `items` (JSONB) في كل طلب
-
-### 8. تحليل الفروع (Branch Performance)
-- جدول مقارنة بين الفروع: عدد الطلبات، الايرادات، متوسط الطلب
-- يظهر فقط اذا كان هناك اكثر من فرع
-
-### 9. اوقات الذروة (Peak Hours)
-- Bar Chart يعرض توزيع الطلبات حسب ساعات اليوم (0-23)
-- يساعد صاحب المطعم في تحديد اوقات الضغط
+**الحل**: تغيير `text-left` الى `text-right` في مكون `TableHead` لدعم RTL بشكل صحيح. هذا يؤثر على جداول TopItems و BranchPerformance.
 
 ---
 
-## التفاصيل التقنية
+## الملفات المعدلة
 
-### الملفات الجديدة
-| الملف | الوصف |
-|---|---|
-| `src/pages/Analytics.tsx` | الصفحة الرئيسية للتقارير |
-| `src/hooks/useAnalyticsData.ts` | Hook مخصص لجلب وتحليل بيانات الطلبات |
-| `src/components/analytics/AnalyticsKPIs.tsx` | بطاقات المؤشرات الرئيسية |
-| `src/components/analytics/RevenueChart.tsx` | رسم الايرادات |
-| `src/components/analytics/OrdersChart.tsx` | رسم عدد الطلبات |
-| `src/components/analytics/StatusDistribution.tsx` | توزيع الحالات |
-| `src/components/analytics/PaymentMethods.tsx` | توزيع طرق الدفع |
-| `src/components/analytics/TopItems.tsx` | الاصناف الاكثر طلبا |
-| `src/components/analytics/BranchPerformance.tsx` | اداء الفروع |
-| `src/components/analytics/PeakHours.tsx` | اوقات الذروة |
-| `src/components/analytics/DateRangeFilter.tsx` | فلتر الفترة الزمنية |
-
-### الملفات المعدلة
 | الملف | التعديل |
 |---|---|
-| `src/App.tsx` | اضافة route جديد `/:username/analytics` |
-
-### منهجية جلب البيانات
-- استعلام واحد من جدول `orders` مع فلترة بـ `created_at` حسب الفترة المختارة
-- للتعامل مع حد Supabase (1000 صف): استخدام pagination لجلب جميع الطلبات في الفترة المحددة
-- جميع الحسابات والتجميعات تتم على الـ frontend باستخدام `useMemo` لتجنب اعادة الحساب عند كل render
-- لا حاجة لتعديل قاعدة البيانات - كل البيانات المطلوبة موجودة بالفعل في جدول `orders`
-
-### المكتبات المستخدمة (مثبتة بالفعل)
-- **Recharts** للرسوم البيانية
-- **date-fns** لمعالجة التواريخ
-- **Tailwind CSS** للتصميم المتجاوب و RTL
-
-### ملاحظة حول استخراج الاصناف الاكثر طلبا
-حقل `items` في جدول `orders` هو JSONB يحتوي على مصفوفة من الاصناف. سيتم عمل parse لهذا الحقل واستخراج اسم كل صنف والكمية والسعر لحساب الترتيب.
+| `src/components/ui/table.tsx` | تغيير `text-left` الى `text-right` في TableHead |
+| `src/components/analytics/RevenueChart.tsx` | اضافة margin و width/tickMargin على YAxis |
+| `src/components/analytics/OrdersChart.tsx` | نفس تعديلات YAxis |
+| `src/components/analytics/PeakHours.tsx` | نفس تعديلات YAxis |
+| `src/components/analytics/StatusDistribution.tsx` | تصغير outerRadius، label مختصر، اضافة Legend |
+| `src/components/analytics/PaymentMethods.tsx` | نفس تعديلات الدائرة |
