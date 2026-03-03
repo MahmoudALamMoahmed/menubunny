@@ -39,12 +39,12 @@ export default function StatusDistribution({ data }: Props) {
   const renderLegend = (props: any) => {
     const { payload } = props;
     return (
-      <div className="flex flex-wrap justify-center gap-4 mt-2">
+      <div className="flex flex-wrap justify-center gap-4 mt-2" dir="rtl">
         {payload.map((entry: any, i: number) => (
           <div key={i} className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: entry.color }} />
-            <span className="text-xs text-muted-foreground">{entry.value}</span>
-            <span className="text-xs font-semibold" style={{ color: entry.color }}>{labeled[i]?.percent}%</span>
+            <span className="text-sm font-medium" style={{ color: entry.color }}>{entry.value}</span>
+            <span className="text-sm font-semibold" style={{ color: entry.color }}>{labeled[i]?.percent}%</span>
           </div>
         ))}
       </div>
@@ -60,15 +60,17 @@ export default function StatusDistribution({ data }: Props) {
         {data.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">لا توجد بيانات</p>
         ) : (
+          <div dir="ltr">
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie data={labeled} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={70} label={renderLabel} labelLine={false}>
+              <Pie data={labeled} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={65} label={renderLabel} labelLine={false}>
                 {labeled.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Tooltip formatter={(v: number, name: string) => [v, name]} />
               <Legend content={renderLegend} />
             </PieChart>
           </ResponsiveContainer>
+          </div>
         )}
       </CardContent>
     </Card>
