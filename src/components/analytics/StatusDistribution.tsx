@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, Sector } from 'recharts';
+import { useState } from 'react';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'منتظر',
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function StatusDistribution({ data }: Props) {
+  const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined);
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const labeled = data.map(d => ({
     ...d,
@@ -63,10 +65,23 @@ export default function StatusDistribution({ data }: Props) {
           <div dir="ltr">
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie data={labeled} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={65} label={renderLabel} labelLine={false}>
-                {labeled.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              <Pie data={labeled} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={65} label={renderLabel} labelLine={false} activeIndex={activeIndex} activeShape={({ cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill }: any) => (
+                <g>
+                  <Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius + 8} startAngle={startAngle} endAngle={endAngle} fill={fill} style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))', transition: 'all 0.2s ease' }} />
+                </g>
+              )} onMouseEnter={(_, i) => setActiveIndex(i)} onMouseLeave={() => setActiveIndex(undefined)}>
+                {labeled.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" className="cursor-pointer" />)}
               </Pie>
-              <Tooltip formatter={(v: number, name: string) => [v, name]} />
+              <Tooltip content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0].payload;
+                return (
+                  <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-lg text-right" dir="rtl">
+                    <p className="font-semibold text-sm" style={{ color: payload[0].payload.fill || COLORS[0] }}>{d.label}</p>
+                    <p className="text-xs text-muted-foreground">{d.value} طلب — {d.percent}%</p>
+                  </div>
+                );
+              }} />
               <Legend content={renderLegend} />
             </PieChart>
           </ResponsiveContainer>
