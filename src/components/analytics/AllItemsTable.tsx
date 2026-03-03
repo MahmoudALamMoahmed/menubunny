@@ -16,7 +16,7 @@ export default function AllItemsTable({ data }: Props) {
         {data.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">لا توجد بيانات</p>
         ) : (
-          <ScrollArea className="h-[400px]">
+          <ScrollArea className="h-[400px]" dir="rtl">
             <Table>
               <TableHeader>
                 <TableRow>
