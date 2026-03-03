@@ -13,6 +13,7 @@ import OrdersChart from '@/components/analytics/OrdersChart';
 import StatusDistribution from '@/components/analytics/StatusDistribution';
 import PaymentMethods from '@/components/analytics/PaymentMethods';
 import TopItems from '@/components/analytics/TopItems';
+import AllItemsTable from '@/components/analytics/AllItemsTable';
 import BranchPerformance from '@/components/analytics/BranchPerformance';
 import PeakHours from '@/components/analytics/PeakHours';
 
@@ -35,7 +36,7 @@ export default function Analytics() {
   const { data: branches = [] } = useAdminBranches(restaurant?.id);
   const {
     isLoading, kpis, timeSeriesData, statusDistribution,
-    paymentMethods, topItems, peakHours, branchPerformance, useWeekly,
+    paymentMethods, topItems, allItems, peakHours, branchPerformance, useWeekly,
   } = useAnalyticsData(restaurant?.id, filters);
 
   if (authLoading || userTypeLoading || restaurantLoading) {
@@ -108,6 +109,9 @@ export default function Analytics() {
 
             {/* Branch Performance */}
             <BranchPerformance data={branchPerformance} branches={branches.map(b => ({ id: b.id, name: b.name }))} />
+
+            {/* All Items */}
+            <AllItemsTable data={allItems} />
           </div>
         )}
       </div>

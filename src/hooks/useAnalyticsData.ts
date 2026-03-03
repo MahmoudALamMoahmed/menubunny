@@ -141,7 +141,7 @@ export function useAnalyticsData(restaurantId: string | undefined, filters: Anal
   }, [filteredOrders]);
 
   // Top selling items
-  const topItems = useMemo(() => {
+  const allItems = useMemo(() => {
     const map = new Map<string, { name: string; quantity: number; revenue: number }>();
     filteredOrders.forEach(order => {
       const items = (order.items as OrderItem[]) || [];
@@ -153,10 +153,11 @@ export function useAnalyticsData(restaurantId: string | undefined, filters: Anal
         map.set(key, existing);
       });
     });
-    return Array.from(map.values())
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 10);
+    const sorted = Array.from(map.values()).sort((a, b) => b.quantity - a.quantity);
+    return sorted;
   }, [filteredOrders]);
+
+  const topItems = useMemo(() => allItems.slice(0, 10), [allItems]);
 
   // Peak hours
   const peakHours = useMemo(() => {
@@ -189,6 +190,7 @@ export function useAnalyticsData(restaurantId: string | undefined, filters: Anal
     statusDistribution,
     paymentMethods,
     topItems,
+    allItems,
     peakHours,
     branchPerformance,
     useWeekly,
