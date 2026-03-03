@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Props {
   data: { name: string; quantity: number; revenue: number }[];
@@ -16,7 +15,7 @@ export default function AllItemsTable({ data }: Props) {
         {data.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">لا توجد بيانات</p>
         ) : (
-          <ScrollArea className="h-[400px]" dir="rtl">
+          <div className="max-h-[400px] overflow-y-auto" dir="rtl">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -37,7 +36,7 @@ export default function AllItemsTable({ data }: Props) {
                 ))}
               </TableBody>
             </Table>
-          </ScrollArea>
+          </div>
         )}
       </CardContent>
     </Card>
