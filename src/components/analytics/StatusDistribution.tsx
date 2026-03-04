@@ -69,8 +69,8 @@ export default function StatusDistribution({ data }: Props) {
                 <g>
                   <Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius + 8} startAngle={startAngle} endAngle={endAngle} fill={fill} style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))', transition: 'all 0.2s ease' }} />
                 </g>
-              )} onMouseEnter={(_, i) => setActiveIndex(i)} onMouseLeave={() => setActiveIndex(undefined)}>
-                {labeled.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" className="cursor-pointer" />)}
+              )} onMouseEnter={(_, i) => setActiveIndex(i)} onMouseLeave={() => setActiveIndex(undefined)} onClick={(_, i) => setActiveIndex(prev => prev === i ? undefined : i)}>
+                {labeled.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" className="cursor-pointer outline-none" style={{ outline: 'none' }} />)}
               </Pie>
               <Tooltip content={({ active, payload }) => {
                 if (!active || !payload?.length) return null;

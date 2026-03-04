@@ -118,6 +118,17 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  /* Remove focus outline on pie chart sectors */
+  .recharts-sector:focus,
+  .recharts-pie-sector:focus,
+  .recharts-sector:active,
+  .recharts-pie-sector:active,
+  .recharts-layer path:focus,
+  .recharts-layer path:active {
+    outline: none !important;
+    stroke: none !important;
+  }
+
   body {
     @apply bg-background text-foreground font-cairo;
     direction: rtl;
