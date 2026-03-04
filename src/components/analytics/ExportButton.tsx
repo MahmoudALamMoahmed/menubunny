@@ -92,7 +92,7 @@ export default function ExportButton({ targetRef, restaurantName }: ExportButton
     setExporting('pdf');
     try {
       const canvas = await captureCanvas();
-      const imgData = canvas.toDataURL('image/png', 1.0);
+      
 
       const imgWidth = canvas.width;
       const imgHeight = canvas.height;
