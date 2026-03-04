@@ -26,43 +26,33 @@ export default function ExportButton({ targetRef, restaurantName }: ExportButton
   };
 
   const captureCanvas = async () => {
-    if (!targetRef.current) throw new Error('No target element');
+    if (!targetRef.current) {
+      console.error('Export: targetRef.current is null');
+      throw new Error('No target element');
+    }
 
     const el = targetRef.current;
+    console.log('Export: element found', el.scrollWidth, 'x', el.scrollHeight);
 
-    // Ensure layout/fonts are fully ready before capture
-    if ('fonts' in document) {
-      await (document as Document & { fonts: { ready: Promise<unknown> } }).fonts.ready;
-    }
-    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    // Wait for fonts
+    await document.fonts.ready;
+
+    // Give browser a frame to settle
+    await new Promise(r => setTimeout(r, 500));
+
+    // Convert all SVGs inside the target to canvas elements for reliable capture
+    const svgs = el.querySelectorAll('svg');
+    console.log('Export: found', svgs.length, 'SVGs');
 
     const canvas = await html2canvas(el, {
-      scale: 2,
+      scale: 1.5,
       useCORS: true,
+      allowTaint: true,
       backgroundColor: '#ffffff',
-      logging: false,
-      removeContainer: true,
-      onclone: (clonedDoc) => {
-        // Recharts ResponsiveContainer collapses in cloned DOM unless width/height are fixed
-        const originalCharts = el.querySelectorAll('.recharts-responsive-container');
-        const clonedCharts = clonedDoc.querySelectorAll('.recharts-responsive-container');
-
-        clonedCharts.forEach((chart, index) => {
-          const original = originalCharts[index] as HTMLElement | undefined;
-          if (!original) return;
-
-          const rect = original.getBoundingClientRect();
-          const width = Math.max(320, Math.round(rect.width));
-          const height = Math.max(240, Math.round(rect.height));
-
-          const chartEl = chart as HTMLElement;
-          chartEl.style.width = `${width}px`;
-          chartEl.style.height = `${height}px`;
-          chartEl.style.minWidth = `${width}px`;
-          chartEl.style.minHeight = `${height}px`;
-        });
-      },
+      logging: true, // enable logging temporarily for debug
     });
+
+    console.log('Export: canvas generated', canvas.width, 'x', canvas.height);
 
     if (!canvas.width || !canvas.height) {
       throw new Error('Empty canvas generated');
