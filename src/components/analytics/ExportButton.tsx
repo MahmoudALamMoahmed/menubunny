@@ -30,27 +30,43 @@ export default function ExportButton({ targetRef, restaurantName }: ExportButton
 
     const el = targetRef.current;
 
-    // Get computed background color
-    const rootStyles = getComputedStyle(document.documentElement);
-    const bgColor = rootStyles.backgroundColor || '#ffffff';
+    // Ensure layout/fonts are fully ready before capture
+    if ('fonts' in document) {
+      await (document as Document & { fonts: { ready: Promise<unknown> } }).fonts.ready;
+    }
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
 
     const canvas = await html2canvas(el, {
       scale: 2,
       useCORS: true,
-      allowTaint: true,
-      backgroundColor: bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent' ? '#ffffff' : bgColor,
+      backgroundColor: '#ffffff',
       logging: false,
-      width: el.scrollWidth,
-      height: el.scrollHeight,
-      scrollX: 0,
-      scrollY: -window.scrollY,
+      removeContainer: true,
       onclone: (clonedDoc) => {
-        const clonedEl = clonedDoc.querySelector('[data-export-target]');
-        if (clonedEl) {
-          (clonedEl as HTMLElement).style.width = el.scrollWidth + 'px';
-        }
+        // Recharts ResponsiveContainer collapses in cloned DOM unless width/height are fixed
+        const originalCharts = el.querySelectorAll('.recharts-responsive-container');
+        const clonedCharts = clonedDoc.querySelectorAll('.recharts-responsive-container');
+
+        clonedCharts.forEach((chart, index) => {
+          const original = originalCharts[index] as HTMLElement | undefined;
+          if (!original) return;
+
+          const rect = original.getBoundingClientRect();
+          const width = Math.max(320, Math.round(rect.width));
+          const height = Math.max(240, Math.round(rect.height));
+
+          const chartEl = chart as HTMLElement;
+          chartEl.style.width = `${width}px`;
+          chartEl.style.height = `${height}px`;
+          chartEl.style.minWidth = `${width}px`;
+          chartEl.style.minHeight = `${height}px`;
+        });
       },
     });
+
+    if (!canvas.width || !canvas.height) {
+      throw new Error('Empty canvas generated');
+    }
 
     return canvas;
   };
