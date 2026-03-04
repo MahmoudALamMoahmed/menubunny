@@ -24,6 +24,7 @@ export default function Analytics() {
   const { user, loading: authLoading, isBranchStaff, branchStaffInfo, userTypeLoading } = useAuth();
 
   const [filters, setFilters] = useState<AnalyticsFilters>({ preset: '30days' });
+  const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (authLoading || userTypeLoading) return;
