@@ -28,18 +28,28 @@ export default function ExportButton({ targetRef, restaurantName }: ExportButton
   const captureCanvas = async () => {
     if (!targetRef.current) throw new Error('No target element');
 
-    // Temporarily force LTR on the capture target to avoid RTL SVG issues
     const el = targetRef.current;
+
+    // Get computed background color
+    const rootStyles = getComputedStyle(document.documentElement);
+    const bgColor = rootStyles.backgroundColor || '#ffffff';
 
     const canvas = await html2canvas(el, {
       scale: 2,
       useCORS: true,
-      backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--background')
-        ? '#ffffff'
-        : '#ffffff',
+      allowTaint: true,
+      backgroundColor: bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent' ? '#ffffff' : bgColor,
       logging: false,
-      windowWidth: el.scrollWidth,
-      windowHeight: el.scrollHeight,
+      width: el.scrollWidth,
+      height: el.scrollHeight,
+      scrollX: 0,
+      scrollY: -window.scrollY,
+      onclone: (clonedDoc) => {
+        const clonedEl = clonedDoc.querySelector('[data-export-target]');
+        if (clonedEl) {
+          (clonedEl as HTMLElement).style.width = el.scrollWidth + 'px';
+        }
+      },
     });
 
     return canvas;
