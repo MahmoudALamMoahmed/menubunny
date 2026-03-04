@@ -70,6 +70,7 @@ export default function Analytics() {
               <p className="text-sm text-muted-foreground">{restaurant?.name}</p>
             </div>
           </div>
+          <ExportButton targetRef={reportRef} restaurantName={restaurant?.name} />
         </div>
 
         {/* Filters */}
