@@ -88,7 +88,7 @@ export default function Analytics() {
             <p className="text-muted-foreground">جاري تحليل البيانات...</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-6" ref={reportRef}>
             {/* KPIs */}
             <AnalyticsKPIs kpis={kpis} />
 
