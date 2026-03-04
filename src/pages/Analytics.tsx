@@ -16,6 +16,7 @@ import TopItems from '@/components/analytics/TopItems';
 import AllItemsTable from '@/components/analytics/AllItemsTable';
 import BranchPerformance from '@/components/analytics/BranchPerformance';
 import PeakHours from '@/components/analytics/PeakHours';
+import ExportButton from '@/components/analytics/ExportButton';
 
 export default function Analytics() {
   const { username } = useParams<{ username: string }>();
