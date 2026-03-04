@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, BarChart3 } from 'lucide-react';
@@ -16,6 +16,7 @@ import TopItems from '@/components/analytics/TopItems';
 import AllItemsTable from '@/components/analytics/AllItemsTable';
 import BranchPerformance from '@/components/analytics/BranchPerformance';
 import PeakHours from '@/components/analytics/PeakHours';
+import ExportButton from '@/components/analytics/ExportButton';
 
 export default function Analytics() {
   const { username } = useParams<{ username: string }>();
@@ -23,6 +24,7 @@ export default function Analytics() {
   const { user, loading: authLoading, isBranchStaff, branchStaffInfo, userTypeLoading } = useAuth();
 
   const [filters, setFilters] = useState<AnalyticsFilters>({ preset: '30days' });
+  const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (authLoading || userTypeLoading) return;
@@ -68,6 +70,7 @@ export default function Analytics() {
               <p className="text-sm text-muted-foreground">{restaurant?.name}</p>
             </div>
           </div>
+          <ExportButton targetRef={reportRef} restaurantName={restaurant?.name} />
         </div>
 
         {/* Filters */}
@@ -85,7 +88,7 @@ export default function Analytics() {
             <p className="text-muted-foreground">جاري تحليل البيانات...</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-6" ref={reportRef}>
             {/* KPIs */}
             <AnalyticsKPIs kpis={kpis} />
 
