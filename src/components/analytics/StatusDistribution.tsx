@@ -45,8 +45,8 @@ export default function StatusDistribution({ data }: Props) {
         {payload.map((entry: any, i: number) => (
           <div key={i} className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: entry.color }} />
-            <span className="text-sm font-medium" style={{ color: entry.color }}>{labeled[i]?.label}</span>
-            <span className="text-sm font-semibold" style={{ color: entry.color }}>{labeled[i]?.value} — {labeled[i]?.percent}%</span>
+            <span className="text-sm font-medium" style={{ color: entry.color }}>{entry.value}</span>
+            <span className="text-sm font-semibold" style={{ color: entry.color }}>{labeled[i]?.percent}%</span>
           </div>
         ))}
       </div>
