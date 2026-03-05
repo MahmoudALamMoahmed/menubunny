@@ -35,6 +35,12 @@ export default function AllItemsTable({ data }: Props) {
                   </TableRow>
                 ))}
               </TableBody>
+              <tfoot>
+                <tr className="border-t-2 border-primary/30 bg-muted/50">
+                  <td colSpan={3} className="p-4 font-bold text-right">الإجمالي</td>
+                  <td className="p-4 font-bold">{data.reduce((sum, item) => sum + item.revenue, 0).toLocaleString('ar-EG')} ج.م</td>
+                </tr>
+              </tfoot>
             </Table>
           </div>
         )}
