@@ -907,13 +907,11 @@ export default function BranchesManagement() {
                 <SelectContent>
                   <SelectItem value="whatsapp">واتساب فقط</SelectItem>
                   <SelectItem value="dashboard">لوحة التحكم فقط</SelectItem>
-                  <SelectItem value="both">واتساب + لوحة التحكم</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 {formData.order_mode === 'whatsapp' && 'العميل يرسل الطلب عبر واتساب فقط'}
                 {formData.order_mode === 'dashboard' && 'الطلبات تظهر في صفحة الطلبات بلوحة التحكم'}
-                {formData.order_mode === 'both' && 'العميل يختار بين واتساب أو إرسال مباشر للمطعم'}
               </p>
             </div>
 
