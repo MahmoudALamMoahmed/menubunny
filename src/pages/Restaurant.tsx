@@ -887,12 +887,12 @@ ${orderText}
                         const isDisabled = cart.length === 0 || !customerName || !customerAddress || !customerPhone;
                         return (
                           <div className="space-y-2">
-                            {(orderMode === 'whatsapp' || orderMode === 'both') && (
+                            {(orderMode === 'whatsapp') && (
                               <Button onClick={sendOrderToWhatsApp} disabled={isDisabled} className="w-full bg-green-600 hover:bg-green-700">
                                 إرسال الطلب واتساب
                               </Button>
                             )}
-                            {(orderMode === 'dashboard' || orderMode === 'both') && (
+                            {(orderMode === 'dashboard') && (
                               <Button onClick={sendOrderToDashboard} disabled={isDisabled} className="w-full">
                                 إرسال الطلب للمطعم
                               </Button>
