@@ -907,7 +907,6 @@ export default function BranchesManagement() {
                 <SelectContent>
                   <SelectItem value="whatsapp">واتساب فقط</SelectItem>
                   <SelectItem value="dashboard">لوحة التحكم فقط</SelectItem>
-                  <SelectItem value="both">واتساب + لوحة التحكم</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
