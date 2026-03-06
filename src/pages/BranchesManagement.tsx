@@ -912,7 +912,6 @@ export default function BranchesManagement() {
               <p className="text-xs text-muted-foreground">
                 {formData.order_mode === 'whatsapp' && 'العميل يرسل الطلب عبر واتساب فقط'}
                 {formData.order_mode === 'dashboard' && 'الطلبات تظهر في صفحة الطلبات بلوحة التحكم'}
-                {formData.order_mode === 'both' && 'العميل يختار بين واتساب أو إرسال مباشر للمطعم'}
               </p>
             </div>
 
