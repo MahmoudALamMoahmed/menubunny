@@ -950,39 +950,39 @@ export default function BranchesManagement() {
               {branchPaymentMethods.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-2">لم تتم إضافة طرق دفع بعد</p>
               )}
-              {branchPaymentMethods.map((pm, index) => (
-                <div key={index} className="flex gap-2 items-start bg-muted/40 rounded-lg p-3">
-                  <div className="flex-1 space-y-2">
-                    <Input
-                      value={pm.name}
-                      onChange={(e) => {
-                        const updated = [...branchPaymentMethods];
-                        updated[index] = { ...updated[index], name: e.target.value };
-                        setBranchPaymentMethods(updated);
-                      }}
-                      placeholder="اسم الطريقة (مثال: انستاباي)"
-                    />
-                    <Input
-                      value={pm.account_number}
-                      onChange={(e) => {
-                        const updated = [...branchPaymentMethods];
-                        updated[index] = { ...updated[index], account_number: e.target.value };
-                        setBranchPaymentMethods(updated);
-                      }}
-                      placeholder="رقم الحساب أو المحفظة"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    className="mt-1"
-                    onClick={() => setBranchPaymentMethods(prev => prev.filter((_, i) => i !== index))}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
+              {branchPaymentMethods.length > 0 && (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(event: DragEndEvent) => {
+                    const { active, over } = event;
+                    if (over && active.id !== over.id) {
+                      const oldIndex = branchPaymentMethods.findIndex((_, i) => `pm-${i}` === active.id);
+                      const newIndex = branchPaymentMethods.findIndex((_, i) => `pm-${i}` === over.id);
+                      setBranchPaymentMethods(prev => arrayMove(prev, oldIndex, newIndex));
+                    }
+                  }}
+                >
+                  <SortableContext items={branchPaymentMethods.map((_, i) => `pm-${i}`)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-2">
+                      {branchPaymentMethods.map((pm, index) => (
+                        <SortablePaymentMethod
+                          key={`pm-${index}`}
+                          id={`pm-${index}`}
+                          pm={pm}
+                          index={index}
+                          onUpdate={(idx, field, value) => {
+                            const updated = [...branchPaymentMethods];
+                            updated[idx] = { ...updated[idx], [field]: value };
+                            setBranchPaymentMethods(updated);
+                          }}
+                          onDelete={(idx) => setBranchPaymentMethods(prev => prev.filter((_, i) => i !== idx))}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
