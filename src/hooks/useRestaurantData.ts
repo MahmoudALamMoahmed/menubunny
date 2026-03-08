@@ -161,4 +161,24 @@ export function useDeliveryAreas(branchIds: string[] | undefined) {
     gcTime: LONG_GC,
     refetchOnWindowFocus: false,
   });
+
+// React Query - جلب طرق الدفع لفرع معين
+export function useBranchPaymentMethods(branchId: string | undefined) {
+  return useQuery({
+    queryKey: ['branch_payment_methods', branchId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('branch_payment_methods')
+        .select('*')
+        .eq('branch_id', branchId!)
+        .eq('is_active', true)
+        .order('display_order');
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!branchId,
+    staleTime: LONG_STALE,
+    gcTime: LONG_GC,
+    refetchOnWindowFocus: false,
+  });
 }
