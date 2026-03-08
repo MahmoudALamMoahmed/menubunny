@@ -266,6 +266,8 @@ function SortablePaymentMethod({ id, pm, index, onUpdate, onDelete }: SortablePa
 }
 
 
+type DeliveryArea = Tables<'delivery_areas'>;
+
 
 // واجهة props لعنصر منطقة التوصيل القابل للسحب (DnD)
 interface SortableAreaItemProps {
