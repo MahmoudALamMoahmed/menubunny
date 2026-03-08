@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      branch_payment_methods: {
+        Row: {
+          account_number: string
+          branch_id: string
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          account_number: string
+          branch_id: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          account_number?: string
+          branch_id?: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branch_payment_methods_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branch_staff: {
         Row: {
           branch_id: string
@@ -62,16 +100,13 @@ export type Database = {
           created_at: string
           delivery_phone: string | null
           display_order: number | null
-          etisalat_cash: string | null
           id: string
           is_active: boolean | null
           name: string
-          orange_cash: string | null
           order_mode: string | null
           phone: string | null
           restaurant_id: string
           updated_at: string
-          vodafone_cash: string | null
           whatsapp_phone: string | null
           working_hours: string | null
         }
@@ -80,16 +115,13 @@ export type Database = {
           created_at?: string
           delivery_phone?: string | null
           display_order?: number | null
-          etisalat_cash?: string | null
           id?: string
           is_active?: boolean | null
           name: string
-          orange_cash?: string | null
           order_mode?: string | null
           phone?: string | null
           restaurant_id: string
           updated_at?: string
-          vodafone_cash?: string | null
           whatsapp_phone?: string | null
           working_hours?: string | null
         }
@@ -98,16 +130,13 @@ export type Database = {
           created_at?: string
           delivery_phone?: string | null
           display_order?: number | null
-          etisalat_cash?: string | null
           id?: string
           is_active?: boolean | null
           name?: string
-          orange_cash?: string | null
           order_mode?: string | null
           phone?: string | null
           restaurant_id?: string
           updated_at?: string
-          vodafone_cash?: string | null
           whatsapp_phone?: string | null
           working_hours?: string | null
         }
