@@ -389,7 +389,7 @@ export default function BranchesManagement() {
   });
 
   // Payment methods state for editing branch
-  const [branchPaymentMethods, setBranchPaymentMethods] = useState<{ id?: string; name: string; account_number: string }[]>([]);
+  const [branchPaymentMethods, setBranchPaymentMethods] = useState<{ id?: string; name: string; account_number: string; is_active: boolean }[]>([]);
   const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(false);
   
   // إدارة المناطق
