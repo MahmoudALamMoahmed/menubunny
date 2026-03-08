@@ -300,14 +300,7 @@ export default function Restaurant() {
       const areaText = areaName ? `\n📍 المنطقة: ${areaName}` : '';
       const deliveryText = deliveryPrice > 0 ? `\n🚗 سعر التوصيل: ${deliveryPrice} جنيه` : '';
       
-      let paymentMethodText = 'الدفع عند الاستلام';
-      if (paymentMethod === 'vodafone') {
-        paymentMethodText = 'فودافون كاش';
-      } else if (paymentMethod === 'etisalat') {
-        paymentMethodText = 'اتصالات كاش';
-      } else if (paymentMethod === 'orange') {
-        paymentMethodText = 'اورانج كاش';
-      }
+      const paymentMethodText = paymentMethod === 'cash' ? 'الدفع عند الاستلام' : paymentMethod;
       
       const paymentNote = paymentMethod !== 'cash' ? '\n\n⏳ ملاحظة: العميل سيرسل إثبات الدفع بعد هذه الرسالة' : '';
       

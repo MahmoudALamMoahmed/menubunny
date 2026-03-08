@@ -251,9 +251,6 @@ interface SaveBranchData {
   delivery_phone?: string;
   working_hours?: string;
   is_active?: boolean;
-  vodafone_cash?: string;
-  etisalat_cash?: string;
-  orange_cash?: string;
   order_mode?: string;
   restaurant_id: string;
   display_order?: number;
