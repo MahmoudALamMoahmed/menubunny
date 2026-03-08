@@ -224,7 +224,7 @@ interface SortablePaymentMethodProps {
   onDelete: (index: number) => void;
 }
 
-function SortablePaymentMethod({ id, pm, index, onUpdate, onDelete }: SortablePaymentMethodProps) {
+function SortablePaymentMethod({ id, pm, index, onUpdate, onToggleActive, onDelete }: SortablePaymentMethodProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -233,7 +233,7 @@ function SortablePaymentMethod({ id, pm, index, onUpdate, onDelete }: SortablePa
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex gap-2 items-start bg-muted/40 rounded-lg p-3">
+    <div ref={setNodeRef} style={style} className={`flex gap-2 items-start rounded-lg p-3 ${pm.is_active ? 'bg-muted/40' : 'bg-muted/20 opacity-60'}`}>
       <button
         className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none mt-2 flex-shrink-0"
         {...attributes}
@@ -252,6 +252,13 @@ function SortablePaymentMethod({ id, pm, index, onUpdate, onDelete }: SortablePa
           onChange={(e) => onUpdate(index, 'account_number', e.target.value)}
           placeholder="رقم الحساب أو المحفظة"
         />
+      </div>
+      <div className="flex flex-col items-center gap-1 mt-1">
+        <Switch
+          checked={pm.is_active}
+          onCheckedChange={() => onToggleActive(index)}
+        />
+        <span className="text-[10px] text-muted-foreground">{pm.is_active ? 'مفعّل' : 'معطّل'}</span>
       </div>
       <Button
         type="button"
