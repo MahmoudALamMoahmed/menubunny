@@ -515,6 +515,7 @@ export default function BranchesManagement() {
                 name: pm.name,
                 account_number: pm.account_number,
                 display_order: i,
+                is_active: pm.is_active,
               }));
               await supabase.from('branch_payment_methods').insert(toInsert);
             }
