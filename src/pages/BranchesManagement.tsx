@@ -481,7 +481,7 @@ export default function BranchesManagement() {
       .select('*')
       .eq('branch_id', branch.id)
       .order('display_order');
-    setBranchPaymentMethods(data?.map(d => ({ id: d.id, name: d.name, account_number: d.account_number })) || []);
+    setBranchPaymentMethods(data?.map(d => ({ id: d.id, name: d.name, account_number: d.account_number, is_active: d.is_active !== false })) || []);
   };
 
   // حفظ/تعديل فرع عبر Mutation
