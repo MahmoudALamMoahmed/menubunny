@@ -324,11 +324,12 @@ export default function BranchesManagement() {
     delivery_phone: '',
     working_hours: '',
     is_active: true,
-    vodafone_cash: '',
-    etisalat_cash: '',
-    orange_cash: '',
     order_mode: 'whatsapp'
   });
+
+  // Payment methods state for editing branch
+  const [branchPaymentMethods, setBranchPaymentMethods] = useState<{ id?: string; name: string; account_number: string }[]>([]);
+  const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(false);
   
   // إدارة المناطق
   const [showAreasDialog, setShowAreasDialog] = useState(false);
