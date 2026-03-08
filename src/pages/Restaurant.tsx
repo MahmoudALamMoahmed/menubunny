@@ -14,8 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Home, ShoppingCart, Plus, Minus, Settings, LayoutGrid, List,
   Facebook,
   Instagram,
-  Building2,
-  Copy } from 'lucide-react';
+  Building2 } from 'lucide-react';
 import RestaurantFooter from '@/components/RestaurantFooter';
 import ProductDetailsDialog from '@/components/ProductDetailsDialog';
 import BranchesDialog from '@/components/BranchesDialog';
