@@ -217,9 +217,10 @@ function SortableBranchCard({
 // مكون طريقة الدفع القابل للسحب
 interface SortablePaymentMethodProps {
   id: string;
-  pm: { name: string; account_number: string };
+  pm: { name: string; account_number: string; is_active: boolean };
   index: number;
   onUpdate: (index: number, field: 'name' | 'account_number', value: string) => void;
+  onToggleActive: (index: number) => void;
   onDelete: (index: number) => void;
 }
 
