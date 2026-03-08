@@ -401,7 +401,7 @@ export default function BranchesManagement() {
   };
 
   // فتح حوار تعديل الفرع مع تعبئة البيانات الحالية
-  const openEditDialog = (branch: Branch) => {
+  const openEditDialog = async (branch: Branch) => {
     setEditingBranch(branch);
     setFormData({
       name: branch.name,
@@ -411,12 +411,16 @@ export default function BranchesManagement() {
       delivery_phone: branch.delivery_phone || '',
       working_hours: branch.working_hours || '',
       is_active: branch.is_active,
-      vodafone_cash: branch.vodafone_cash || '',
-      etisalat_cash: branch.etisalat_cash || '',
-      orange_cash: branch.orange_cash || '',
       order_mode: (branch as any).order_mode || 'whatsapp'
     });
     setShowDialog(true);
+    // Fetch payment methods for this branch
+    const { data } = await supabase
+      .from('branch_payment_methods')
+      .select('*')
+      .eq('branch_id', branch.id)
+      .order('display_order');
+    setBranchPaymentMethods(data?.map(d => ({ id: d.id, name: d.name, account_number: d.account_number })) || []);
   };
 
   // حفظ/تعديل فرع عبر Mutation
