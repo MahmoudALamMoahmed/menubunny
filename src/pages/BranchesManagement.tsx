@@ -214,7 +214,60 @@ function SortableBranchCard({
   );
 }
 
+// مكون طريقة الدفع القابل للسحب
+interface SortablePaymentMethodProps {
+  id: string;
+  pm: { name: string; account_number: string };
+  index: number;
+  onUpdate: (index: number, field: 'name' | 'account_number', value: string) => void;
+  onDelete: (index: number) => void;
+}
+
+function SortablePaymentMethod({ id, pm, index, onUpdate, onDelete }: SortablePaymentMethodProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex gap-2 items-start bg-muted/40 rounded-lg p-3">
+      <button
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none mt-2 flex-shrink-0"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <div className="flex-1 space-y-2">
+        <Input
+          value={pm.name}
+          onChange={(e) => onUpdate(index, 'name', e.target.value)}
+          placeholder="اسم الطريقة (مثال: انستاباي)"
+        />
+        <Input
+          value={pm.account_number}
+          onChange={(e) => onUpdate(index, 'account_number', e.target.value)}
+          placeholder="رقم الحساب أو المحفظة"
+        />
+      </div>
+      <Button
+        type="button"
+        variant="destructive"
+        size="sm"
+        className="mt-1"
+        onClick={() => onDelete(index)}
+      >
+        <Trash2 className="w-4 h-4" />
+      </Button>
+    </div>
+  );
+}
+
+
 type DeliveryArea = Tables<'delivery_areas'>;
+
 
 // واجهة props لعنصر منطقة التوصيل القابل للسحب (DnD)
 interface SortableAreaItemProps {
@@ -950,39 +1003,39 @@ export default function BranchesManagement() {
               {branchPaymentMethods.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-2">لم تتم إضافة طرق دفع بعد</p>
               )}
-              {branchPaymentMethods.map((pm, index) => (
-                <div key={index} className="flex gap-2 items-start bg-muted/40 rounded-lg p-3">
-                  <div className="flex-1 space-y-2">
-                    <Input
-                      value={pm.name}
-                      onChange={(e) => {
-                        const updated = [...branchPaymentMethods];
-                        updated[index] = { ...updated[index], name: e.target.value };
-                        setBranchPaymentMethods(updated);
-                      }}
-                      placeholder="اسم الطريقة (مثال: انستاباي)"
-                    />
-                    <Input
-                      value={pm.account_number}
-                      onChange={(e) => {
-                        const updated = [...branchPaymentMethods];
-                        updated[index] = { ...updated[index], account_number: e.target.value };
-                        setBranchPaymentMethods(updated);
-                      }}
-                      placeholder="رقم الحساب أو المحفظة"
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    className="mt-1"
-                    onClick={() => setBranchPaymentMethods(prev => prev.filter((_, i) => i !== index))}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
+              {branchPaymentMethods.length > 0 && (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(event: DragEndEvent) => {
+                    const { active, over } = event;
+                    if (over && active.id !== over.id) {
+                      const oldIndex = branchPaymentMethods.findIndex((_, i) => `pm-${i}` === active.id);
+                      const newIndex = branchPaymentMethods.findIndex((_, i) => `pm-${i}` === over.id);
+                      setBranchPaymentMethods(prev => arrayMove(prev, oldIndex, newIndex));
+                    }
+                  }}
+                >
+                  <SortableContext items={branchPaymentMethods.map((_, i) => `pm-${i}`)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-2">
+                      {branchPaymentMethods.map((pm, index) => (
+                        <SortablePaymentMethod
+                          key={`pm-${index}`}
+                          id={`pm-${index}`}
+                          pm={pm}
+                          index={index}
+                          onUpdate={(idx, field, value) => {
+                            const updated = [...branchPaymentMethods];
+                            updated[idx] = { ...updated[idx], [field]: value };
+                            setBranchPaymentMethods(updated);
+                          }}
+                          onDelete={(idx) => setBranchPaymentMethods(prev => prev.filter((_, i) => i !== idx))}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
