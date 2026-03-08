@@ -394,11 +394,9 @@ export default function BranchesManagement() {
       delivery_phone: '',
       working_hours: '',
       is_active: true,
-      vodafone_cash: '',
-      etisalat_cash: '',
-      orange_cash: '',
       order_mode: 'whatsapp'
     });
+    setBranchPaymentMethods([]);
     setEditingBranch(null);
   };
 
