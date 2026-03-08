@@ -235,42 +235,49 @@ function SortablePaymentMethod({ id, pm, index, onUpdate, onToggleActive, onDele
 
   return (
     <>
-      <div ref={setNodeRef} style={style} className={`flex gap-2 items-start rounded-lg p-3 border ${pm.is_active ? 'bg-muted/40' : 'bg-muted/20 opacity-60'}`}>
+      <div ref={setNodeRef} style={style} className={`flex gap-3 items-start rounded-lg p-3 border ${pm.is_active ? 'bg-gray-50' : 'bg-gray-50 opacity-60'}`} dir="rtl">
         <button
-          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none mt-2 flex-shrink-0"
+          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none mt-7 flex-shrink-0"
           {...attributes}
           {...listeners}
         >
           <GripVertical className="w-4 h-4" />
         </button>
         <div className="flex-1 space-y-2">
-          <Input
-            value={pm.name}
-            onChange={(e) => onUpdate(index, 'name', e.target.value)}
-            placeholder="اسم الطريقة (مثال: انستاباي)"
-          />
-          <Input
-            value={pm.account_number}
-            onChange={(e) => onUpdate(index, 'account_number', e.target.value)}
-            placeholder="رقم الحساب أو المحفظة"
-          />
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">اسم الطريقة</label>
+            <Input
+              value={pm.name}
+              onChange={(e) => onUpdate(index, 'name', e.target.value)}
+              placeholder="مثال: انستاباي"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">رقم الحساب</label>
+            <Input
+              value={pm.account_number}
+              onChange={(e) => onUpdate(index, 'account_number', e.target.value)}
+              placeholder="رقم الحساب أو المحفظة"
+            />
+          </div>
         </div>
-        <div className="flex flex-col items-center gap-1 mt-1">
-          <Switch
-            checked={pm.is_active}
-            onCheckedChange={() => onToggleActive(index)}
-          />
-          <span className="text-[10px] text-muted-foreground">{pm.is_active ? 'مفعّل' : 'معطّل'}</span>
+        <div className="flex flex-col items-center gap-3 mt-6">
+          <div className="flex flex-col items-center gap-1">
+            <Switch
+              checked={pm.is_active}
+              onCheckedChange={() => onToggleActive(index)}
+            />
+            <span className="text-[10px] text-muted-foreground">{pm.is_active ? 'مفعّل' : 'معطّل'}</span>
+          </div>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => setShowDeleteConfirm(true)}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
         </div>
-        <Button
-          type="button"
-          variant="destructive"
-          size="sm"
-          className="mt-1"
-          onClick={() => setShowDeleteConfirm(true)}
-        >
-          <Trash2 className="w-4 h-4" />
-        </Button>
       </div>
       <DeleteConfirmDialog
         open={showDeleteConfirm}
