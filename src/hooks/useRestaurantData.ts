@@ -161,6 +161,7 @@ export function useDeliveryAreas(branchIds: string[] | undefined) {
     gcTime: LONG_GC,
     refetchOnWindowFocus: false,
   });
+}
 
 // React Query - جلب طرق الدفع لفرع معين
 export function useBranchPaymentMethods(branchId: string | undefined) {
