@@ -214,7 +214,58 @@ function SortableBranchCard({
   );
 }
 
-type DeliveryArea = Tables<'delivery_areas'>;
+// مكون طريقة الدفع القابل للسحب
+interface SortablePaymentMethodProps {
+  id: string;
+  pm: { name: string; account_number: string };
+  index: number;
+  onUpdate: (index: number, field: 'name' | 'account_number', value: string) => void;
+  onDelete: (index: number) => void;
+}
+
+function SortablePaymentMethod({ id, pm, index, onUpdate, onDelete }: SortablePaymentMethodProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex gap-2 items-start bg-muted/40 rounded-lg p-3">
+      <button
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none mt-2 flex-shrink-0"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <div className="flex-1 space-y-2">
+        <Input
+          value={pm.name}
+          onChange={(e) => onUpdate(index, 'name', e.target.value)}
+          placeholder="اسم الطريقة (مثال: انستاباي)"
+        />
+        <Input
+          value={pm.account_number}
+          onChange={(e) => onUpdate(index, 'account_number', e.target.value)}
+          placeholder="رقم الحساب أو المحفظة"
+        />
+      </div>
+      <Button
+        type="button"
+        variant="destructive"
+        size="sm"
+        className="mt-1"
+        onClick={() => onDelete(index)}
+      >
+        <Trash2 className="w-4 h-4" />
+      </Button>
+    </div>
+  );
+}
+
+
 
 // واجهة props لعنصر منطقة التوصيل القابل للسحب (DnD)
 interface SortableAreaItemProps {
