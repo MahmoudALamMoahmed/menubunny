@@ -507,17 +507,32 @@ export default function BranchesManagement() {
           // Save payment methods
           const branchId = vars.id || editingBranch?.id;
           if (branchId) {
-            // Delete existing then re-insert
-            await supabase.from('branch_payment_methods').delete().eq('branch_id', branchId);
-            if (branchPaymentMethods.length > 0) {
-              const toInsert = branchPaymentMethods.map((pm, i) => ({
-                branch_id: branchId,
-                name: pm.name,
-                account_number: pm.account_number,
-                display_order: i,
-                is_active: pm.is_active,
-              }));
-              await supabase.from('branch_payment_methods').insert(toInsert);
+            const currentIds = branchPaymentMethods.filter(pm => pm.id).map(pm => pm.id!);
+            // Delete removed methods
+            const { data: existing } = await supabase.from('branch_payment_methods').select('id').eq('branch_id', branchId);
+            const toDelete = (existing || []).filter(e => !currentIds.includes(e.id)).map(e => e.id);
+            if (toDelete.length > 0) {
+              await supabase.from('branch_payment_methods').delete().in('id', toDelete);
+            }
+            // Upsert existing + insert new
+            for (let i = 0; i < branchPaymentMethods.length; i++) {
+              const pm = branchPaymentMethods[i];
+              if (pm.id) {
+                await supabase.from('branch_payment_methods').update({
+                  name: pm.name,
+                  account_number: pm.account_number,
+                  display_order: i,
+                  is_active: pm.is_active,
+                }).eq('id', pm.id);
+              } else {
+                await supabase.from('branch_payment_methods').insert({
+                  branch_id: branchId,
+                  name: pm.name,
+                  account_number: pm.account_number,
+                  display_order: i,
+                  is_active: pm.is_active,
+                });
+              }
             }
           }
           setShowDialog(false);
