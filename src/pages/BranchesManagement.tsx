@@ -235,7 +235,7 @@ function SortablePaymentMethod({ id, pm, index, onUpdate, onToggleActive, onDele
 
   return (
     <>
-      <div ref={setNodeRef} style={style} className={`flex gap-2 items-start rounded-lg p-3 ${pm.is_active ? 'bg-muted/40' : 'bg-muted/20 opacity-60'}`}>
+      <div ref={setNodeRef} style={style} className={`flex gap-2 items-start rounded-lg p-3 border ${pm.is_active ? 'bg-muted/40' : 'bg-muted/20 opacity-60'}`}>
         <button
           className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none mt-2 flex-shrink-0"
           {...attributes}
