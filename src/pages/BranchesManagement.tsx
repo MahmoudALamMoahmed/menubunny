@@ -1003,7 +1003,7 @@ export default function BranchesManagement() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setBranchPaymentMethods(prev => [...prev, { name: '', account_number: '' }])}
+                  onClick={() => setBranchPaymentMethods(prev => [...prev, { name: '', account_number: '', is_active: true }])}
                 >
                   <Plus className="w-4 h-4 ml-1" />
                   إضافة
