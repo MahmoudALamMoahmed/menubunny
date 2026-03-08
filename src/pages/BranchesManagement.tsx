@@ -217,13 +217,14 @@ function SortableBranchCard({
 // مكون طريقة الدفع القابل للسحب
 interface SortablePaymentMethodProps {
   id: string;
-  pm: { name: string; account_number: string };
+  pm: { name: string; account_number: string; is_active: boolean };
   index: number;
   onUpdate: (index: number, field: 'name' | 'account_number', value: string) => void;
+  onToggleActive: (index: number) => void;
   onDelete: (index: number) => void;
 }
 
-function SortablePaymentMethod({ id, pm, index, onUpdate, onDelete }: SortablePaymentMethodProps) {
+function SortablePaymentMethod({ id, pm, index, onUpdate, onToggleActive, onDelete }: SortablePaymentMethodProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -232,7 +233,7 @@ function SortablePaymentMethod({ id, pm, index, onUpdate, onDelete }: SortablePa
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex gap-2 items-start bg-muted/40 rounded-lg p-3">
+    <div ref={setNodeRef} style={style} className={`flex gap-2 items-start rounded-lg p-3 ${pm.is_active ? 'bg-muted/40' : 'bg-muted/20 opacity-60'}`}>
       <button
         className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none mt-2 flex-shrink-0"
         {...attributes}
@@ -251,6 +252,13 @@ function SortablePaymentMethod({ id, pm, index, onUpdate, onDelete }: SortablePa
           onChange={(e) => onUpdate(index, 'account_number', e.target.value)}
           placeholder="رقم الحساب أو المحفظة"
         />
+      </div>
+      <div className="flex flex-col items-center gap-1 mt-1">
+        <Switch
+          checked={pm.is_active}
+          onCheckedChange={() => onToggleActive(index)}
+        />
+        <span className="text-[10px] text-muted-foreground">{pm.is_active ? 'مفعّل' : 'معطّل'}</span>
       </div>
       <Button
         type="button"
@@ -381,7 +389,7 @@ export default function BranchesManagement() {
   });
 
   // Payment methods state for editing branch
-  const [branchPaymentMethods, setBranchPaymentMethods] = useState<{ id?: string; name: string; account_number: string }[]>([]);
+  const [branchPaymentMethods, setBranchPaymentMethods] = useState<{ id?: string; name: string; account_number: string; is_active: boolean }[]>([]);
   const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(false);
   
   // إدارة المناطق
@@ -473,7 +481,7 @@ export default function BranchesManagement() {
       .select('*')
       .eq('branch_id', branch.id)
       .order('display_order');
-    setBranchPaymentMethods(data?.map(d => ({ id: d.id, name: d.name, account_number: d.account_number })) || []);
+    setBranchPaymentMethods(data?.map(d => ({ id: d.id, name: d.name, account_number: d.account_number, is_active: d.is_active !== false })) || []);
   };
 
   // حفظ/تعديل فرع عبر Mutation
@@ -507,6 +515,7 @@ export default function BranchesManagement() {
                 name: pm.name,
                 account_number: pm.account_number,
                 display_order: i,
+                is_active: pm.is_active,
               }));
               await supabase.from('branch_payment_methods').insert(toInsert);
             }
@@ -994,7 +1003,7 @@ export default function BranchesManagement() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setBranchPaymentMethods(prev => [...prev, { name: '', account_number: '' }])}
+                  onClick={() => setBranchPaymentMethods(prev => [...prev, { name: '', account_number: '', is_active: true }])}
                 >
                   <Plus className="w-4 h-4 ml-1" />
                   إضافة
@@ -1027,6 +1036,11 @@ export default function BranchesManagement() {
                           onUpdate={(idx, field, value) => {
                             const updated = [...branchPaymentMethods];
                             updated[idx] = { ...updated[idx], [field]: value };
+                            setBranchPaymentMethods(updated);
+                          }}
+                          onToggleActive={(idx) => {
+                            const updated = [...branchPaymentMethods];
+                            updated[idx] = { ...updated[idx], is_active: !updated[idx].is_active };
                             setBranchPaymentMethods(updated);
                           }}
                           onDelete={(idx) => setBranchPaymentMethods(prev => prev.filter((_, i) => i !== idx))}
