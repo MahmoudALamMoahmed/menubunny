@@ -1,67 +1,24 @@
 
 
-## الخطة: استبدال طرق الدفع الثابتة بنظام ديناميكي
+# إصلاح جدول "جميع الأصناف المباعة" ليطابق تصميم "الأصناف الأكثر طلباً"
 
-### الفكرة
-بدلاً من الأعمدة الثابتة (vodafone_cash, etisalat_cash, orange_cash) في جدول branches، سننشئ جدول جديد `branch_payment_methods` يسمح لصاحب المطعم بإضافة أي طريقة دفع يريدها باسم ورقم حساب مخصصين.
+## المشكلة
+الجدولان متطابقان في الأعمدة والبيانات، لكن المشكلة أن `ScrollArea` يلتف حول مكون `Table` الذي بداخله `div` بـ `overflow-auto`. هذا التداخل يسبب مشاكل في العرض والمحاذاة.
 
-### 1. تغييرات قاعدة البيانات
+## الحل
+إعادة كتابة `AllItemsTable.tsx` ليستخدم نفس بنية `TopItems.tsx` بالضبط، مع إضافة `ScrollArea` بشكل صحيح عن طريق لف الـ `Card` بالكامل أو استخدام `max-h` على الـ `CardContent` مع `overflow-y-auto` بدلاً من `ScrollArea` لتجنب التعارض مع div الـ overflow الموجود داخل مكون `Table`.
 
-**إنشاء جدول جديد:**
-```sql
-CREATE TABLE branch_payment_methods (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  branch_id uuid NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-  name text NOT NULL,        -- مثال: "فودافون كاش", "انستاباي", "بنك مصر"
-  account_number text NOT NULL,
-  display_order integer DEFAULT 0,
-  is_active boolean DEFAULT true,
-  created_at timestamptz DEFAULT now()
-);
-```
-مع سياسات RLS مناسبة (قراءة للجميع، إدارة لصاحب المطعم).
+## التعديل - ملف واحد: `src/components/analytics/AllItemsTable.tsx`
 
-**حذف الأعمدة القديمة** من جدول branches:
-```sql
-ALTER TABLE branches DROP COLUMN vodafone_cash, DROP COLUMN etisalat_cash, DROP COLUMN orange_cash;
+استبدال `ScrollArea` بـ `div` بسيط مع `overflow-y-auto` و `max-h-[400px]`:
+
+```tsx
+<div className="max-h-[400px] overflow-y-auto" dir="rtl">
+  <Table>
+    ...
+  </Table>
+</div>
 ```
 
-### 2. تغييرات الكود
-
-**BranchesManagement.tsx:**
-- حذف حقول vodafone/etisalat/orange من الفورم
-- إضافة قسم ديناميكي لإدارة طرق الدفع (إضافة/حذف) مع حقلين: اسم الطريقة + رقم الحساب
-- جلب وحفظ من/إلى جدول `branch_payment_methods`
-
-**Restaurant.tsx (السلة):**
-- استبدال خيارات الدفع الثابتة بقائمة ديناميكية من `branch_payment_methods` للفرع المختار
-- عرض اسم الطريقة ورقم الحساب مع زر النسخ
-- الإبقاء على "الدفع عند الاستلام" كخيار ثابت دائماً
-
-**OrderCard.tsx:**
-- تحديث `getPaymentText` ليعرض اسم طريقة الدفع كما هو (لأنها أصبحت نصوص مخصصة)
-
-**PaymentMethods.tsx (التحليلات):**
-- تحديث `PAYMENT_LABELS` لعرض اسم الطريقة كما هو إذا لم يكن في القاموس
-
-**useAnalyticsData.ts:**
-- لا يحتاج تعديل (يستخدم payment_method كنص بالفعل)
-
-**useRestaurantData.ts / useAdminData.ts:**
-- إضافة hook لجلب طرق الدفع لفرع معين
-
-### 3. كيف يعمل النظام الجديد
-
-- صاحب المطعم يفتح تعديل الفرع → يضغط "إضافة طريقة دفع" → يكتب الاسم (مثلاً "انستاباي") والرقم → حفظ
-- العميل في السلة يرى: "الدفع عند الاستلام" + طرق الدفع المضافة للفرع المختار
-- عند اختيار طريقة دفع إلكترونية يظهر الرقم مع زر نسخ + تنبيه إرسال سكرين شوت عبر واتساب
-- في الطلب يُحفظ اسم الطريقة في `payment_method` كنص
-
-### الملفات المتأثرة
-- `src/pages/BranchesManagement.tsx`
-- `src/pages/Restaurant.tsx`
-- `src/components/OrderCard.tsx`
-- `src/components/analytics/PaymentMethods.tsx`
-- `src/hooks/useRestaurantData.ts` أو `useAdminData.ts`
-- Migration جديد لقاعدة البيانات
+هذا يزيل التعارض بين `ScrollArea` و `Table` ويحافظ على إمكانية التمرير مع تطابق التصميم مع جدول الأصناف الأكثر طلباً.
 

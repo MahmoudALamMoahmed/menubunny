@@ -324,11 +324,12 @@ export default function BranchesManagement() {
     delivery_phone: '',
     working_hours: '',
     is_active: true,
-    vodafone_cash: '',
-    etisalat_cash: '',
-    orange_cash: '',
     order_mode: 'whatsapp'
   });
+
+  // Payment methods state for editing branch
+  const [branchPaymentMethods, setBranchPaymentMethods] = useState<{ id?: string; name: string; account_number: string }[]>([]);
+  const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(false);
   
   // إدارة المناطق
   const [showAreasDialog, setShowAreasDialog] = useState(false);
@@ -393,16 +394,14 @@ export default function BranchesManagement() {
       delivery_phone: '',
       working_hours: '',
       is_active: true,
-      vodafone_cash: '',
-      etisalat_cash: '',
-      orange_cash: '',
       order_mode: 'whatsapp'
     });
+    setBranchPaymentMethods([]);
     setEditingBranch(null);
   };
 
   // فتح حوار تعديل الفرع مع تعبئة البيانات الحالية
-  const openEditDialog = (branch: Branch) => {
+  const openEditDialog = async (branch: Branch) => {
     setEditingBranch(branch);
     setFormData({
       name: branch.name,
@@ -412,16 +411,20 @@ export default function BranchesManagement() {
       delivery_phone: branch.delivery_phone || '',
       working_hours: branch.working_hours || '',
       is_active: branch.is_active,
-      vodafone_cash: branch.vodafone_cash || '',
-      etisalat_cash: branch.etisalat_cash || '',
-      orange_cash: branch.orange_cash || '',
       order_mode: (branch as any).order_mode || 'whatsapp'
     });
     setShowDialog(true);
+    // Fetch payment methods for this branch
+    const { data } = await supabase
+      .from('branch_payment_methods')
+      .select('*')
+      .eq('branch_id', branch.id)
+      .order('display_order');
+    setBranchPaymentMethods(data?.map(d => ({ id: d.id, name: d.name, account_number: d.account_number })) || []);
   };
 
   // حفظ/تعديل فرع عبر Mutation
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!restaurant || !formData.name.trim()) {
       toast({
         title: 'خطأ',
@@ -439,7 +442,22 @@ export default function BranchesManagement() {
         display_order: editingBranch ? undefined : branches.length,
       },
       {
-        onSuccess: () => {
+        onSuccess: async (_, vars) => {
+          // Save payment methods
+          const branchId = vars.id || editingBranch?.id;
+          if (branchId) {
+            // Delete existing then re-insert
+            await supabase.from('branch_payment_methods').delete().eq('branch_id', branchId);
+            if (branchPaymentMethods.length > 0) {
+              const toInsert = branchPaymentMethods.map((pm, i) => ({
+                branch_id: branchId,
+                name: pm.name,
+                account_number: pm.account_number,
+                display_order: i,
+              }));
+              await supabase.from('branch_payment_methods').insert(toInsert);
+            }
+          }
           setShowDialog(false);
           resetForm();
         },
@@ -917,34 +935,54 @@ export default function BranchesManagement() {
 
             {/* Payment Methods */}
             <div className="space-y-3 border-t pt-4">
-              <Label className="text-base font-semibold">أرقام المحافظ الإلكترونية</Label>
-              <div className="space-y-2">
-                <Label htmlFor="vodafone">فودافون كاش</Label>
-                <Input
-                  id="vodafone"
-                  value={formData.vodafone_cash}
-                  onChange={(e) => setFormData(prev => ({ ...prev, vodafone_cash: e.target.value }))}
-                  placeholder="01xxxxxxxxx"
-                />
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">طرق الدفع الإلكترونية</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBranchPaymentMethods(prev => [...prev, { name: '', account_number: '' }])}
+                >
+                  <Plus className="w-4 h-4 ml-1" />
+                  إضافة
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="etisalat">اتصالات كاش</Label>
-                <Input
-                  id="etisalat"
-                  value={formData.etisalat_cash}
-                  onChange={(e) => setFormData(prev => ({ ...prev, etisalat_cash: e.target.value }))}
-                  placeholder="01xxxxxxxxx"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="orange">أورانج كاش</Label>
-                <Input
-                  id="orange"
-                  value={formData.orange_cash}
-                  onChange={(e) => setFormData(prev => ({ ...prev, orange_cash: e.target.value }))}
-                  placeholder="01xxxxxxxxx"
-                />
-              </div>
+              {branchPaymentMethods.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-2">لم تتم إضافة طرق دفع بعد</p>
+              )}
+              {branchPaymentMethods.map((pm, index) => (
+                <div key={index} className="flex gap-2 items-start bg-muted/40 rounded-lg p-3">
+                  <div className="flex-1 space-y-2">
+                    <Input
+                      value={pm.name}
+                      onChange={(e) => {
+                        const updated = [...branchPaymentMethods];
+                        updated[index] = { ...updated[index], name: e.target.value };
+                        setBranchPaymentMethods(updated);
+                      }}
+                      placeholder="اسم الطريقة (مثال: انستاباي)"
+                    />
+                    <Input
+                      value={pm.account_number}
+                      onChange={(e) => {
+                        const updated = [...branchPaymentMethods];
+                        updated[index] = { ...updated[index], account_number: e.target.value };
+                        setBranchPaymentMethods(updated);
+                      }}
+                      placeholder="رقم الحساب أو المحفظة"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="mt-1"
+                    onClick={() => setBranchPaymentMethods(prev => prev.filter((_, i) => i !== index))}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
 
             <div className="flex items-center gap-2">

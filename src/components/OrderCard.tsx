@@ -64,12 +64,8 @@ function parseNotesInfo(notes: string | null): { branch?: string; area?: string;
 }
 
 function getPaymentText(method: string | null) {
-  switch (method) {
-    case 'vodafone': return 'فودافون كاش';
-    case 'etisalat': return 'اتصالات كاش';
-    case 'orange': return 'اورانج كاش';
-    default: return 'الدفع عند الاستلام';
-  }
+  if (!method || method === 'cash') return 'الدفع عند الاستلام';
+  return method;
 }
 
 function formatDate(dateString: string) {

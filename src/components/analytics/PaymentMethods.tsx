@@ -3,9 +3,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend, Sector } fro
 import { useState } from "react";
 
 const PAYMENT_LABELS: Record<string, string> = {
-  cash: "كاش",
-  card: "بطاقة",
-  wallet: "محفظة إلكترونية",
+  cash: "الدفع عند الاستلام",
 };
 
 const COLORS = ["#22c55e", "#3b82f6", "#8b5cf6"];
