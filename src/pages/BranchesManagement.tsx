@@ -424,7 +424,7 @@ export default function BranchesManagement() {
   };
 
   // حفظ/تعديل فرع عبر Mutation
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!restaurant || !formData.name.trim()) {
       toast({
         title: 'خطأ',
@@ -442,7 +442,22 @@ export default function BranchesManagement() {
         display_order: editingBranch ? undefined : branches.length,
       },
       {
-        onSuccess: () => {
+        onSuccess: async (_, vars) => {
+          // Save payment methods
+          const branchId = vars.id || editingBranch?.id;
+          if (branchId) {
+            // Delete existing then re-insert
+            await supabase.from('branch_payment_methods').delete().eq('branch_id', branchId);
+            if (branchPaymentMethods.length > 0) {
+              const toInsert = branchPaymentMethods.map((pm, i) => ({
+                branch_id: branchId,
+                name: pm.name,
+                account_number: pm.account_number,
+                display_order: i,
+              }));
+              await supabase.from('branch_payment_methods').insert(toInsert);
+            }
+          }
           setShowDialog(false);
           resetForm();
         },
