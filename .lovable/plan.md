@@ -1,24 +1,25 @@
 
 
-# إصلاح جدول "جميع الأصناف المباعة" ليطابق تصميم "الأصناف الأكثر طلباً"
+## إصلاح اتجاه RTL لمكون منطقة التوصيل (SortableAreaItem)
 
-## المشكلة
-الجدولان متطابقان في الأعمدة والبيانات، لكن المشكلة أن `ScrollArea` يلتف حول مكون `Table` الذي بداخله `div` بـ `overflow-auto`. هذا التداخل يسبب مشاكل في العرض والمحاذاة.
+### المشكلة
+المكون لا يحتوي على `dir="rtl"` — فيظهر مقبض السحب والنص على اليسار، وأزرار التعديل والحذف على اليمين (عكس المطلوب للعربية).
 
-## الحل
-إعادة كتابة `AllItemsTable.tsx` ليستخدم نفس بنية `TopItems.tsx` بالضبط، مع إضافة `ScrollArea` بشكل صحيح عن طريق لف الـ `Card` بالكامل أو استخدام `max-h` على الـ `CardContent` مع `overflow-y-auto` بدلاً من `ScrollArea` لتجنب التعارض مع div الـ overflow الموجود داخل مكون `Table`.
+### الحل
+**ملف واحد: `src/pages/BranchesManagement.tsx` — مكون `SortableAreaItem`**
 
-## التعديل - ملف واحد: `src/components/analytics/AllItemsTable.tsx`
-
-استبدال `ScrollArea` بـ `div` بسيط مع `overflow-y-auto` و `max-h-[400px]`:
+إضافة `dir="rtl"` على الحاوية الرئيسية (سطر 326):
 
 ```tsx
-<div className="max-h-[400px] overflow-y-auto" dir="rtl">
-  <Table>
-    ...
-  </Table>
-</div>
+<div 
+  ref={setNodeRef}
+  style={style}
+  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+  dir="rtl"
+>
 ```
 
-هذا يزيل التعارض بين `ScrollArea` و `Table` ويحافظ على إمكانية التمرير مع تطابق التصميم مع جدول الأصناف الأكثر طلباً.
+هذا سيجعل:
+- مقبض السحب + اسم المنطقة والسعر → على **اليمين**
+- أزرار التعديل والحذف → على **اليسار**
 
