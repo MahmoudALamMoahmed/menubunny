@@ -13,7 +13,8 @@ interface Props {
 }
 
 export default function PaymentMethodSection({ branchId, paymentMethod, setPaymentMethod, finalTotal, toast }: Props) {
-  const { data: paymentMethods = [] } = useBranchPaymentMethods(branchId);
+  const { data: allPaymentMethods = [] } = useBranchPaymentMethods(branchId);
+  const paymentMethods = allPaymentMethods.filter(pm => pm.is_active !== false);
 
   const selectedPm = paymentMethods.find(pm => pm.name === paymentMethod);
 

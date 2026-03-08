@@ -1038,6 +1038,11 @@ export default function BranchesManagement() {
                             updated[idx] = { ...updated[idx], [field]: value };
                             setBranchPaymentMethods(updated);
                           }}
+                          onToggleActive={(idx) => {
+                            const updated = [...branchPaymentMethods];
+                            updated[idx] = { ...updated[idx], is_active: !updated[idx].is_active };
+                            setBranchPaymentMethods(updated);
+                          }}
                           onDelete={(idx) => setBranchPaymentMethods(prev => prev.filter((_, i) => i !== idx))}
                         />
                       ))}
