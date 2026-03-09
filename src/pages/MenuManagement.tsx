@@ -19,6 +19,7 @@ import {
   useSaveExtra, useDeleteExtra,
   useReorderCategories, useReorderMenuItems, useReorderExtras,
 } from '@/hooks/useAdminMutations';
+import { useLimitsCheck } from '@/hooks/useLimitsCheck';
 import type { Tables } from '@/integrations/supabase/types';
 import ImageUploader from '@/components/ImageUploader';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
@@ -73,6 +74,11 @@ export default function MenuManagement() {
   const { data: sizes = [], isLoading: sizesLoading } = useAdminSizes(restaurantId);
   const { data: extras = [], isLoading: extrasLoading } = useAdminExtras(restaurantId);
   
+  // Limit checks - فحص حدود الباقة
+  const catLimits = useLimitsCheck(restaurantId, 'categories', categories.length);
+  const itemLimits = useLimitsCheck(restaurantId, 'menu_items', menuItems.length);
+  const extraLimits = useLimitsCheck(restaurantId, 'extras', extras.length);
+
   const dataLoading = categoriesLoading || itemsLoading || sizesLoading || extrasLoading;
 
   // React Query Mutation - عمليات الحفظ والحذف وإعادة الترتيب
@@ -422,10 +428,17 @@ export default function MenuManagement() {
                   <CardTitle>إدارة الفئات</CardTitle>
                   <CardDescription>أضف وعدل فئات القائمة</CardDescription>
                 </div>
-                <Button onClick={() => setShowCategoryForm(!showCategoryForm)}>
-                  <Plus className="w-4 h-4 ml-2" />
-                  إضافة فئة
-                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{catLimits.usageText}</span>
+                  <Button 
+                    onClick={() => setShowCategoryForm(!showCategoryForm)}
+                    disabled={!catLimits.canAdd}
+                    title={!catLimits.canAdd ? 'وصلت للحد الأقصى - قم بترقية باقتك' : ''}
+                  >
+                    <Plus className="w-4 h-4 ml-2" />
+                    {catLimits.canAdd ? 'إضافة فئة' : 'الحد الأقصى'}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -530,15 +543,22 @@ export default function MenuManagement() {
                   <CardTitle>إدارة الأصناف</CardTitle>
                   <CardDescription>أضف وعدل أصناف القائمة</CardDescription>
                 </div>
-                <Button onClick={() => {
-                  setShowItemForm(!showItemForm);
-                  if (!showItemForm) {
-                    setTempItemId(crypto.randomUUID());
-                  }
-                }}>
-                  <Plus className="w-4 h-4 ml-2" />
-                  إضافة صنف
-                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{itemLimits.usageText}</span>
+                  <Button 
+                    onClick={() => {
+                      setShowItemForm(!showItemForm);
+                      if (!showItemForm) {
+                        setTempItemId(crypto.randomUUID());
+                      }
+                    }}
+                    disabled={!itemLimits.canAdd}
+                    title={!itemLimits.canAdd ? 'وصلت للحد الأقصى - قم بترقية باقتك' : ''}
+                  >
+                    <Plus className="w-4 h-4 ml-2" />
+                    {itemLimits.canAdd ? 'إضافة صنف' : 'الحد الأقصى'}
+                  </Button>
+                </div>
               </div>
               
               {/* Search and Filter */}
@@ -773,10 +793,13 @@ export default function MenuManagement() {
                   <CardTitle>إدارة الإضافات</CardTitle>
                   <CardDescription>أضف إضافات اختيارية للوجبات (جبنة إضافية، صوص، إلخ)</CardDescription>
                 </div>
-                <Button onClick={() => setShowExtrasDialog(true)}>
-                  <Cookie className="w-4 h-4 ml-2" />
-                  إدارة الإضافات
-                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{extraLimits.usageText}</span>
+                  <Button onClick={() => setShowExtrasDialog(true)}>
+                    <Cookie className="w-4 h-4 ml-2" />
+                    إدارة الإضافات
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>

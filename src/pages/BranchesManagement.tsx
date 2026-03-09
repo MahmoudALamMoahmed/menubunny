@@ -15,6 +15,7 @@ import {
   useSaveDeliveryArea, useDeleteDeliveryArea,
   useReorderBranches, useReorderDeliveryAreas,
 } from '@/hooks/useAdminMutations';
+import { useLimitsCheck } from '@/hooks/useLimitsCheck';
 import type { Tables } from '@/integrations/supabase/types';
 import { 
   ArrowLeft, 
@@ -381,6 +382,9 @@ export default function BranchesManagement() {
   const { data: deliveryAreas = [], isLoading: areasLoading } = useAdminDeliveryAreas(branchIds);
   const { data: staffList = [], refetch: refetchStaff } = useBranchStaffList(restaurantId);
   
+  // Limit check - فحص حدود الباقة للفروع
+  const branchLimits = useLimitsCheck(restaurantId, 'branches', branches.length);
+
   const dataLoading = branchesLoading || areasLoading;
 
   // React Query Mutation - عمليات CRUD وإعادة الترتيب
@@ -840,10 +844,17 @@ export default function BranchesManagement() {
               </div>
             </div>
 
-            <Button onClick={() => { resetForm(); setShowDialog(true); }}>
-              <Plus className="w-4 h-4 ml-2" />
-              إضافة فرع
-            </Button>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">{branchLimits.usageText} فرع</span>
+              <Button 
+                onClick={() => { resetForm(); setShowDialog(true); }}
+                disabled={!branchLimits.canAdd}
+                title={!branchLimits.canAdd ? 'وصلت للحد الأقصى - قم بترقية باقتك' : ''}
+              >
+                <Plus className="w-4 h-4 ml-2" />
+                {branchLimits.canAdd ? 'إضافة فرع' : 'الحد الأقصى'}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

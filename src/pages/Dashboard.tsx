@@ -9,10 +9,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useAuth } from '@/hooks/useAuth';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useSaveRestaurant } from '@/hooks/useAdminMutations';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
 import ImageUploader from '@/components/ImageUploader';
 import { getCoverPublicId, getLogoPublicId } from '@/lib/bunny';
+import { Badge } from '@/components/ui/badge';
 import { 
-  Settings, Menu, BarChart3, ShoppingBag, ArrowLeft, Save, Eye, Building2, Store, Wallet
+  Settings, Menu, BarChart3, ShoppingBag, ArrowLeft, Save, Eye, Building2, Store, Wallet, Crown
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -22,6 +24,8 @@ export default function Dashboard() {
   
   // React Query - جلب بيانات المطعم
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  const restaurantId = restaurant?.id;
+  const { data: limits } = useRestaurantLimits(restaurantId);
   // React Query Mutation - حفظ/تحديث بيانات المطعم
   const saveRestaurantMut = useSaveRestaurant(username);
   
@@ -107,9 +111,17 @@ export default function Dashboard() {
                 العودة
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">
-                  {restaurant ? 'لوحة التحكم' : 'إنشاء مطعم جديد'}
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-gray-800">
+                    {restaurant ? 'لوحة التحكم' : 'إنشاء مطعم جديد'}
+                  </h1>
+                  {limits && (
+                    <Badge variant={limits.is_subscribed ? 'default' : 'secondary'} className="flex items-center gap-1">
+                      <Crown className="w-3 h-3" />
+                      {limits.plan_name_ar}
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-gray-600 text-sm">
                   {restaurant ? `${restaurant.name}` : 'أنشئ مطعمك الإلكتروني الآن'}
                 </p>
@@ -160,6 +172,10 @@ export default function Dashboard() {
               <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/analytics`)}>
                 <BarChart3 className="w-4 h-4 ml-2" />
                 التقارير
+              </Button>
+              <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/subscription`)}>
+                <Crown className="w-4 h-4 ml-2" />
+                الباقة والاشتراك
               </Button>
             </CardContent>
           </Card>
