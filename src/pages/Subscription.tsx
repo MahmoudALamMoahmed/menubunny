@@ -10,8 +10,9 @@ import { useAdminCategories, useAdminMenuItems, useAdminBranches, useAdminExtras
 import { useRestaurantLimits, usePlans, useWalletBalance, useSubscribeToPlan, useSubscriptionHistory } from '@/hooks/useSubscription';
 import { 
   Crown, ArrowLeft, Check, Wallet, Calendar, Zap, AlertTriangle, 
-  Utensils, Grid3X3, Building2, Cookie, X
+  Utensils, Grid3X3, Building2, Cookie, X, Info, Clock, ShieldAlert
 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import {
@@ -130,6 +131,22 @@ export default function Subscription() {
     },
   ];
 
+  // حساب الأيام المتبقية حتى انتهاء الاشتراك
+  const daysUntilExpiry = limits?.expires_at
+    ? Math.ceil((new Date(limits.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  // الباقة المجانية + حساب العناصر التي ستتجاوز حدودها
+  const freePlan = plans.find(p => Number(p.price_monthly) === 0);
+  const overLimitItems = freePlan && limits?.is_subscribed
+    ? [
+        { label: 'الفئات', current: categories.length, max: freePlan.max_categories, note: 'لن يُحذف لكن لن تستطيع إضافة جديدة' },
+        { label: 'الأصناف', current: menuItems.length, max: freePlan.max_items, note: 'لن يُحذف لكن لن تستطيع إضافة جديدة' },
+        { label: 'الفروع', current: branches.length, max: freePlan.max_branches, note: 'الفروع الإضافية لن تُحذف لكن لن تستطيع إدارتها' },
+        { label: 'الإضافات', current: extras.length, max: freePlan.max_extras, note: 'لن يُحذف لكن لن تستطيع إضافة جديدة' },
+      ].filter(item => item.max !== null && item.current > item.max!)
+    : [];
+
   // Plan features for display
   const planFeatures = (plan: typeof plans[0]) => {
     const features: { text: string; included: boolean }[] = [
@@ -217,6 +234,17 @@ export default function Subscription() {
                   </div>
                 );
               })}
+              
+              {/* تنبيه قريب من الانتهاء */}
+              {daysUntilExpiry !== null && daysUntilExpiry > 0 && daysUntilExpiry <= 7 && (
+                <Alert className="mt-4 border-orange-200 bg-orange-50 text-orange-800">
+                  <Clock className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="mr-2">
+                    <strong>اشتراكك ينتهي خلال {daysUntilExpiry} أيام.</strong>
+                    {' '}تأكد من وجود رصيد كافٍ في المحفظة للتجديد التلقائي أو قم بالتجديد يدوياً.
+                  </AlertDescription>
+                </Alert>
+              )}
             </CardContent>
           </Card>
 
@@ -325,6 +353,39 @@ export default function Subscription() {
             })}
           </div>
         </div>
+
+        {/* تنبيه البيانات الزائدة عن الحد */}
+        {overLimitItems.length > 0 && (
+          <Alert className="border-orange-200 bg-orange-50 text-orange-800">
+            <ShieldAlert className="h-5 w-5 text-orange-600" />
+            <AlertDescription className="mr-2">
+              <p className="font-bold mb-2">⚠️ بيانات ستتأثر عند الرجوع للباقة المجانية</p>
+              <ul className="space-y-1 text-sm">
+                {overLimitItems.map((item, idx) => (
+                  <li key={idx}>
+                    <strong>{item.label}:</strong> لديك {item.current} — المسموح في المجانية: {item.max}
+                    <br />
+                    <span className="text-muted-foreground text-xs">({item.note})</span>
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* بنر سياسة انتهاء الاشتراك */}
+        <Alert className="border-muted bg-muted/50">
+          <Info className="h-5 w-5 text-muted-foreground" />
+          <AlertDescription className="mr-2 space-y-2">
+            <p className="font-semibold">ماذا يحدث إذا انتهى اشتراكي؟</p>
+            <ul className="text-sm space-y-1 text-muted-foreground">
+              <li>✅ <strong>البيانات الموجودة لن تُحذف</strong> — ستبقى كما هي</li>
+              <li>⛔ <strong>لن تتمكن من إضافة المزيد</strong> حتى تُجدد أو تصبح ضمن حدود المجانية</li>
+              <li>🔒 <strong>الميزات المدفوعة</strong> (التحليلات، موظفو الفروع) ستُقفل مؤقتاً</li>
+              <li>🌐 <strong>صفحة المطعم تبقى تعمل</strong> للزبائن بشكل طبيعي</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
 
         {/* Subscription History */}
         {history.length > 0 && (
