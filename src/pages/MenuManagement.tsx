@@ -542,15 +542,22 @@ export default function MenuManagement() {
                   <CardTitle>إدارة الأصناف</CardTitle>
                   <CardDescription>أضف وعدل أصناف القائمة</CardDescription>
                 </div>
-                <Button onClick={() => {
-                  setShowItemForm(!showItemForm);
-                  if (!showItemForm) {
-                    setTempItemId(crypto.randomUUID());
-                  }
-                }}>
-                  <Plus className="w-4 h-4 ml-2" />
-                  إضافة صنف
-                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{itemLimits.usageText}</span>
+                  <Button 
+                    onClick={() => {
+                      setShowItemForm(!showItemForm);
+                      if (!showItemForm) {
+                        setTempItemId(crypto.randomUUID());
+                      }
+                    }}
+                    disabled={!itemLimits.canAdd}
+                    title={!itemLimits.canAdd ? 'وصلت للحد الأقصى - قم بترقية باقتك' : ''}
+                  >
+                    <Plus className="w-4 h-4 ml-2" />
+                    {itemLimits.canAdd ? 'إضافة صنف' : 'الحد الأقصى'}
+                  </Button>
+                </div>
               </div>
               
               {/* Search and Filter */}
