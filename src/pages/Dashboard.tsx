@@ -9,10 +9,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useAuth } from '@/hooks/useAuth';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useSaveRestaurant } from '@/hooks/useAdminMutations';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
 import ImageUploader from '@/components/ImageUploader';
 import { getCoverPublicId, getLogoPublicId } from '@/lib/bunny';
+import { Badge } from '@/components/ui/badge';
 import { 
-  Settings, Menu, BarChart3, ShoppingBag, ArrowLeft, Save, Eye, Building2, Store, Wallet
+  Settings, Menu, BarChart3, ShoppingBag, ArrowLeft, Save, Eye, Building2, Store, Wallet, Crown
 } from 'lucide-react';
 
 export default function Dashboard() {
