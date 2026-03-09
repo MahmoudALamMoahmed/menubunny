@@ -111,9 +111,17 @@ export default function Dashboard() {
                 العودة
               </Button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">
-                  {restaurant ? 'لوحة التحكم' : 'إنشاء مطعم جديد'}
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-gray-800">
+                    {restaurant ? 'لوحة التحكم' : 'إنشاء مطعم جديد'}
+                  </h1>
+                  {limits && (
+                    <Badge variant={limits.is_subscribed ? 'default' : 'secondary'} className="flex items-center gap-1">
+                      <Crown className="w-3 h-3" />
+                      {limits.plan_name_ar}
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-gray-600 text-sm">
                   {restaurant ? `${restaurant.name}` : 'أنشئ مطعمك الإلكتروني الآن'}
                 </p>
