@@ -116,6 +116,16 @@ export function useSaveMenuItem(restaurantId: string | undefined) {
   return useMutation({
     mutationFn: async (data: SaveItemData) => {
       const { id, ...itemData } = data;
+      if (!id) {
+        const [limitsRes, countRes] = await Promise.all([
+          supabase.rpc('get_restaurant_limits', { p_restaurant_id: restaurantId! }),
+          supabase.from('menu_items').select('*', { count: 'exact', head: true }).eq('restaurant_id', restaurantId!)
+        ]);
+        const maxAllowed = (limitsRes.data?.[0] as any)?.max_items;
+        if (maxAllowed !== null && maxAllowed !== undefined && (countRes.count ?? 0) >= maxAllowed) {
+          throw new Error('LIMIT_REACHED');
+        }
+      }
       if (id) {
         const { error } = await supabase.from('menu_items').update(itemData).eq('id', id);
         if (error) throw error;
@@ -128,8 +138,12 @@ export function useSaveMenuItem(restaurantId: string | undefined) {
       toast({ title: vars.id ? 'تم التحديث' : 'تم الحفظ', description: vars.id ? 'تم تحديث الصنف بنجاح' : 'تم إضافة الصنف بنجاح' });
       invalidate();
     },
-    onError: () => {
-      toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ الصنف', variant: 'destructive' });
+    onError: (error: any) => {
+      if (error?.message === 'LIMIT_REACHED') {
+        toast({ title: 'وصلت للحد الأقصى', description: 'قم بترقية باقتك لإضافة المزيد من الأصناف', variant: 'destructive' });
+      } else {
+        toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ الصنف', variant: 'destructive' });
+      }
     },
   });
 }
