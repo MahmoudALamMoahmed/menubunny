@@ -20,6 +20,7 @@ export interface RestaurantLimits {
   };
   expires_at: string | null;
   is_subscribed: boolean;
+  auto_renew?: boolean;
 }
 
 // ─── Hooks ──────────────────────────────────────────────────
