@@ -40,6 +40,16 @@ export function useSaveCategory(restaurantId: string | undefined) {
 
   return useMutation({
     mutationFn: async ({ id, name, display_order }: { id?: string; name: string; display_order: number }) => {
+      if (!id) {
+        const [limitsRes, countRes] = await Promise.all([
+          supabase.rpc('get_restaurant_limits', { p_restaurant_id: restaurantId! }),
+          supabase.from('categories').select('*', { count: 'exact', head: true }).eq('restaurant_id', restaurantId!)
+        ]);
+        const maxAllowed = (limitsRes.data?.[0] as any)?.max_categories;
+        if (maxAllowed !== null && maxAllowed !== undefined && (countRes.count ?? 0) >= maxAllowed) {
+          throw new Error('LIMIT_REACHED');
+        }
+      }
       if (id) {
         const { error } = await supabase.from('categories').update({ name, display_order }).eq('id', id);
         if (error) throw error;
@@ -52,8 +62,12 @@ export function useSaveCategory(restaurantId: string | undefined) {
       toast({ title: vars.id ? 'تم التحديث' : 'تم الحفظ', description: vars.id ? 'تم تحديث القسم بنجاح' : 'تم إضافة القسم بنجاح' });
       invalidate();
     },
-    onError: () => {
-      toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ القسم', variant: 'destructive' });
+    onError: (error: any) => {
+      if (error?.message === 'LIMIT_REACHED') {
+        toast({ title: 'وصلت للحد الأقصى', description: 'قم بترقية باقتك لإضافة المزيد من الفئات', variant: 'destructive' });
+      } else {
+        toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ القسم', variant: 'destructive' });
+      }
     },
   });
 }
