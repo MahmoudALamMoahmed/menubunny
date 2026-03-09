@@ -24,6 +24,8 @@ export default function Dashboard() {
   
   // React Query - جلب بيانات المطعم
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  const restaurantId = restaurant?.id;
+  const { data: limits } = useRestaurantLimits(restaurantId);
   // React Query Mutation - حفظ/تحديث بيانات المطعم
   const saveRestaurantMut = useSaveRestaurant(username);
   
