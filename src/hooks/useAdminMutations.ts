@@ -306,6 +306,16 @@ export function useSaveBranch(restaurantId: string | undefined) {
   return useMutation({
     mutationFn: async (data: SaveBranchData) => {
       const { id, ...branchData } = data;
+      if (!id) {
+        const [limitsRes, countRes] = await Promise.all([
+          supabase.rpc('get_restaurant_limits', { p_restaurant_id: restaurantId! }),
+          supabase.from('branches').select('*', { count: 'exact', head: true }).eq('restaurant_id', restaurantId!)
+        ]);
+        const maxAllowed = (limitsRes.data?.[0] as any)?.max_branches;
+        if (maxAllowed !== null && maxAllowed !== undefined && (countRes.count ?? 0) >= maxAllowed) {
+          throw new Error('LIMIT_REACHED');
+        }
+      }
       if (id) {
         const { error } = await supabase.from('branches').update(branchData).eq('id', id);
         if (error) throw error;
@@ -318,8 +328,12 @@ export function useSaveBranch(restaurantId: string | undefined) {
       toast({ title: vars.id ? 'تم التحديث' : 'تم الإضافة', description: vars.id ? 'تم تحديث بيانات الفرع بنجاح' : 'تم إضافة الفرع بنجاح' });
       invalidate();
     },
-    onError: () => {
-      toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ البيانات', variant: 'destructive' });
+    onError: (error: any) => {
+      if (error?.message === 'LIMIT_REACHED') {
+        toast({ title: 'وصلت للحد الأقصى', description: 'قم بترقية باقتك لإضافة المزيد من الفروع', variant: 'destructive' });
+      } else {
+        toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ البيانات', variant: 'destructive' });
+      }
     },
   });
 }
