@@ -381,6 +381,9 @@ export default function BranchesManagement() {
   const { data: deliveryAreas = [], isLoading: areasLoading } = useAdminDeliveryAreas(branchIds);
   const { data: staffList = [], refetch: refetchStaff } = useBranchStaffList(restaurantId);
   
+  // Limit check - فحص حدود الباقة للفروع
+  const branchLimits = useLimitsCheck(restaurantId, 'branches', branches.length);
+
   const dataLoading = branchesLoading || areasLoading;
 
   // React Query Mutation - عمليات CRUD وإعادة الترتيب
