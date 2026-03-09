@@ -354,6 +354,39 @@ export default function Subscription() {
           </div>
         </div>
 
+        {/* تنبيه البيانات الزائدة عن الحد */}
+        {overLimitItems.length > 0 && (
+          <Alert className="border-orange-200 bg-orange-50 text-orange-800">
+            <ShieldAlert className="h-5 w-5 text-orange-600" />
+            <AlertDescription className="mr-2">
+              <p className="font-bold mb-2">⚠️ بيانات ستتأثر عند الرجوع للباقة المجانية</p>
+              <ul className="space-y-1 text-sm">
+                {overLimitItems.map((item, idx) => (
+                  <li key={idx}>
+                    <strong>{item.label}:</strong> لديك {item.current} — المسموح في المجانية: {item.max}
+                    <br />
+                    <span className="text-muted-foreground text-xs">({item.note})</span>
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* بنر سياسة انتهاء الاشتراك */}
+        <Alert className="border-muted bg-muted/50">
+          <Info className="h-5 w-5 text-muted-foreground" />
+          <AlertDescription className="mr-2 space-y-2">
+            <p className="font-semibold">ماذا يحدث إذا انتهى اشتراكي؟</p>
+            <ul className="text-sm space-y-1 text-muted-foreground">
+              <li>✅ <strong>البيانات الموجودة لن تُحذف</strong> — ستبقى كما هي</li>
+              <li>⛔ <strong>لن تتمكن من إضافة المزيد</strong> حتى تُجدد أو تصبح ضمن حدود المجانية</li>
+              <li>🔒 <strong>الميزات المدفوعة</strong> (التحليلات، موظفو الفروع) ستُقفل مؤقتاً</li>
+              <li>🌐 <strong>صفحة المطعم تبقى تعمل</strong> للزبائن بشكل طبيعي</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+
         {/* Subscription History */}
         {history.length > 0 && (
           <Card>
