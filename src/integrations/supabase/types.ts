@@ -400,6 +400,51 @@ export type Database = {
           },
         ]
       }
+      plans: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          max_branches: number | null
+          max_categories: number | null
+          max_extras: number | null
+          max_items: number | null
+          name: string
+          name_ar: string
+          price_monthly: number
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_branches?: number | null
+          max_categories?: number | null
+          max_extras?: number | null
+          max_items?: number | null
+          name: string
+          name_ar: string
+          price_monthly?: number
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_branches?: number | null
+          max_categories?: number | null
+          max_extras?: number | null
+          max_items?: number | null
+          name?: string
+          name_ar?: string
+          price_monthly?: number
+        }
+        Relationships: []
+      }
       restaurants: {
         Row: {
           address: string | null
@@ -495,6 +540,106 @@ export type Database = {
           },
         ]
       }
+      subscription_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          plan_id: string
+          restaurant_id: string
+          subscription_id: string | null
+          type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          plan_id: string
+          restaurant_id: string
+          subscription_id?: string | null
+          type?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          plan_id?: string
+          restaurant_id?: string
+          subscription_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_transactions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_transactions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_transactions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          plan_id: string
+          restaurant_id: string
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          plan_id: string
+          restaurant_id: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          plan_id?: string
+          restaurant_id?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallet_transactions: {
         Row: {
           amount: number
@@ -568,6 +713,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_restaurant_limits: {
+        Args: { p_restaurant_id: string }
+        Returns: {
+          expires_at: string
+          features: Json
+          is_subscribed: boolean
+          max_branches: number
+          max_categories: number
+          max_extras: number
+          max_items: number
+          plan_id: string
+          plan_name: string
+          plan_name_ar: string
+        }[]
+      }
       get_staff_branch_id: { Args: { _user_id: string }; Returns: string }
       get_staff_restaurant_id: { Args: { _user_id: string }; Returns: string }
       is_branch_staff: { Args: { _user_id: string }; Returns: boolean }
@@ -581,6 +741,10 @@ export type Database = {
           p_kashier_order_id: string
           p_payment_method?: string
         }
+        Returns: string
+      }
+      subscribe_to_plan: {
+        Args: { p_plan_id: string; p_restaurant_id: string }
         Returns: string
       }
     }
