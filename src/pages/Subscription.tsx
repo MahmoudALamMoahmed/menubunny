@@ -57,6 +57,7 @@ export default function Subscription() {
   const { data: extras = [] } = useAdminExtras(restaurantId);
   
   const subscribeMut = useSubscribeToPlan(restaurantId);
+  const toggleAutoRenewMut = useToggleAutoRenew(restaurantId);
   
   // UI State
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; planId: string; planName: string; price: number }>({
