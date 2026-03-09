@@ -7,7 +7,9 @@ import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useAdminCategories, useAdminMenuItems, useAdminBranches, useAdminExtras } from '@/hooks/useAdminData';
-import { useRestaurantLimits, usePlans, useWalletBalance, useSubscribeToPlan, useSubscriptionHistory } from '@/hooks/useSubscription';
+import { useRestaurantLimits, usePlans, useWalletBalance, useSubscribeToPlan, useSubscriptionHistory, useToggleAutoRenew } from '@/hooks/useSubscription';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { 
   Crown, ArrowLeft, Check, Wallet, Calendar, Zap, AlertTriangle, 
   Utensils, Grid3X3, Building2, Cookie, X, Info, Clock, ShieldAlert
@@ -55,6 +57,7 @@ export default function Subscription() {
   const { data: extras = [] } = useAdminExtras(restaurantId);
   
   const subscribeMut = useSubscribeToPlan(restaurantId);
+  const toggleAutoRenewMut = useToggleAutoRenew(restaurantId);
   
   // UI State
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; planId: string; planName: string; price: number }>({
@@ -244,6 +247,23 @@ export default function Subscription() {
                     {' '}تأكد من وجود رصيد كافٍ في المحفظة للتجديد التلقائي أو قم بالتجديد يدوياً.
                   </AlertDescription>
                 </Alert>
+              )}
+
+              {/* إعدادات التجديد التلقائي (تظهر فقط للمشتركين) */}
+              {limits?.is_subscribed && limits.expires_at && (
+                <div className="mt-6 pt-4 border-t flex items-center justify-between gap-4">
+                  <div className="space-y-1 flex-1">
+                    <Label className="text-base font-medium">التجديد التلقائي</Label>
+                    <p className="text-sm text-muted-foreground leading-snug">
+                      يُجدَّد اشتراكك تلقائياً قبل انتهائه إذا كان الرصيد كافياً
+                    </p>
+                  </div>
+                  <Switch
+                    checked={limits.auto_renew ?? true}
+                    onCheckedChange={(checked) => toggleAutoRenewMut.mutate(checked)}
+                    disabled={toggleAutoRenewMut.isPending}
+                  />
+                </div>
               )}
             </CardContent>
           </Card>

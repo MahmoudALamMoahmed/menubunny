@@ -20,6 +20,7 @@ export interface RestaurantLimits {
   };
   expires_at: string | null;
   is_subscribed: boolean;
+  auto_renew?: boolean;
 }
 
 // ─── Hooks ──────────────────────────────────────────────────
@@ -130,6 +131,29 @@ export function useSubscribeToPlan(restaurantId: string | undefined) {
     },
     onError: () => {
       toast({ title: 'خطأ', description: 'حدث خطأ أثناء الاشتراك', variant: 'destructive' });
+    },
+  });
+}
+
+// Mutation - تفعيل/إلغاء التجديد التلقائي
+export function useToggleAutoRenew(restaurantId: string | undefined) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (autoRenew: boolean) => {
+      const { error } = await supabase.rpc('toggle_auto_renew', { 
+        p_restaurant_id: restaurantId!, 
+        p_auto_renew: autoRenew 
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['restaurant_limits', restaurantId] });
+      toast({ title: 'تم التحديث', description: 'تم تحديث إعدادات التجديد التلقائي' });
+    },
+    onError: () => {
+      toast({ title: 'خطأ', description: 'حدث خطأ أثناء التحديث', variant: 'destructive' });
     },
   });
 }

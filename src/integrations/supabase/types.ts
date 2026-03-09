@@ -594,6 +594,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          auto_renew: boolean
           created_at: string
           expires_at: string
           id: string
@@ -604,6 +605,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_renew?: boolean
           created_at?: string
           expires_at: string
           id?: string
@@ -614,6 +616,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_renew?: boolean
           created_at?: string
           expires_at?: string
           id?: string
@@ -716,6 +719,7 @@ export type Database = {
       get_restaurant_limits: {
         Args: { p_restaurant_id: string }
         Returns: {
+          auto_renew: boolean
           expires_at: string
           features: Json
           is_subscribed: boolean
@@ -744,8 +748,16 @@ export type Database = {
         Returns: string
       }
       subscribe_to_plan: {
-        Args: { p_plan_id: string; p_restaurant_id: string }
+        Args: {
+          p_auto_renew?: boolean
+          p_plan_id: string
+          p_restaurant_id: string
+        }
         Returns: string
+      }
+      toggle_auto_renew: {
+        Args: { p_auto_renew: boolean; p_restaurant_id: string }
+        Returns: undefined
       }
     }
     Enums: {
