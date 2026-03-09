@@ -173,6 +173,10 @@ export default function Dashboard() {
                 <BarChart3 className="w-4 h-4 ml-2" />
                 التقارير
               </Button>
+              <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/subscription`)}>
+                <Crown className="w-4 h-4 ml-2" />
+                الباقة والاشتراك
+              </Button>
             </CardContent>
           </Card>
 
