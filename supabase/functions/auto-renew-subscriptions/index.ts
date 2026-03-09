@@ -15,11 +15,10 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 1. جلب الاشتراكات التي تحتاج للتجديد
+    // 1. جلب الاشتراكات التي تحتاج للتجديد (auto_renew = true)
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     
-    // شمول الاشتراكات المنتهية خلال آخر 48 ساعة أيضاً
     const fortyEightHoursAgo = new Date();
     fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
 
@@ -31,9 +30,10 @@ Deno.serve(async (req) => {
         plan_id,
         expires_at,
         auto_renew,
+        status,
         restaurants!inner(owner_id)
       `)
-      .eq('status', 'active')
+      .in('status', ['active', 'expired'])
       .eq('auto_renew', true)
       .lt('expires_at', tomorrow.toISOString())
       .gt('expires_at', fortyEightHoursAgo.toISOString());
@@ -53,6 +53,7 @@ Deno.serve(async (req) => {
       renewed: 0,
       failed: 0,
       insufficient_balance: 0,
+      expired_updated: 0,
       errors: [] as string[],
     };
 
@@ -88,6 +89,21 @@ Deno.serve(async (req) => {
         results.failed++;
         results.errors.push(`Sub ${sub.id}: ${err.message}`);
       }
+    }
+
+    // 3. تحديث status إلى expired لجميع الاشتراكات المنتهية التي لم تُجدد
+    const { data: expiredData, error: expiredError } = await supabase
+      .from('subscriptions')
+      .update({ status: 'expired', updated_at: new Date().toISOString() })
+      .eq('status', 'active')
+      .lt('expires_at', new Date().toISOString())
+      .select('id');
+
+    if (expiredError) {
+      console.error('Error updating expired subscriptions:', expiredError);
+    } else {
+      results.expired_updated = expiredData?.length || 0;
+      console.log(`Marked ${results.expired_updated} subscriptions as expired`);
     }
 
     console.log('Auto-renewal results:', results);
