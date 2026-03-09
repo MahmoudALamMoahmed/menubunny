@@ -234,6 +234,17 @@ export default function Subscription() {
                   </div>
                 );
               })}
+              
+              {/* تنبيه قريب من الانتهاء */}
+              {daysUntilExpiry !== null && daysUntilExpiry > 0 && daysUntilExpiry <= 7 && (
+                <Alert className="mt-4 border-orange-200 bg-orange-50 text-orange-800">
+                  <Clock className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="mr-2">
+                    <strong>اشتراكك ينتهي خلال {daysUntilExpiry} أيام.</strong>
+                    {' '}تأكد من وجود رصيد كافٍ في المحفظة للتجديد التلقائي أو قم بالتجديد يدوياً.
+                  </AlertDescription>
+                </Alert>
+              )}
             </CardContent>
           </Card>
 
