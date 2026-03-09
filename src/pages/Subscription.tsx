@@ -10,8 +10,9 @@ import { useAdminCategories, useAdminMenuItems, useAdminBranches, useAdminExtras
 import { useRestaurantLimits, usePlans, useWalletBalance, useSubscribeToPlan, useSubscriptionHistory } from '@/hooks/useSubscription';
 import { 
   Crown, ArrowLeft, Check, Wallet, Calendar, Zap, AlertTriangle, 
-  Utensils, Grid3X3, Building2, Cookie, X
+  Utensils, Grid3X3, Building2, Cookie, X, Info, Clock, ShieldAlert
 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import {
