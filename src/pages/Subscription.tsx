@@ -131,6 +131,22 @@ export default function Subscription() {
     },
   ];
 
+  // حساب الأيام المتبقية حتى انتهاء الاشتراك
+  const daysUntilExpiry = limits?.expires_at
+    ? Math.ceil((new Date(limits.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  // الباقة المجانية + حساب العناصر التي ستتجاوز حدودها
+  const freePlan = plans.find(p => Number(p.price_monthly) === 0);
+  const overLimitItems = freePlan && limits?.is_subscribed
+    ? [
+        { label: 'الفئات', current: categories.length, max: freePlan.max_categories, note: 'لن يُحذف لكن لن تستطيع إضافة جديدة' },
+        { label: 'الأصناف', current: menuItems.length, max: freePlan.max_items, note: 'لن يُحذف لكن لن تستطيع إضافة جديدة' },
+        { label: 'الفروع', current: branches.length, max: freePlan.max_branches, note: 'الفروع الإضافية لن تُحذف لكن لن تستطيع إدارتها' },
+        { label: 'الإضافات', current: extras.length, max: freePlan.max_extras, note: 'لن يُحذف لكن لن تستطيع إضافة جديدة' },
+      ].filter(item => item.max !== null && item.current > item.max!)
+    : [];
+
   // Plan features for display
   const planFeatures = (plan: typeof plans[0]) => {
     const features: { text: string; included: boolean }[] = [
