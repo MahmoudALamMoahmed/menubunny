@@ -792,10 +792,13 @@ export default function MenuManagement() {
                   <CardTitle>إدارة الإضافات</CardTitle>
                   <CardDescription>أضف إضافات اختيارية للوجبات (جبنة إضافية، صوص، إلخ)</CardDescription>
                 </div>
-                <Button onClick={() => setShowExtrasDialog(true)}>
-                  <Cookie className="w-4 h-4 ml-2" />
-                  إدارة الإضافات
-                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{extraLimits.usageText}</span>
+                  <Button onClick={() => setShowExtrasDialog(true)}>
+                    <Cookie className="w-4 h-4 ml-2" />
+                    إدارة الإضافات
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>

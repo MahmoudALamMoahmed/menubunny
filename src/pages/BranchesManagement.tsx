@@ -843,10 +843,17 @@ export default function BranchesManagement() {
               </div>
             </div>
 
-            <Button onClick={() => { resetForm(); setShowDialog(true); }}>
-              <Plus className="w-4 h-4 ml-2" />
-              إضافة فرع
-            </Button>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">{branchLimits.usageText} فرع</span>
+              <Button 
+                onClick={() => { resetForm(); setShowDialog(true); }}
+                disabled={!branchLimits.canAdd}
+                title={!branchLimits.canAdd ? 'وصلت للحد الأقصى - قم بترقية باقتك' : ''}
+              >
+                <Plus className="w-4 h-4 ml-2" />
+                {branchLimits.canAdd ? 'إضافة فرع' : 'الحد الأقصى'}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
