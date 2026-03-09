@@ -18,6 +18,7 @@ const Orders = lazy(() => import("./pages/Orders"));
 const BranchOrders = lazy(() => import("./pages/BranchOrders"));
 const Wallet = lazy(() => import("./pages/Wallet"));
 const Analytics = lazy(() => import("./pages/Analytics"));
+const Subscription = lazy(() => import("./pages/Subscription"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // إعداد React Query Client لإدارة الكاش وجلب البيانات
