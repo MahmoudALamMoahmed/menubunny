@@ -46,6 +46,7 @@ const App = () => (
               <Route path="/:username/branch-orders" element={<BranchOrders />} />
               <Route path="/:username/wallet" element={<Wallet />} />
               <Route path="/:username/analytics" element={<Analytics />} />
+              <Route path="/:username/subscription" element={<Subscription />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
