@@ -7,7 +7,9 @@ import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/hooks/useAuth';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useAdminCategories, useAdminMenuItems, useAdminBranches, useAdminExtras } from '@/hooks/useAdminData';
-import { useRestaurantLimits, usePlans, useWalletBalance, useSubscribeToPlan, useSubscriptionHistory } from '@/hooks/useSubscription';
+import { useRestaurantLimits, usePlans, useWalletBalance, useSubscribeToPlan, useSubscriptionHistory, useToggleAutoRenew } from '@/hooks/useSubscription';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { 
   Crown, ArrowLeft, Check, Wallet, Calendar, Zap, AlertTriangle, 
   Utensils, Grid3X3, Building2, Cookie, X, Info, Clock, ShieldAlert
