@@ -73,6 +73,11 @@ export default function MenuManagement() {
   const { data: sizes = [], isLoading: sizesLoading } = useAdminSizes(restaurantId);
   const { data: extras = [], isLoading: extrasLoading } = useAdminExtras(restaurantId);
   
+  // Limit checks - فحص حدود الباقة
+  const catLimits = useLimitsCheck(restaurantId, 'categories', categories.length);
+  const itemLimits = useLimitsCheck(restaurantId, 'menu_items', menuItems.length);
+  const extraLimits = useLimitsCheck(restaurantId, 'extras', extras.length);
+
   const dataLoading = categoriesLoading || itemsLoading || sizesLoading || extrasLoading;
 
   // React Query Mutation - عمليات الحفظ والحذف وإعادة الترتيب
