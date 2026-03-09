@@ -427,10 +427,17 @@ export default function MenuManagement() {
                   <CardTitle>إدارة الفئات</CardTitle>
                   <CardDescription>أضف وعدل فئات القائمة</CardDescription>
                 </div>
-                <Button onClick={() => setShowCategoryForm(!showCategoryForm)}>
-                  <Plus className="w-4 h-4 ml-2" />
-                  إضافة فئة
-                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{catLimits.usageText}</span>
+                  <Button 
+                    onClick={() => setShowCategoryForm(!showCategoryForm)}
+                    disabled={!catLimits.canAdd}
+                    title={!catLimits.canAdd ? 'وصلت للحد الأقصى - قم بترقية باقتك' : ''}
+                  >
+                    <Plus className="w-4 h-4 ml-2" />
+                    {catLimits.canAdd ? 'إضافة فئة' : 'الحد الأقصى'}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
