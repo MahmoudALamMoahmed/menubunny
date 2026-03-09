@@ -15,7 +15,7 @@ import {
   useSaveDeliveryArea, useDeleteDeliveryArea,
   useReorderBranches, useReorderDeliveryAreas,
 } from '@/hooks/useAdminMutations';
-import type { Tables } from '@/integrations/supabase/types';
+import { useLimitsCheck } from '@/hooks/useLimitsCheck';
 import { 
   ArrowLeft, 
   Plus, 
