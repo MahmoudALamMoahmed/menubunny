@@ -20,6 +20,7 @@ import {
   useReorderCategories, useReorderMenuItems, useReorderExtras,
 } from '@/hooks/useAdminMutations';
 import { useLimitsCheck } from '@/hooks/useLimitsCheck';
+import type { Tables } from '@/integrations/supabase/types';
 import ImageUploader from '@/components/ImageUploader';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
 import { SortableItem } from '@/components/SortableItem';
