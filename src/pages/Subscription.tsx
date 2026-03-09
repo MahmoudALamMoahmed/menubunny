@@ -248,6 +248,23 @@ export default function Subscription() {
                   </AlertDescription>
                 </Alert>
               )}
+
+              {/* إعدادات التجديد التلقائي (تظهر فقط للمشتركين) */}
+              {limits?.is_subscribed && limits.expires_at && (
+                <div className="mt-6 pt-4 border-t flex items-center justify-between gap-4">
+                  <div className="space-y-1 flex-1">
+                    <Label className="text-base font-medium">التجديد التلقائي</Label>
+                    <p className="text-sm text-muted-foreground leading-snug">
+                      يُجدَّد اشتراكك تلقائياً قبل انتهائه إذا كان الرصيد كافياً
+                    </p>
+                  </div>
+                  <Switch
+                    checked={limits.auto_renew ?? true}
+                    onCheckedChange={(checked) => toggleAutoRenewMut.mutate(checked)}
+                    disabled={toggleAutoRenewMut.isPending}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
 
