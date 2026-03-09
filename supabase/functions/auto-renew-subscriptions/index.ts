@@ -18,6 +18,10 @@ Deno.serve(async (req) => {
     // 1. جلب الاشتراكات التي تحتاج للتجديد
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    // شمول الاشتراكات المنتهية خلال آخر 48 ساعة أيضاً
+    const fortyEightHoursAgo = new Date();
+    fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
 
     const { data: subscriptions, error: subsError } = await supabase
       .from('subscriptions')
@@ -32,7 +36,7 @@ Deno.serve(async (req) => {
       .eq('status', 'active')
       .eq('auto_renew', true)
       .lt('expires_at', tomorrow.toISOString())
-      .gt('expires_at', new Date().toISOString());
+      .gt('expires_at', fortyEightHoursAgo.toISOString());
 
     if (subsError) {
       console.error('Error fetching subscriptions:', subsError);
