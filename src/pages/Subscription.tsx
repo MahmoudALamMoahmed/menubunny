@@ -357,6 +357,7 @@ export default function Subscription() {
                           planId: plan.id,
                           planName: plan.name_ar,
                           price: Number(plan.price_monthly),
+                          isRenewal: false,
                         })}
                       >
                         {!canAfford ? (
