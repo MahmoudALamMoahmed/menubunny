@@ -238,13 +238,15 @@ export default function Subscription() {
                 );
               })}
               
-              {/* تنبيه قريب من الانتهاء */}
-              {daysUntilExpiry !== null && daysUntilExpiry > 0 && daysUntilExpiry <= 7 && (
-                <Alert className="mt-4 border-orange-200 bg-orange-50 text-orange-800">
-                  <Clock className="h-4 w-4 text-orange-600" />
+              {/* تنبيه المتبقي من الاشتراك */}
+              {daysUntilExpiry !== null && daysUntilExpiry > 0 && (
+                <Alert className={`mt-4 ${daysUntilExpiry <= 7 ? 'border-orange-200 bg-orange-50 text-orange-800' : 'border-blue-200 bg-blue-50 text-blue-800'}`}>
+                  <Clock className={`h-4 w-4 ${daysUntilExpiry <= 7 ? 'text-orange-600' : 'text-blue-600'}`} />
                   <AlertDescription className="mr-2">
-                    <strong>اشتراكك ينتهي خلال {daysUntilExpiry} أيام.</strong>
-                    {' '}تأكد من وجود رصيد كافٍ في المحفظة للتجديد التلقائي أو قم بالتجديد يدوياً.
+                    <strong>متبقي على انتهاء اشتراكك {daysUntilExpiry} يوم.</strong>
+                    {daysUntilExpiry <= 7 && (
+                      <span>{' '}تأكد من وجود رصيد كافٍ في المحفظة للتجديد التلقائي أو قم بالتجديد يدوياً.</span>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}
@@ -418,27 +420,32 @@ export default function Subscription() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right">التاريخ</TableHead>
                     <TableHead className="text-right">الباقة</TableHead>
                     <TableHead className="text-right">النوع</TableHead>
+                    <TableHead className="text-right">تاريخ البدء</TableHead>
+                    <TableHead className="text-right">تاريخ الانتهاء</TableHead>
                     <TableHead className="text-right">المبلغ</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {history.map((tx: any) => (
+                  {history.map((tx: any) => {
+                    const startDate = new Date(tx.created_at);
+                    const endDate = new Date(startDate);
+                    endDate.setDate(endDate.getDate() + 30);
+                    return (
                     <TableRow key={tx.id}>
-                      <TableCell>
-                        {format(new Date(tx.created_at), 'd MMM yyyy', { locale: ar })}
-                      </TableCell>
                       <TableCell>{tx.plans?.name_ar}</TableCell>
                       <TableCell>
                         <Badge variant="outline">
                           {tx.type === 'subscribe' ? 'اشتراك جديد' : tx.type === 'renew' ? 'تجديد' : 'ترقية'}
                         </Badge>
                       </TableCell>
+                      <TableCell>{format(startDate, 'd MMM yyyy', { locale: ar })}</TableCell>
+                      <TableCell>{format(endDate, 'd MMM yyyy', { locale: ar })}</TableCell>
                       <TableCell>{Number(tx.amount).toLocaleString('ar-EG')} ج.م</TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
