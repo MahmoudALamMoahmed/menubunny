@@ -420,26 +420,30 @@ export default function Subscription() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-right">التاريخ</TableHead>
                     <TableHead className="text-right">الباقة</TableHead>
                     <TableHead className="text-right">النوع</TableHead>
+                    <TableHead className="text-right">تاريخ البدء</TableHead>
+                    <TableHead className="text-right">تاريخ الانتهاء</TableHead>
                     <TableHead className="text-right">المبلغ</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {history.map((tx: any) => (
+                  {history.map((tx: any) => {
+                    const startDate = new Date(tx.created_at);
+                    const endDate = new Date(startDate);
+                    endDate.setDate(endDate.getDate() + 30);
+                    return (
                     <TableRow key={tx.id}>
-                      <TableCell>
-                        {format(new Date(tx.created_at), 'd MMM yyyy', { locale: ar })}
-                      </TableCell>
                       <TableCell>{tx.plans?.name_ar}</TableCell>
                       <TableCell>
                         <Badge variant="outline">
                           {tx.type === 'subscribe' ? 'اشتراك جديد' : tx.type === 'renew' ? 'تجديد' : 'ترقية'}
                         </Badge>
                       </TableCell>
+                      <TableCell>{format(startDate, 'd MMM yyyy', { locale: ar })}</TableCell>
+                      <TableCell>{format(endDate, 'd MMM yyyy', { locale: ar })}</TableCell>
                       <TableCell>{Number(tx.amount).toLocaleString('ar-EG')} ج.م</TableCell>
-                    </TableRow>
+                    </TableRow>);
                   ))}
                 </TableBody>
               </Table>
