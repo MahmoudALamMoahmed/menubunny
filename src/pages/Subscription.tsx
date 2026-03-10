@@ -238,13 +238,15 @@ export default function Subscription() {
                 );
               })}
               
-              {/* تنبيه قريب من الانتهاء */}
-              {daysUntilExpiry !== null && daysUntilExpiry > 0 && daysUntilExpiry <= 7 && (
-                <Alert className="mt-4 border-orange-200 bg-orange-50 text-orange-800">
-                  <Clock className="h-4 w-4 text-orange-600" />
+              {/* تنبيه المتبقي من الاشتراك */}
+              {daysUntilExpiry !== null && daysUntilExpiry > 0 && (
+                <Alert className={`mt-4 ${daysUntilExpiry <= 7 ? 'border-orange-200 bg-orange-50 text-orange-800' : 'border-blue-200 bg-blue-50 text-blue-800'}`}>
+                  <Clock className={`h-4 w-4 ${daysUntilExpiry <= 7 ? 'text-orange-600' : 'text-blue-600'}`} />
                   <AlertDescription className="mr-2">
-                    <strong>اشتراكك ينتهي خلال {daysUntilExpiry} أيام.</strong>
-                    {' '}تأكد من وجود رصيد كافٍ في المحفظة للتجديد التلقائي أو قم بالتجديد يدوياً.
+                    <strong>متبقي على انتهاء اشتراكك {daysUntilExpiry} يوم.</strong>
+                    {daysUntilExpiry <= 7 && (
+                      <span>{' '}تأكد من وجود رصيد كافٍ في المحفظة للتجديد التلقائي أو قم بالتجديد يدوياً.</span>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}
