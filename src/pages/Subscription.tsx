@@ -491,10 +491,13 @@ export default function Subscription() {
       <AlertDialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>تأكيد الاشتراك</AlertDialogTitle>
+            <AlertDialogTitle>{confirmDialog.isRenewal ? 'تأكيد تجديد الاشتراك' : 'تأكيد الاشتراك'}</AlertDialogTitle>
             <AlertDialogDescription>
               سيتم خصم <strong>{confirmDialog.price.toLocaleString('ar-EG')} ج.م</strong> من رصيد محفظتك 
-              للاشتراك في باقة <strong>{confirmDialog.planName}</strong> لمدة شهر.
+              {confirmDialog.isRenewal 
+                ? <> لتجديد اشتراكك في باقة <strong>{confirmDialog.planName}</strong> لمدة شهر إضافي.</>
+                : <> للاشتراك في باقة <strong>{confirmDialog.planName}</strong> لمدة شهر.</>
+              }
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
@@ -502,7 +505,7 @@ export default function Subscription() {
               onClick={handleSubscribe}
               disabled={subscribeMut.isPending}
             >
-              {subscribeMut.isPending ? 'جاري الاشتراك...' : 'تأكيد الاشتراك'}
+              {subscribeMut.isPending ? 'جاري المعالجة...' : confirmDialog.isRenewal ? 'تأكيد التجديد' : 'تأكيد الاشتراك'}
             </AlertDialogAction>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
           </AlertDialogFooter>
