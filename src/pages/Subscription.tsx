@@ -60,8 +60,8 @@ export default function Subscription() {
   const toggleAutoRenewMut = useToggleAutoRenew(restaurantId);
   
   // UI State
-  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; planId: string; planName: string; price: number }>({
-    open: false, planId: '', planName: '', price: 0
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; planId: string; planName: string; price: number; isRenewal: boolean }>({
+    open: false, planId: '', planName: '', price: 0, isRenewal: false
   });
 
   // Auth Guard
@@ -78,7 +78,7 @@ export default function Subscription() {
 
   const handleSubscribe = () => {
     subscribeMut.mutate(confirmDialog.planId, {
-      onSuccess: () => setConfirmDialog({ open: false, planId: '', planName: '', price: 0 }),
+      onSuccess: () => setConfirmDialog({ open: false, planId: '', planName: '', price: 0, isRenewal: false }),
     });
   };
 
@@ -253,19 +253,53 @@ export default function Subscription() {
 
               {/* إعدادات التجديد التلقائي (تظهر فقط للمشتركين) */}
               {limits?.is_subscribed && limits.expires_at && (
-                <div className="mt-6 pt-4 border-t flex items-center justify-between gap-4">
-                  <div className="space-y-1 flex-1">
-                    <Label className="text-base font-medium">التجديد التلقائي</Label>
-                    <p className="text-sm text-muted-foreground leading-snug">
-                      يُجدَّد اشتراكك تلقائياً قبل انتهائه إذا كان الرصيد كافياً
-                    </p>
+                <>
+                  <div className="mt-6 pt-4 border-t flex items-center justify-between gap-4">
+                    <div className="space-y-1 flex-1">
+                      <Label className="text-base font-medium">التجديد التلقائي</Label>
+                      <p className="text-sm text-muted-foreground leading-snug">
+                        يُجدَّد اشتراكك تلقائياً قبل انتهائه إذا كان الرصيد كافياً
+                      </p>
+                    </div>
+                    <Switch
+                      checked={limits.auto_renew ?? true}
+                      onCheckedChange={(checked) => toggleAutoRenewMut.mutate(checked)}
+                      disabled={toggleAutoRenewMut.isPending}
+                    />
                   </div>
-                  <Switch
-                    checked={limits.auto_renew ?? true}
-                    onCheckedChange={(checked) => toggleAutoRenewMut.mutate(checked)}
-                    disabled={toggleAutoRenewMut.isPending}
-                  />
-                </div>
+
+                  {/* زر التجديد اليدوي */}
+                  {(() => {
+                    const currentPlan = plans.find(p => p.id === limits.plan_id);
+                    const canAffordRenewal = currentPlan ? walletBalance >= Number(currentPlan.price_monthly) : false;
+                    return currentPlan && Number(currentPlan.price_monthly) > 0 ? (
+                      <Button
+                        className="w-full mt-3"
+                        variant="outline"
+                        disabled={!canAffordRenewal || subscribeMut.isPending}
+                        onClick={() => setConfirmDialog({
+                          open: true,
+                          planId: currentPlan.id,
+                          planName: currentPlan.name_ar,
+                          price: Number(currentPlan.price_monthly),
+                          isRenewal: true,
+                        })}
+                      >
+                        {!canAffordRenewal ? (
+                          <span className="flex items-center gap-1">
+                            <AlertTriangle className="w-4 h-4" />
+                            رصيد غير كافي للتجديد
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            تجديد الاشتراك يدوياً
+                          </span>
+                        )}
+                      </Button>
+                    ) : null;
+                  })()}
+                </>
               )}
             </CardContent>
           </Card>
@@ -357,6 +391,7 @@ export default function Subscription() {
                           planId: plan.id,
                           planName: plan.name_ar,
                           price: Number(plan.price_monthly),
+                          isRenewal: false,
                         })}
                       >
                         {!canAfford ? (
@@ -457,10 +492,13 @@ export default function Subscription() {
       <AlertDialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>تأكيد الاشتراك</AlertDialogTitle>
+            <AlertDialogTitle>{confirmDialog.isRenewal ? 'تأكيد تجديد الاشتراك' : 'تأكيد الاشتراك'}</AlertDialogTitle>
             <AlertDialogDescription>
               سيتم خصم <strong>{confirmDialog.price.toLocaleString('ar-EG')} ج.م</strong> من رصيد محفظتك 
-              للاشتراك في باقة <strong>{confirmDialog.planName}</strong> لمدة شهر.
+              {confirmDialog.isRenewal 
+                ? <> لتجديد اشتراكك في باقة <strong>{confirmDialog.planName}</strong> لمدة شهر إضافي.</>
+                : <> للاشتراك في باقة <strong>{confirmDialog.planName}</strong> لمدة شهر.</>
+              }
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
@@ -468,7 +506,7 @@ export default function Subscription() {
               onClick={handleSubscribe}
               disabled={subscribeMut.isPending}
             >
-              {subscribeMut.isPending ? 'جاري الاشتراك...' : 'تأكيد الاشتراك'}
+              {subscribeMut.isPending ? 'جاري المعالجة...' : confirmDialog.isRenewal ? 'تأكيد التجديد' : 'تأكيد الاشتراك'}
             </AlertDialogAction>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
           </AlertDialogFooter>
