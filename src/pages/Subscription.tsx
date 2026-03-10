@@ -60,8 +60,8 @@ export default function Subscription() {
   const toggleAutoRenewMut = useToggleAutoRenew(restaurantId);
   
   // UI State
-  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; planId: string; planName: string; price: number }>({
-    open: false, planId: '', planName: '', price: 0
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; planId: string; planName: string; price: number; isRenewal: boolean }>({
+    open: false, planId: '', planName: '', price: 0, isRenewal: false
   });
 
   // Auth Guard
