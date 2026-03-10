@@ -253,52 +253,53 @@ export default function Subscription() {
 
               {/* إعدادات التجديد التلقائي (تظهر فقط للمشتركين) */}
               {limits?.is_subscribed && limits.expires_at && (
-                <div className="mt-6 pt-4 border-t flex items-center justify-between gap-4">
-                  <div className="space-y-1 flex-1">
-                    <Label className="text-base font-medium">التجديد التلقائي</Label>
-                    <p className="text-sm text-muted-foreground leading-snug">
-                      يُجدَّد اشتراكك تلقائياً قبل انتهائه إذا كان الرصيد كافياً
-                    </p>
+                <>
+                  <div className="mt-6 pt-4 border-t flex items-center justify-between gap-4">
+                    <div className="space-y-1 flex-1">
+                      <Label className="text-base font-medium">التجديد التلقائي</Label>
+                      <p className="text-sm text-muted-foreground leading-snug">
+                        يُجدَّد اشتراكك تلقائياً قبل انتهائه إذا كان الرصيد كافياً
+                      </p>
+                    </div>
+                    <Switch
+                      checked={limits.auto_renew ?? true}
+                      onCheckedChange={(checked) => toggleAutoRenewMut.mutate(checked)}
+                      disabled={toggleAutoRenewMut.isPending}
+                    />
                   </div>
-                  <Switch
-                    checked={limits.auto_renew ?? true}
-                    onCheckedChange={(checked) => toggleAutoRenewMut.mutate(checked)}
-                    disabled={toggleAutoRenewMut.isPending}
-                  />
-                </div>
 
-                {/* زر التجديد اليدوي */}
-                {(() => {
-                  const currentPlan = plans.find(p => p.id === limits.plan_id);
-                  const canAffordRenewal = currentPlan ? walletBalance >= Number(currentPlan.price_monthly) : false;
-                  return currentPlan && Number(currentPlan.price_monthly) > 0 ? (
-                    <Button
-                      className="w-full mt-3"
-                      variant="outline"
-                      disabled={!canAffordRenewal || subscribeMut.isPending}
-                      onClick={() => setConfirmDialog({
-                        open: true,
-                        planId: currentPlan.id,
-                        planName: currentPlan.name_ar,
-                        price: Number(currentPlan.price_monthly),
-                        isRenewal: true,
-                      })}
-                    >
-                      {!canAffordRenewal ? (
-                        <span className="flex items-center gap-1">
-                          <AlertTriangle className="w-4 h-4" />
-                          رصيد غير كافي للتجديد
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
-                          تجديد الاشتراك يدوياً
-                        </span>
-                      )}
-                    </Button>
-                  ) : null;
-                })()}
-              </div>
+                  {/* زر التجديد اليدوي */}
+                  {(() => {
+                    const currentPlan = plans.find(p => p.id === limits.plan_id);
+                    const canAffordRenewal = currentPlan ? walletBalance >= Number(currentPlan.price_monthly) : false;
+                    return currentPlan && Number(currentPlan.price_monthly) > 0 ? (
+                      <Button
+                        className="w-full mt-3"
+                        variant="outline"
+                        disabled={!canAffordRenewal || subscribeMut.isPending}
+                        onClick={() => setConfirmDialog({
+                          open: true,
+                          planId: currentPlan.id,
+                          planName: currentPlan.name_ar,
+                          price: Number(currentPlan.price_monthly),
+                          isRenewal: true,
+                        })}
+                      >
+                        {!canAffordRenewal ? (
+                          <span className="flex items-center gap-1">
+                            <AlertTriangle className="w-4 h-4" />
+                            رصيد غير كافي للتجديد
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            تجديد الاشتراك يدوياً
+                          </span>
+                        )}
+                      </Button>
+                    ) : null;
+                  })()}
+                </>
               )}
             </CardContent>
           </Card>
