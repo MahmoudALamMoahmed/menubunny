@@ -78,7 +78,7 @@ export default function Subscription() {
 
   const handleSubscribe = () => {
     subscribeMut.mutate(confirmDialog.planId, {
-      onSuccess: () => setConfirmDialog({ open: false, planId: '', planName: '', price: 0 }),
+      onSuccess: () => setConfirmDialog({ open: false, planId: '', planName: '', price: 0, isRenewal: false }),
     });
   };
 
