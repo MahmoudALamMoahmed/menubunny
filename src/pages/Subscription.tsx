@@ -266,6 +266,39 @@ export default function Subscription() {
                     disabled={toggleAutoRenewMut.isPending}
                   />
                 </div>
+
+                {/* زر التجديد اليدوي */}
+                {(() => {
+                  const currentPlan = plans.find(p => p.id === limits.plan_id);
+                  const canAffordRenewal = currentPlan ? walletBalance >= Number(currentPlan.price_monthly) : false;
+                  return currentPlan && Number(currentPlan.price_monthly) > 0 ? (
+                    <Button
+                      className="w-full mt-3"
+                      variant="outline"
+                      disabled={!canAffordRenewal || subscribeMut.isPending}
+                      onClick={() => setConfirmDialog({
+                        open: true,
+                        planId: currentPlan.id,
+                        planName: currentPlan.name_ar,
+                        price: Number(currentPlan.price_monthly),
+                        isRenewal: true,
+                      })}
+                    >
+                      {!canAffordRenewal ? (
+                        <span className="flex items-center gap-1">
+                          <AlertTriangle className="w-4 h-4" />
+                          رصيد غير كافي للتجديد
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          تجديد الاشتراك يدوياً
+                        </span>
+                      )}
+                    </Button>
+                  ) : null;
+                })()}
+              </div>
               )}
             </CardContent>
           </Card>
