@@ -443,8 +443,9 @@ export default function Subscription() {
                       <TableCell>{format(startDate, 'd MMM yyyy', { locale: ar })}</TableCell>
                       <TableCell>{format(endDate, 'd MMM yyyy', { locale: ar })}</TableCell>
                       <TableCell>{Number(tx.amount).toLocaleString('ar-EG')} ج.م</TableCell>
-                    </TableRow>);
-                  ))}
+                    </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
