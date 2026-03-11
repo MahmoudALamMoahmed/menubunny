@@ -1050,18 +1050,23 @@ export default function BranchesManagement() {
             {/* Order Mode */}
             <div className="space-y-2 border-t pt-4">
               <Label className="text-base font-semibold">طريقة استقبال الطلبات</Label>
-              <Select value={formData.order_mode} onValueChange={(value) => setFormData(prev => ({ ...prev, order_mode: value }))}>
+              <Select 
+                value={!features.dashboard_orders ? 'whatsapp' : formData.order_mode} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, order_mode: value }))}
+                disabled={!features.dashboard_orders}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="اختر طريقة استقبال الطلبات" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="whatsapp">واتساب فقط</SelectItem>
-                  <SelectItem value="dashboard">لوحة التحكم فقط</SelectItem>
+                  <SelectItem value="dashboard" disabled={!features.dashboard_orders}>لوحة التحكم فقط</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {formData.order_mode === 'whatsapp' && 'العميل يرسل الطلب عبر واتساب فقط'}
-                {formData.order_mode === 'dashboard' && 'الطلبات تظهر في صفحة الطلبات بلوحة التحكم'}
+                {!features.dashboard_orders && '🔒 استقبال الطلبات عبر لوحة التحكم متاح في الباقات المدفوعة'}
+                {features.dashboard_orders && formData.order_mode === 'whatsapp' && 'العميل يرسل الطلب عبر واتساب فقط'}
+                {features.dashboard_orders && formData.order_mode === 'dashboard' && 'الطلبات تظهر في صفحة الطلبات بلوحة التحكم'}
               </p>
             </div>
 
