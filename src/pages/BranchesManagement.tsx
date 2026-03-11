@@ -94,6 +94,8 @@ function SortableBranchCard({
   onManageAccount,
   areasCount,
   staffEmail,
+  isFrozen = false,
+  canManageStaff = true,
 }: SortableBranchCardProps) {
   const {
     attributes,
@@ -102,7 +104,7 @@ function SortableBranchCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: branch.id });
+  } = useSortable({ id: branch.id, disabled: isFrozen });
 
   const style = {
     transform: CSS.Transform.toString(transform),
