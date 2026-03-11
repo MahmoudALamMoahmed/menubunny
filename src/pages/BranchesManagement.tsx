@@ -140,7 +140,6 @@ function SortableBranchCard({
               onCheckedChange={() => onToggleActive(branch)}
               disabled={isFrozen}
             />
-            />
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
