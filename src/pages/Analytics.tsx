@@ -82,7 +82,12 @@ export default function Analytics() {
           />
         </div>
 
-        {isLoading ? (
+        {limits && !(limits.features as any)?.analytics ? (
+          <UpgradePrompt 
+            feature="التقارير والتحليلات" 
+            description="هذه الميزة متاحة في الباقة الأساسية والاحترافية. قم بترقية باقتك لعرض التقارير والتحليلات التفصيلية."
+          />
+        ) : isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-3" />
             <p className="text-muted-foreground">جاري تحليل البيانات...</p>
