@@ -58,7 +58,7 @@ const Header = () => {
           {/* Desktop CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
             {user ? <div className="flex items-center gap-3">
-                <span className="font-cairo text-sm text-muted-foreground">مرحباً {user.username}</span>
+                <span className="font-cairo text-sm text-muted-foreground">مرحباً {user.email}</span>
                 {isBranchStaff && branchStaffInfo ? (
                   <Button variant="secondary" onClick={() => navigate(`/${branchStaffInfo.restaurantUsername}/branch-orders`)} className="font-cairo">
                     طلبات فرعي
@@ -97,7 +97,7 @@ const Header = () => {
               <div className="px-4 py-3 space-y-3">
                 {user ? <div className="space-y-3">
                     <div className="px-3 py-2 text-sm text-muted-foreground font-cairo">
-                      مرحباً {user.restaurantName}
+                      مرحباً {user.email}
                     </div>
                     {isBranchStaff && branchStaffInfo ? (
                       <Button variant="secondary" className="w-full font-cairo" onClick={() => {
