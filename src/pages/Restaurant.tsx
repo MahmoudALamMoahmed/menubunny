@@ -21,6 +21,7 @@ import BranchesDialog from '@/components/BranchesDialog';
 import ShareDialog from '@/components/ShareDialog';
 import { getLogoUrl, getCoverImageUrl, getCoverBlurUrl, getMenuItemUrl } from '@/lib/bunny';
 import { useRestaurant, useCategories, useMenuItems, useSizes, useExtras, useBranches, useDeliveryAreas } from '@/hooks/useRestaurantData';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import PaymentMethodSection from '@/components/PaymentMethodSection';
 
