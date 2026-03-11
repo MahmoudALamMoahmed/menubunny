@@ -931,6 +931,8 @@ export default function BranchesManagement() {
                   onManageAccount={openManageAccountDialog}
                   areasCount={getBranchAreas(branch.id).length}
                   staffEmail={getBranchStaffEmail(branch.id)}
+                  isFrozen={frozenBranchIds.has(branch.id)}
+                  canManageStaff={!!features.branch_staff}
                 />
               ))}
             </div>
