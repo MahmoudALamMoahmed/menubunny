@@ -16,6 +16,7 @@ import {
   useReorderBranches, useReorderDeliveryAreas,
 } from '@/hooks/useAdminMutations';
 import { useLimitsCheck } from '@/hooks/useLimitsCheck';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
 import type { Tables } from '@/integrations/supabase/types';
 import { 
   ArrowLeft, 
