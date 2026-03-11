@@ -504,17 +504,23 @@ export default function MenuManagement() {
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-2">
-                    {categories.map((category) => (
-                      <SortableItem key={category.id} id={category.id}>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{category.name}</p>
-                            <p className="text-sm text-gray-500">ترتيب: {category.display_order}</p>
+                    {categories.map((category) => {
+                      const isFrozen = frozenCategoryIds.has(category.id);
+                      return (
+                      <SortableItem key={category.id} id={category.id} disabled={isFrozen}>
+                        <div className={`flex items-center justify-between ${isFrozen ? 'opacity-50' : ''}`}>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <p className="font-medium">{category.name}</p>
+                              <p className="text-sm text-muted-foreground">ترتيب: {category.display_order}</p>
+                            </div>
+                            {isFrozen && <Badge variant="secondary" className="text-xs">🔒 مجمّد</Badge>}
                           </div>
                           <div className="flex gap-2">
                             <Button
                               size="sm"
                               variant="outline"
+                              disabled={isFrozen}
                               onClick={() => {
                                 setEditingCategory(category);
                                 setCategoryForm({
@@ -529,6 +535,7 @@ export default function MenuManagement() {
                             <Button
                               size="sm"
                               variant="outline"
+                              disabled={isFrozen}
                               onClick={() => setDeleteDialog({
                                 open: true,
                                 type: 'category',
@@ -541,7 +548,8 @@ export default function MenuManagement() {
                           </div>
                         </div>
                       </SortableItem>
-                    ))}
+                      );
+                    })}
                   </div>
                 </SortableContext>
               </DndContext>
