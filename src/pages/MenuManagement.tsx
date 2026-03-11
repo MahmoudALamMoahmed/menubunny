@@ -836,8 +836,10 @@ export default function MenuManagement() {
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 {extras.map((extra) => (
-                  <div key={extra.id} className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
+                  <div key={extra.id} className={`flex items-center gap-2 bg-muted px-3 py-2 rounded-lg ${frozenExtraIds.has(extra.id) ? 'opacity-50' : ''}`}>
                     <span className="font-medium">{extra.name}</span>
+                    <span className="text-sm text-green-600">+{extra.price} ج.م</span>
+                    {frozenExtraIds.has(extra.id) && <Badge variant="secondary" className="text-xs">🔒</Badge>}
                     <span className="text-sm text-green-600">+{extra.price} ج.م</span>
                   </div>
                 ))}
