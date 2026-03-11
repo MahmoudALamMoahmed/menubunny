@@ -9,7 +9,7 @@ const HeroSection = () => {
       <div className="absolute top-20 right-20 w-32 h-32 bg-secondary/20 rounded-full blur-3xl"></div>
       <div className="absolute bottom-20 left-20 w-48 h-48 bg-accent/20 rounded-full blur-3xl"></div>
       
-      <div className="container mx-auto px-4 py-16 relative z-10">
+      <div className="container mx-auto px-4 py-32 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Text Content */}
           <div className="text-center lg:text-right space-y-8">
