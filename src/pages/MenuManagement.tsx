@@ -744,14 +744,19 @@ export default function MenuManagement() {
                           item.category_id === categoryFilter;
                         return matchesSearch && matchesCategory;
                       })
-                      .map((item) => (
+                      .map((item) => {
+                        const isFrozen = frozenItemIds.has(item.id);
+                        return (
                         <SortableItem key={item.id} id={item.id}>
-                          <div className="flex items-center justify-between">
+                          <div className={`flex items-center justify-between ${isFrozen ? 'opacity-50' : ''}`}>
                             <div className="flex-1">
-                              <p className="font-medium">{item.name}</p>
-                              <p className="text-sm text-gray-500">{item.description}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{item.name}</p>
+                                {isFrozen && <Badge variant="secondary" className="text-xs">🔒 مجمّد</Badge>}
+                              </div>
+                              <p className="text-sm text-muted-foreground">{item.description}</p>
                               <p className="text-sm font-bold text-green-600">{item.price} ج.م</p>
-                              <p className="text-xs text-gray-400">
+                              <p className="text-xs text-muted-foreground">
                                 {item.category_id ? categories.find(c => c.id === item.category_id)?.name : 'بدون فئة'}
                               </p>
                             </div>
@@ -761,12 +766,14 @@ export default function MenuManagement() {
                                 variant="outline"
                                 onClick={() => openSizesDialog(item.id)}
                                 title="إدارة الأحجام"
+                                disabled={isFrozen}
                               >
                                 <Ruler className="w-4 h-4" />
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
+                                disabled={isFrozen}
                                 onClick={() => {
                                   setEditingItem(item);
                                   setTempItemId(null);
@@ -788,6 +795,7 @@ export default function MenuManagement() {
                               <Button
                                 size="sm"
                                 variant="outline"
+                                disabled={isFrozen}
                                 onClick={() => setDeleteDialog({
                                   open: true,
                                   type: 'item',
@@ -800,7 +808,8 @@ export default function MenuManagement() {
                             </div>
                           </div>
                         </SortableItem>
-                      ))}
+                        );
+                      })}
                   </div>
                 </SortableContext>
               </DndContext>
