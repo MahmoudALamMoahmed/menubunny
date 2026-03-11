@@ -35,6 +35,7 @@ export default function Analytics() {
   }, [authLoading, userTypeLoading, user, isBranchStaff, branchStaffInfo, navigate]);
 
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  const { data: limits } = useRestaurantLimits(restaurant?.id);
   const { data: branches = [] } = useAdminBranches(restaurant?.id);
   const {
     isLoading, kpis, timeSeriesData, statusDistribution,
