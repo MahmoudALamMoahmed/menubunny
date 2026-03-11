@@ -171,6 +171,7 @@ function SortableBranchCard({
           </div>
 
           {/* قسم حساب الفرع */}
+          {canManageStaff && (
           <div className="pt-2 border-t">
             {staffEmail ? (
               <div className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
@@ -187,6 +188,7 @@ function SortableBranchCard({
               </div>
             )}
           </div>
+          )}
           
           <div className="flex gap-2 pt-2 border-t">
             <Button 
