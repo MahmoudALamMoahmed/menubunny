@@ -16,6 +16,7 @@ import {
   useReorderBranches, useReorderDeliveryAreas,
 } from '@/hooks/useAdminMutations';
 import { useLimitsCheck } from '@/hooks/useLimitsCheck';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
 import type { Tables } from '@/integrations/supabase/types';
 import { 
   ArrowLeft, 
@@ -78,6 +79,8 @@ interface SortableBranchCardProps {
   onManageAccount: (branch: Branch) => void;
   areasCount: number;
   staffEmail: string | null;
+  isFrozen?: boolean;
+  canManageStaff?: boolean;
 }
 
 
@@ -91,6 +94,8 @@ function SortableBranchCard({
   onManageAccount,
   areasCount,
   staffEmail,
+  isFrozen = false,
+  canManageStaff = true,
 }: SortableBranchCardProps) {
   const {
     attributes,
@@ -99,7 +104,7 @@ function SortableBranchCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: branch.id });
+  } = useSortable({ id: branch.id, disabled: isFrozen });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -112,10 +117,11 @@ function SortableBranchCard({
       style={style}
       className={`${isDragging ? 'z-50 opacity-50' : ''}`}
     >
-      <Card className={`${!branch.is_active ? 'opacity-60' : ''} transition-shadow duration-200 ${isDragging ? 'shadow-2xl ring-2 ring-primary' : ''}`}>
+      <Card className={`${!branch.is_active || isFrozen ? 'opacity-60' : ''} transition-shadow duration-200 ${isDragging ? 'shadow-2xl ring-2 ring-primary' : ''} ${isFrozen ? 'bg-muted/50' : ''}`}>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
+              {!isFrozen && (
               <button
                 className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
                 {...attributes}
@@ -123,11 +129,16 @@ function SortableBranchCard({
               >
                 <GripVertical className="w-5 h-5" />
               </button>
+              )}
               <CardTitle className="text-lg">{branch.name}</CardTitle>
+              {isFrozen && (
+                <Badge variant="secondary" className="text-xs">🔒 مجمّد</Badge>
+              )}
             </div>
             <Switch
               checked={branch.is_active}
               onCheckedChange={() => onToggleActive(branch)}
+              disabled={isFrozen}
             />
           </div>
         </CardHeader>
@@ -159,6 +170,7 @@ function SortableBranchCard({
           </div>
 
           {/* قسم حساب الفرع */}
+          {canManageStaff && (
           <div className="pt-2 border-t">
             {staffEmail ? (
               <div className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
@@ -175,6 +187,7 @@ function SortableBranchCard({
               </div>
             )}
           </div>
+          )}
           
           <div className="flex gap-2 pt-2 border-t">
             <Button 
@@ -182,22 +195,27 @@ function SortableBranchCard({
               size="sm" 
               className="flex-1"
               onClick={() => onOpenAreas(branch)}
+              disabled={isFrozen}
             >
               <Navigation className="w-4 h-4 ml-1" />
               المناطق
             </Button>
+            {canManageStaff && (
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => onManageAccount(branch)}
               title={staffEmail ? 'إدارة حساب الفرع' : 'إضافة حساب للفرع'}
+              disabled={isFrozen}
             >
               {staffEmail ? <UserX className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
             </Button>
+            )}
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => onEdit(branch)}
+              disabled={isFrozen}
             >
               <Edit2 className="w-4 h-4" />
             </Button>
@@ -205,6 +223,7 @@ function SortableBranchCard({
               variant="destructive" 
               size="sm"
               onClick={() => onDelete(branch.id)}
+              disabled={isFrozen}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -384,7 +403,12 @@ export default function BranchesManagement() {
   
   // Limit check - فحص حدود الباقة للفروع
   const branchLimits = useLimitsCheck(restaurantId, 'branches', branches.length);
+  const { data: limits } = useRestaurantLimits(restaurantId);
 
+  const features = (limits?.features || {}) as { analytics?: boolean; branch_staff?: boolean; dashboard_orders?: boolean };
+  const frozenBranchIds = new Set(
+    limits?.max_branches != null ? branches.slice(limits.max_branches).map(b => b.id) : []
+  );
   const dataLoading = branchesLoading || areasLoading;
 
   // React Query Mutation - عمليات CRUD وإعادة الترتيب
@@ -907,6 +931,8 @@ export default function BranchesManagement() {
                   onManageAccount={openManageAccountDialog}
                   areasCount={getBranchAreas(branch.id).length}
                   staffEmail={getBranchStaffEmail(branch.id)}
+                  isFrozen={frozenBranchIds.has(branch.id)}
+                  canManageStaff={!!features.branch_staff}
                 />
               ))}
             </div>
@@ -1024,18 +1050,23 @@ export default function BranchesManagement() {
             {/* Order Mode */}
             <div className="space-y-2 border-t pt-4">
               <Label className="text-base font-semibold">طريقة استقبال الطلبات</Label>
-              <Select value={formData.order_mode} onValueChange={(value) => setFormData(prev => ({ ...prev, order_mode: value }))}>
+              <Select 
+                value={!features.dashboard_orders ? 'whatsapp' : formData.order_mode} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, order_mode: value }))}
+                disabled={!features.dashboard_orders}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="اختر طريقة استقبال الطلبات" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="whatsapp">واتساب فقط</SelectItem>
-                  <SelectItem value="dashboard">لوحة التحكم فقط</SelectItem>
+                  <SelectItem value="dashboard" disabled={!features.dashboard_orders}>لوحة التحكم فقط</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {formData.order_mode === 'whatsapp' && 'العميل يرسل الطلب عبر واتساب فقط'}
-                {formData.order_mode === 'dashboard' && 'الطلبات تظهر في صفحة الطلبات بلوحة التحكم'}
+                {!features.dashboard_orders && '🔒 استقبال الطلبات عبر لوحة التحكم متاح في الباقات المدفوعة'}
+                {features.dashboard_orders && formData.order_mode === 'whatsapp' && 'العميل يرسل الطلب عبر واتساب فقط'}
+                {features.dashboard_orders && formData.order_mode === 'dashboard' && 'الطلبات تظهر في صفحة الطلبات بلوحة التحكم'}
               </p>
             </div>
 

@@ -20,9 +20,11 @@ import {
   useReorderCategories, useReorderMenuItems, useReorderExtras,
 } from '@/hooks/useAdminMutations';
 import { useLimitsCheck } from '@/hooks/useLimitsCheck';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
 import type { Tables } from '@/integrations/supabase/types';
 import ImageUploader from '@/components/ImageUploader';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
+import { Badge } from '@/components/ui/badge';
 import { SortableItem } from '@/components/SortableItem';
 import { getMenuItemPublicId } from '@/lib/bunny';
 import {
@@ -78,6 +80,18 @@ export default function MenuManagement() {
   const catLimits = useLimitsCheck(restaurantId, 'categories', categories.length);
   const itemLimits = useLimitsCheck(restaurantId, 'menu_items', menuItems.length);
   const extraLimits = useLimitsCheck(restaurantId, 'extras', extras.length);
+  const { data: limits } = useRestaurantLimits(restaurantId);
+
+  // Frozen sets - items beyond plan limits
+  const frozenCategoryIds = new Set(
+    limits?.max_categories != null ? categories.slice(limits.max_categories).map(c => c.id) : []
+  );
+  const frozenItemIds = new Set(
+    limits?.max_items != null ? menuItems.slice(limits.max_items).map(i => i.id) : []
+  );
+  const frozenExtraIds = new Set(
+    limits?.max_extras != null ? extras.slice(limits.max_extras).map(e => e.id) : []
+  );
 
   const dataLoading = categoriesLoading || itemsLoading || sizesLoading || extrasLoading;
 
@@ -491,17 +505,23 @@ export default function MenuManagement() {
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-2">
-                    {categories.map((category) => (
+                    {categories.map((category) => {
+                      const isFrozen = frozenCategoryIds.has(category.id);
+                      return (
                       <SortableItem key={category.id} id={category.id}>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{category.name}</p>
-                            <p className="text-sm text-gray-500">ترتيب: {category.display_order}</p>
+                        <div className={`flex items-center justify-between ${isFrozen ? 'opacity-50' : ''}`}>
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <p className="font-medium">{category.name}</p>
+                              <p className="text-sm text-muted-foreground">ترتيب: {category.display_order}</p>
+                            </div>
+                            {isFrozen && <Badge variant="secondary" className="text-xs">🔒 مجمّد</Badge>}
                           </div>
                           <div className="flex gap-2">
                             <Button
                               size="sm"
                               variant="outline"
+                              disabled={isFrozen}
                               onClick={() => {
                                 setEditingCategory(category);
                                 setCategoryForm({
@@ -516,6 +536,7 @@ export default function MenuManagement() {
                             <Button
                               size="sm"
                               variant="outline"
+                              disabled={isFrozen}
                               onClick={() => setDeleteDialog({
                                 open: true,
                                 type: 'category',
@@ -528,7 +549,8 @@ export default function MenuManagement() {
                           </div>
                         </div>
                       </SortableItem>
-                    ))}
+                      );
+                    })}
                   </div>
                 </SortableContext>
               </DndContext>
@@ -722,14 +744,19 @@ export default function MenuManagement() {
                           item.category_id === categoryFilter;
                         return matchesSearch && matchesCategory;
                       })
-                      .map((item) => (
+                      .map((item) => {
+                        const isFrozen = frozenItemIds.has(item.id);
+                        return (
                         <SortableItem key={item.id} id={item.id}>
-                          <div className="flex items-center justify-between">
+                          <div className={`flex items-center justify-between ${isFrozen ? 'opacity-50' : ''}`}>
                             <div className="flex-1">
-                              <p className="font-medium">{item.name}</p>
-                              <p className="text-sm text-gray-500">{item.description}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{item.name}</p>
+                                {isFrozen && <Badge variant="secondary" className="text-xs">🔒 مجمّد</Badge>}
+                              </div>
+                              <p className="text-sm text-muted-foreground">{item.description}</p>
                               <p className="text-sm font-bold text-green-600">{item.price} ج.م</p>
-                              <p className="text-xs text-gray-400">
+                              <p className="text-xs text-muted-foreground">
                                 {item.category_id ? categories.find(c => c.id === item.category_id)?.name : 'بدون فئة'}
                               </p>
                             </div>
@@ -739,12 +766,14 @@ export default function MenuManagement() {
                                 variant="outline"
                                 onClick={() => openSizesDialog(item.id)}
                                 title="إدارة الأحجام"
+                                disabled={isFrozen}
                               >
                                 <Ruler className="w-4 h-4" />
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
+                                disabled={isFrozen}
                                 onClick={() => {
                                   setEditingItem(item);
                                   setTempItemId(null);
@@ -766,6 +795,7 @@ export default function MenuManagement() {
                               <Button
                                 size="sm"
                                 variant="outline"
+                                disabled={isFrozen}
                                 onClick={() => setDeleteDialog({
                                   open: true,
                                   type: 'item',
@@ -778,7 +808,8 @@ export default function MenuManagement() {
                             </div>
                           </div>
                         </SortableItem>
-                      ))}
+                        );
+                      })}
                   </div>
                 </SortableContext>
               </DndContext>
@@ -805,8 +836,10 @@ export default function MenuManagement() {
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 {extras.map((extra) => (
-                  <div key={extra.id} className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-lg">
+                  <div key={extra.id} className={`flex items-center gap-2 bg-muted px-3 py-2 rounded-lg ${frozenExtraIds.has(extra.id) ? 'opacity-50' : ''}`}>
                     <span className="font-medium">{extra.name}</span>
+                    <span className="text-sm text-green-600">+{extra.price} ج.م</span>
+                    {frozenExtraIds.has(extra.id) && <Badge variant="secondary" className="text-xs">🔒</Badge>}
                     <span className="text-sm text-green-600">+{extra.price} ج.م</span>
                   </div>
                 ))}

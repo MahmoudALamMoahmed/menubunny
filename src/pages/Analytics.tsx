@@ -6,6 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useAdminBranches } from '@/hooks/useAdminData';
 import { useAnalyticsData, AnalyticsFilters } from '@/hooks/useAnalyticsData';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
+import UpgradePrompt from '@/components/UpgradePrompt';
 import DateRangeFilter from '@/components/analytics/DateRangeFilter';
 import AnalyticsKPIs from '@/components/analytics/AnalyticsKPIs';
 import RevenueChart from '@/components/analytics/RevenueChart';
@@ -33,6 +35,7 @@ export default function Analytics() {
   }, [authLoading, userTypeLoading, user, isBranchStaff, branchStaffInfo, navigate]);
 
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  const { data: limits } = useRestaurantLimits(restaurant?.id);
   const { data: branches = [] } = useAdminBranches(restaurant?.id);
   const {
     isLoading, kpis, timeSeriesData, statusDistribution,
@@ -79,7 +82,12 @@ export default function Analytics() {
           />
         </div>
 
-        {isLoading ? (
+        {limits && !(limits.features as any)?.analytics ? (
+          <UpgradePrompt 
+            feature="التقارير والتحليلات" 
+            description="هذه الميزة متاحة في الباقة الأساسية والاحترافية. قم بترقية باقتك لعرض التقارير والتحليلات التفصيلية."
+          />
+        ) : isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-3" />
             <p className="text-muted-foreground">جاري تحليل البيانات...</p>

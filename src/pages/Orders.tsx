@@ -13,6 +13,8 @@ import OrderStats from '@/components/OrderStats';
 import { useOrdersRealtime } from '@/hooks/useOrdersRealtime';
 import { useNotificationSound } from '@/hooks/useNotificationSound';
 import { Switch } from '@/components/ui/switch';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
+import UpgradePrompt from '@/components/UpgradePrompt';
 
 export default function Orders() {
   const { username } = useParams<{ username: string }>();
@@ -32,6 +34,7 @@ export default function Orders() {
   }, [authLoading, userTypeLoading, user, isBranchStaff, branchStaffInfo, navigate]);
 
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  const { data: limits } = useRestaurantLimits(restaurant?.id);
   const { data: orders = [], isLoading: ordersLoading } = useAdminOrders(restaurant?.id);
   const updateStatusMut = useUpdateOrderStatus(restaurant?.id);
 
@@ -73,6 +76,8 @@ export default function Orders() {
     );
   }
 
+  const hasDashboardOrders = !limits || (limits.features as any)?.dashboard_orders;
+
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <div className="container mx-auto px-4 py-8">
@@ -89,6 +94,13 @@ export default function Orders() {
           </div>
         </div>
 
+        {!hasDashboardOrders ? (
+          <UpgradePrompt
+            feature="استقبال الطلبات عبر لوحة التحكم"
+            description="هذه الميزة متاحة في الباقات المدفوعة. قم بترقية باقتك لاستقبال وإدارة الطلبات من لوحة التحكم."
+          />
+        ) : (
+        <>
         {/* Pending Orders Counter */}
         <Card className={`mb-6 border-2 ${pendingCount > 0 ? 'border-orange-400 bg-orange-50' : 'border-muted'}`}>
           <CardContent className="flex items-center justify-between py-5">
@@ -143,6 +155,8 @@ export default function Orders() {
             ))
           )}
         </div>
+        </>
+        )}
       </div>
     </div>
   );
