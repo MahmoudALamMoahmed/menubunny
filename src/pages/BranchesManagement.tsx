@@ -196,22 +196,27 @@ function SortableBranchCard({
               size="sm" 
               className="flex-1"
               onClick={() => onOpenAreas(branch)}
+              disabled={isFrozen}
             >
               <Navigation className="w-4 h-4 ml-1" />
               المناطق
             </Button>
+            {canManageStaff && (
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => onManageAccount(branch)}
               title={staffEmail ? 'إدارة حساب الفرع' : 'إضافة حساب للفرع'}
+              disabled={isFrozen}
             >
               {staffEmail ? <UserX className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
             </Button>
+            )}
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => onEdit(branch)}
+              disabled={isFrozen}
             >
               <Edit2 className="w-4 h-4" />
             </Button>
@@ -219,6 +224,7 @@ function SortableBranchCard({
               variant="destructive" 
               size="sm"
               onClick={() => onDelete(branch.id)}
+              disabled={isFrozen}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
