@@ -34,6 +34,7 @@ export default function Orders() {
   }, [authLoading, userTypeLoading, user, isBranchStaff, branchStaffInfo, navigate]);
 
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  const { data: limits } = useRestaurantLimits(restaurant?.id);
   const { data: orders = [], isLoading: ordersLoading } = useAdminOrders(restaurant?.id);
   const updateStatusMut = useUpdateOrderStatus(restaurant?.id);
 
