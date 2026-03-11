@@ -13,6 +13,8 @@ import OrderStats from '@/components/OrderStats';
 import { useOrdersRealtime } from '@/hooks/useOrdersRealtime';
 import { useNotificationSound } from '@/hooks/useNotificationSound';
 import { Switch } from '@/components/ui/switch';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
+import UpgradePrompt from '@/components/UpgradePrompt';
 
 export default function Orders() {
   const { username } = useParams<{ username: string }>();
