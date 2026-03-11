@@ -403,7 +403,12 @@ export default function BranchesManagement() {
   
   // Limit check - فحص حدود الباقة للفروع
   const branchLimits = useLimitsCheck(restaurantId, 'branches', branches.length);
+  const { data: limits } = useRestaurantLimits(restaurantId);
 
+  const features = (limits?.features || {}) as { analytics?: boolean; branch_staff?: boolean; dashboard_orders?: boolean };
+  const frozenBranchIds = new Set(
+    limits?.max_branches != null ? branches.slice(limits.max_branches).map(b => b.id) : []
+  );
   const dataLoading = branchesLoading || areasLoading;
 
   // React Query Mutation - عمليات CRUD وإعادة الترتيب
