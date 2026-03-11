@@ -97,7 +97,7 @@ const Header = () => {
               <div className="px-4 py-3 space-y-3">
                 {user ? <div className="space-y-3">
                     <div className="px-3 py-2 text-sm text-muted-foreground font-cairo">
-                      مرحباً {user.email}
+                      مرحباً {user.name}
                     </div>
                     {isBranchStaff && branchStaffInfo ? (
                       <Button variant="secondary" className="w-full font-cairo" onClick={() => {
