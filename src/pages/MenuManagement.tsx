@@ -24,6 +24,7 @@ import { useRestaurantLimits } from '@/hooks/useSubscription';
 import type { Tables } from '@/integrations/supabase/types';
 import ImageUploader from '@/components/ImageUploader';
 import DeleteConfirmDialog from '@/components/DeleteConfirmDialog';
+import { Badge } from '@/components/ui/badge';
 import { SortableItem } from '@/components/SortableItem';
 import { getMenuItemPublicId } from '@/lib/bunny';
 import {
