@@ -6,6 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useAdminBranches } from '@/hooks/useAdminData';
 import { useAnalyticsData, AnalyticsFilters } from '@/hooks/useAnalyticsData';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
+import UpgradePrompt from '@/components/UpgradePrompt';
 import DateRangeFilter from '@/components/analytics/DateRangeFilter';
 import AnalyticsKPIs from '@/components/analytics/AnalyticsKPIs';
 import RevenueChart from '@/components/analytics/RevenueChart';
