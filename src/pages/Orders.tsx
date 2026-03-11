@@ -76,6 +76,8 @@ export default function Orders() {
     );
   }
 
+  const hasDashboardOrders = !limits || (limits.features as any)?.dashboard_orders;
+
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <div className="container mx-auto px-4 py-8">
@@ -92,6 +94,13 @@ export default function Orders() {
           </div>
         </div>
 
+        {!hasDashboardOrders ? (
+          <UpgradePrompt
+            feature="استقبال الطلبات عبر لوحة التحكم"
+            description="هذه الميزة متاحة في الباقات المدفوعة. قم بترقية باقتك لاستقبال وإدارة الطلبات من لوحة التحكم."
+          />
+        ) : (
+        <>
         {/* Pending Orders Counter */}
         <Card className={`mb-6 border-2 ${pendingCount > 0 ? 'border-orange-400 bg-orange-50' : 'border-muted'}`}>
           <CardContent className="flex items-center justify-between py-5">
