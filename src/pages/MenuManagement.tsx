@@ -508,7 +508,7 @@ export default function MenuManagement() {
                     {categories.map((category) => {
                       const isFrozen = frozenCategoryIds.has(category.id);
                       return (
-                      <SortableItem key={category.id} id={category.id} disabled={isFrozen}>
+                      <SortableItem key={category.id} id={category.id}>
                         <div className={`flex items-center justify-between ${isFrozen ? 'opacity-50' : ''}`}>
                           <div className="flex items-center gap-2">
                             <div>
