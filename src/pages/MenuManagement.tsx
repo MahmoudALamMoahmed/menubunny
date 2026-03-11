@@ -79,6 +79,18 @@ export default function MenuManagement() {
   const catLimits = useLimitsCheck(restaurantId, 'categories', categories.length);
   const itemLimits = useLimitsCheck(restaurantId, 'menu_items', menuItems.length);
   const extraLimits = useLimitsCheck(restaurantId, 'extras', extras.length);
+  const { data: limits } = useRestaurantLimits(restaurantId);
+
+  // Frozen sets - items beyond plan limits
+  const frozenCategoryIds = new Set(
+    limits?.max_categories != null ? categories.slice(limits.max_categories).map(c => c.id) : []
+  );
+  const frozenItemIds = new Set(
+    limits?.max_items != null ? menuItems.slice(limits.max_items).map(i => i.id) : []
+  );
+  const frozenExtraIds = new Set(
+    limits?.max_extras != null ? extras.slice(limits.max_extras).map(e => e.id) : []
+  );
 
   const dataLoading = categoriesLoading || itemsLoading || sizesLoading || extrasLoading;
 
