@@ -60,7 +60,16 @@ export default function Restaurant() {
   // React Query - جلب الإضافات المتاحة
   const { data: extras = [] } = useExtras(restaurantId);
   // React Query - جلب الفروع النشطة
-  const { data: branches = [] } = useBranches(restaurantId);
+  const { data: allBranches = [] } = useBranches(restaurantId);
+  const { data: limits } = useRestaurantLimits(restaurantId);
+  
+  // Only show branches within plan limits to public visitors
+  const branches = useMemo(() => {
+    if (limits?.max_branches != null) {
+      return allBranches.slice(0, limits.max_branches);
+    }
+    return allBranches;
+  }, [allBranches, limits?.max_branches]);
   
   // Performance - استخراج معرفات الفروع لتمريرها لـ hook مناطق التوصيل
   const branchIds = useMemo(() => branches.map(b => b.id), [branches]);
