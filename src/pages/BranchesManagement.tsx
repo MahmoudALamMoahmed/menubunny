@@ -117,10 +117,11 @@ function SortableBranchCard({
       style={style}
       className={`${isDragging ? 'z-50 opacity-50' : ''}`}
     >
-      <Card className={`${!branch.is_active ? 'opacity-60' : ''} transition-shadow duration-200 ${isDragging ? 'shadow-2xl ring-2 ring-primary' : ''}`}>
+      <Card className={`${!branch.is_active || isFrozen ? 'opacity-60' : ''} transition-shadow duration-200 ${isDragging ? 'shadow-2xl ring-2 ring-primary' : ''} ${isFrozen ? 'bg-muted/50' : ''}`}>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
+              {!isFrozen && (
               <button
                 className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
                 {...attributes}
@@ -128,11 +129,17 @@ function SortableBranchCard({
               >
                 <GripVertical className="w-5 h-5" />
               </button>
+              )}
               <CardTitle className="text-lg">{branch.name}</CardTitle>
+              {isFrozen && (
+                <Badge variant="secondary" className="text-xs">🔒 مجمّد</Badge>
+              )}
             </div>
             <Switch
               checked={branch.is_active}
               onCheckedChange={() => onToggleActive(branch)}
+              disabled={isFrozen}
+            />
             />
           </div>
         </CardHeader>
