@@ -79,6 +79,8 @@ interface SortableBranchCardProps {
   onManageAccount: (branch: Branch) => void;
   areasCount: number;
   staffEmail: string | null;
+  isFrozen?: boolean;
+  canManageStaff?: boolean;
 }
 
 
