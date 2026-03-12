@@ -14,7 +14,7 @@ import ImageUploader from '@/components/ImageUploader';
 import { getCoverPublicId, getLogoPublicId } from '@/lib/bunny';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Settings, Menu, BarChart3, ShoppingBag, ArrowLeft, Save, Eye, Building2, Store, Wallet, Crown
+  Settings, Menu, BarChart3, ShoppingBag, ArrowLeft, Save, Eye, Building2, Store, Wallet, Crown, MessageCircle
 } from 'lucide-react';
 
 export default function Dashboard() {
