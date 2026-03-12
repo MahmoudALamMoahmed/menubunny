@@ -69,8 +69,8 @@ export function useAnalyticsData(restaurantId: string | undefined, filters: Anal
   const { from, to } = getDateRange(filters);
 
   const { data: orders = [], isLoading } = useQuery({
-    queryKey: ['analytics_orders', restaurantId, from?.toISOString(), filters.branchId],
-    queryFn: () => fetchAllOrders(restaurantId!, from, filters.branchId),
+    queryKey: ['analytics_orders', restaurantId, from?.toISOString(), filters.branchId, filters.orderSource],
+    queryFn: () => fetchAllOrders(restaurantId!, from, filters.branchId, filters.orderSource),
     enabled: !!restaurantId,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 15,

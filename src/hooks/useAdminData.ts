@@ -129,20 +129,22 @@ export function useAdminDeliveryAreas(branchIds: string[] | undefined) {
 }
 
 // React Query - جلب جميع الطلبات مرتبة من الأحدث (stale أقصر لأن الطلبات تتغير بسرعة)
-export function useAdminOrders(restaurantId: string | undefined) {
+export function useAdminOrders(restaurantId: string | undefined, orderSource?: string) {
   return useQuery({
-    queryKey: ['admin_orders', restaurantId],
+    queryKey: ['admin_orders', restaurantId, orderSource],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('orders')
         .select('*')
         .eq('restaurant_id', restaurantId!)
         .order('created_at', { ascending: false });
+      if (orderSource) query = query.eq('order_source' as any, orderSource);
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },
     enabled: !!restaurantId,
-    staleTime: 1000 * 60, // دقيقة واحدة - الطلبات تتغير بسرعة
+    staleTime: 1000 * 60,
     gcTime: ADMIN_GC,
     refetchOnWindowFocus: false,
   });
