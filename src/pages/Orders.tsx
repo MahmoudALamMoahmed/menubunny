@@ -35,7 +35,7 @@ export default function Orders() {
 
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
   const { data: limits } = useRestaurantLimits(restaurant?.id);
-  const { data: orders = [], isLoading: ordersLoading } = useAdminOrders(restaurant?.id);
+  const { data: orders = [], isLoading: ordersLoading } = useAdminOrders(restaurant?.id, 'dashboard');
   const updateStatusMut = useUpdateOrderStatus(restaurant?.id);
 
   useOrdersRealtime({
