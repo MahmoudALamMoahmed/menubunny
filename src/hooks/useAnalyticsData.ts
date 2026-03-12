@@ -11,6 +11,7 @@ export interface AnalyticsFilters {
   customFrom?: Date;
   customTo?: Date;
   branchId?: string | null;
+  orderSource?: string;
 }
 
 interface OrderItem {
