@@ -170,6 +170,10 @@ export default function Dashboard() {
                   <span className="text-xs text-muted-foreground mr-2">🔒 متاحة في الباقات المدفوعة</span>
                 )}
               </div>
+              <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/whatsapp-orders`)}>
+                <MessageCircle className="w-4 h-4 ml-2" />
+                طلبات واتساب
+              </Button>
               <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/wallet`)}>
                 <Wallet className="w-4 h-4 ml-2" />
                 المحفظة
@@ -183,6 +187,10 @@ export default function Dashboard() {
                   <span className="text-xs text-muted-foreground mr-2">🔒 متاحة في الباقات المدفوعة</span>
                 )}
               </div>
+              <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/whatsapp-analytics`)}>
+                <MessageCircle className="w-4 h-4 ml-2" />
+                تقارير واتساب
+              </Button>
               <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/subscription`)}>
                 <Crown className="w-4 h-4 ml-2" />
                 الباقة والاشتراك
