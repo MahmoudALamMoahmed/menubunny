@@ -77,7 +77,7 @@ export default function Analytics() {
         <div className="mb-6">
           <DateRangeFilter
             filters={filters}
-            onFiltersChange={setFilters}
+            onFiltersChange={(f) => setFilters({ ...f, orderSource: 'dashboard' })}
             branches={branches.map(b => ({ id: b.id, name: b.name }))}
           />
         </div>
