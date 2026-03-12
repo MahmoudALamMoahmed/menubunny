@@ -24,7 +24,7 @@ export default function Analytics() {
   const navigate = useNavigate();
   const { user, loading: authLoading, isBranchStaff, branchStaffInfo, userTypeLoading } = useAuth();
 
-  const [filters, setFilters] = useState<AnalyticsFilters>({ preset: '30days' });
+  const [filters, setFilters] = useState<AnalyticsFilters>({ preset: '30days', orderSource: 'dashboard' });
 
   useEffect(() => {
     if (authLoading || userTypeLoading) return;

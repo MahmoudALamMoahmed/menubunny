@@ -41,7 +41,7 @@ export default function Orders() {
   useOrdersRealtime({
     filterColumn: 'restaurant_id',
     filterValue: restaurant?.id,
-    queryKey: ['admin_orders', restaurant?.id],
+    queryKey: ['admin_orders', restaurant?.id, 'dashboard'],
   });
 
   const filteredOrders = useMemo(() => {
