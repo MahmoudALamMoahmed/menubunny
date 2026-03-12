@@ -62,6 +62,28 @@ export default function Restaurant() {
   // React Query - جلب الفروع النشطة
   const { data: allBranches = [] } = useBranches(restaurantId);
   const { data: limits } = useRestaurantLimits(restaurantId);
+
+  // تقييد الفئات بحدود الباقة
+  const categories = useMemo(() => {
+    if (limits?.max_categories != null) return allCategories.slice(0, limits.max_categories);
+    return allCategories;
+  }, [allCategories, limits?.max_categories]);
+
+  // تقييد الأصناف بحدود الباقة ثم فلتر الفئة النشطة
+  const filteredMenuItems = useMemo(() => {
+    let items = allMenuItems;
+    if (limits?.max_items != null) items = items.slice(0, limits.max_items);
+    if (activeCategory && activeCategory !== 'all') {
+      items = items.filter(item => item.category_id === activeCategory);
+    }
+    return items;
+  }, [allMenuItems, limits?.max_items, activeCategory]);
+
+  // تقييد الإضافات بحدود الباقة
+  const extras = useMemo(() => {
+    if (limits?.max_extras != null) return allExtras.slice(0, limits.max_extras);
+    return allExtras;
+  }, [allExtras, limits?.max_extras]);
   
   // Only show branches within plan limits to public visitors
   const branches = useMemo(() => {
