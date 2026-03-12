@@ -53,8 +53,8 @@ async function fetchAllOrders(restaurantId: string, from: Date | null, branchId?
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
     if (from) query = query.gte('created_at', from.toISOString());
-    if (branchId) query = query.eq('branch_id', branchId);
-    if (orderSource) query = query.eq('order_source' as any, orderSource);
+    if (branchId) query = query.filter('branch_id', 'eq', branchId);
+    if (orderSource) query = query.filter('order_source', 'eq', orderSource);
 
     const { data, error } = await query;
     if (error) throw error;

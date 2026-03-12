@@ -136,10 +136,9 @@ export function useAdminOrders(restaurantId: string | undefined, orderSource?: s
       let query = supabase
         .from('orders')
         .select('*')
-        .eq('restaurant_id', restaurantId!)
-        .order('created_at', { ascending: false });
-      if (orderSource) query = query.eq('order_source' as any, orderSource);
-      const { data, error } = await query;
+        .eq('restaurant_id', restaurantId!);
+      if (orderSource) query = query.filter('order_source', 'eq', orderSource);
+      const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
