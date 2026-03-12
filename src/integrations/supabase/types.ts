@@ -336,6 +336,7 @@ export type Database = {
           is_confirmed: boolean | null
           items: Json
           notes: string | null
+          order_source: string
           payment_method: string | null
           restaurant_id: string
           status: string | null
@@ -353,6 +354,7 @@ export type Database = {
           is_confirmed?: boolean | null
           items: Json
           notes?: string | null
+          order_source?: string
           payment_method?: string | null
           restaurant_id: string
           status?: string | null
@@ -370,6 +372,7 @@ export type Database = {
           is_confirmed?: boolean | null
           items?: Json
           notes?: string | null
+          order_source?: string
           payment_method?: string | null
           restaurant_id?: string
           status?: string | null

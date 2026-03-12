@@ -11,6 +11,7 @@ export interface AnalyticsFilters {
   customFrom?: Date;
   customTo?: Date;
   branchId?: string | null;
+  orderSource?: string;
 }
 
 interface OrderItem {
@@ -37,7 +38,7 @@ function getDateRange(filters: AnalyticsFilters): { from: Date | null; to: Date 
 }
 
 // Fetch all orders with pagination to bypass the 1000 row limit
-async function fetchAllOrders(restaurantId: string, from: Date | null, branchId?: string | null) {
+async function fetchAllOrders(restaurantId: string, from: Date | null, branchId?: string | null, orderSource?: string) {
   const PAGE_SIZE = 1000;
   let allData: any[] = [];
   let page = 0;
@@ -52,7 +53,8 @@ async function fetchAllOrders(restaurantId: string, from: Date | null, branchId?
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
     if (from) query = query.gte('created_at', from.toISOString());
-    if (branchId) query = query.eq('branch_id', branchId);
+    if (branchId) query = query.filter('branch_id', 'eq', branchId);
+    if (orderSource) query = query.filter('order_source', 'eq', orderSource);
 
     const { data, error } = await query;
     if (error) throw error;
@@ -67,8 +69,8 @@ export function useAnalyticsData(restaurantId: string | undefined, filters: Anal
   const { from, to } = getDateRange(filters);
 
   const { data: orders = [], isLoading } = useQuery({
-    queryKey: ['analytics_orders', restaurantId, from?.toISOString(), filters.branchId],
-    queryFn: () => fetchAllOrders(restaurantId!, from, filters.branchId),
+    queryKey: ['analytics_orders', restaurantId, from?.toISOString(), filters.branchId, filters.orderSource],
+    queryFn: () => fetchAllOrders(restaurantId!, from, filters.branchId, filters.orderSource),
     enabled: !!restaurantId,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 15,

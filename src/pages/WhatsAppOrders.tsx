@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Package, Clock, Volume2, VolumeX } from 'lucide-react';
+import { ArrowRight, Package, Clock, Volume2, VolumeX, MessageCircle } from 'lucide-react';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useAdminOrders } from '@/hooks/useAdminData';
 import { useUpdateOrderStatus } from '@/hooks/useAdminMutations';
@@ -13,10 +13,8 @@ import OrderStats from '@/components/OrderStats';
 import { useOrdersRealtime } from '@/hooks/useOrdersRealtime';
 import { useNotificationSound } from '@/hooks/useNotificationSound';
 import { Switch } from '@/components/ui/switch';
-import { useRestaurantLimits } from '@/hooks/useSubscription';
-import UpgradePrompt from '@/components/UpgradePrompt';
 
-export default function Orders() {
+export default function WhatsAppOrders() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading, isBranchStaff, branchStaffInfo, userTypeLoading } = useAuth();
@@ -34,14 +32,13 @@ export default function Orders() {
   }, [authLoading, userTypeLoading, user, isBranchStaff, branchStaffInfo, navigate]);
 
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
-  const { data: limits } = useRestaurantLimits(restaurant?.id);
-  const { data: orders = [], isLoading: ordersLoading } = useAdminOrders(restaurant?.id, 'dashboard');
+  const { data: orders = [], isLoading: ordersLoading } = useAdminOrders(restaurant?.id, 'whatsapp');
   const updateStatusMut = useUpdateOrderStatus(restaurant?.id);
 
   useOrdersRealtime({
     filterColumn: 'restaurant_id',
     filterValue: restaurant?.id,
-    queryKey: ['admin_orders', restaurant?.id, 'dashboard'],
+    queryKey: ['admin_orders', restaurant?.id, 'whatsapp'],
   });
 
   const filteredOrders = useMemo(() => {
@@ -76,8 +73,6 @@ export default function Orders() {
     );
   }
 
-  const hasDashboardOrders = !limits || (limits.features as any)?.dashboard_orders;
-
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <div className="container mx-auto px-4 py-8">
@@ -88,29 +83,25 @@ export default function Orders() {
               العودة للوحة التحكم
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">الطلبات</h1>
-              <p className="text-muted-foreground">إدارة طلبات {restaurant?.name}</p>
+              <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+                <MessageCircle className="w-7 h-7 text-green-600" />
+                طلبات واتساب
+              </h1>
+              <p className="text-muted-foreground">طلبات {restaurant?.name} عبر واتساب</p>
             </div>
           </div>
         </div>
 
-        {!hasDashboardOrders ? (
-          <UpgradePrompt
-            feature="استقبال الطلبات عبر لوحة التحكم"
-            description="هذه الميزة متاحة في الباقات المدفوعة. قم بترقية باقتك لاستقبال وإدارة الطلبات من لوحة التحكم."
-          />
-        ) : (
-        <>
         {/* Pending Orders Counter */}
-        <Card className={`mb-6 border-2 ${pendingCount > 0 ? 'border-orange-400 bg-orange-50' : 'border-muted'}`}>
+        <Card className={`mb-6 border-2 ${pendingCount > 0 ? 'border-green-400 bg-green-50' : 'border-muted'}`}>
           <CardContent className="flex items-center justify-between py-5">
             <div className="flex items-center gap-4">
-              <div className={`flex items-center justify-center w-14 h-14 rounded-full ${pendingCount > 0 ? 'bg-orange-100 text-orange-600' : 'bg-muted text-muted-foreground'}`}>
+              <div className={`flex items-center justify-center w-14 h-14 rounded-full ${pendingCount > 0 ? 'bg-green-100 text-green-600' : 'bg-muted text-muted-foreground'}`}>
                 <Clock className="w-7 h-7" />
               </div>
               <div>
-              <p key={pendingCount} className={`text-3xl font-bold ${pendingCount > 0 ? 'text-orange-600 animate-scale-in' : 'text-muted-foreground'}`}>{pendingCount}</p>
-                <p className="text-sm text-muted-foreground">طلبات جديدة بانتظار المراجعة</p>
+                <p key={pendingCount} className={`text-3xl font-bold ${pendingCount > 0 ? 'text-green-600 animate-scale-in' : 'text-muted-foreground'}`}>{pendingCount}</p>
+                <p className="text-sm text-muted-foreground">طلبات واتساب جديدة بانتظار المراجعة</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -138,9 +129,9 @@ export default function Orders() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Package className="w-12 h-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">لا توجد طلبات</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-2">لا توجد طلبات واتساب</h3>
                 <p className="text-muted-foreground text-center">
-                  {orders.length > 0 ? 'لا توجد طلبات تطابق الفلاتر المحددة' : 'لم يتم استلام أي طلبات حتى الآن'}
+                  {orders.length > 0 ? 'لا توجد طلبات تطابق الفلاتر المحددة' : 'لم يتم استلام أي طلبات واتساب حتى الآن'}
                 </p>
               </CardContent>
             </Card>
@@ -155,8 +146,6 @@ export default function Orders() {
             ))
           )}
         </div>
-        </>
-        )}
       </div>
     </div>
   );
