@@ -52,13 +52,13 @@ export default function Restaurant() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   
   // React Query - جلب فئات القائمة (المتاحة فقط)
-  const { data: categories = [], isLoading: loadingCategories } = useCategories(restaurantId);
-  // React Query - جلب أصناف القائمة مع فلترة حسب الفئة النشطة
-  const { data: filteredMenuItems = [], isLoading: loadingMenuItems } = useMenuItems(restaurantId, activeCategory);
+  const { data: allCategories = [], isLoading: loadingCategories } = useCategories(restaurantId);
+  // React Query - جلب أصناف القائمة (بدون فلتر فئة — نطبق الحدود أولاً)
+  const { data: allMenuItems = [], isLoading: loadingMenuItems } = useMenuItems(restaurantId);
   // React Query - جلب أحجام الأصناف المتاحة
   const { data: sizes = [] } = useSizes(restaurantId);
   // React Query - جلب الإضافات المتاحة
-  const { data: extras = [] } = useExtras(restaurantId);
+  const { data: allExtras = [] } = useExtras(restaurantId);
   // React Query - جلب الفروع النشطة
   const { data: allBranches = [] } = useBranches(restaurantId);
   const { data: limits } = useRestaurantLimits(restaurantId);
