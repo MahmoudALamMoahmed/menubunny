@@ -38,7 +38,7 @@ function getDateRange(filters: AnalyticsFilters): { from: Date | null; to: Date 
 }
 
 // Fetch all orders with pagination to bypass the 1000 row limit
-async function fetchAllOrders(restaurantId: string, from: Date | null, branchId?: string | null) {
+async function fetchAllOrders(restaurantId: string, from: Date | null, branchId?: string | null, orderSource?: string) {
   const PAGE_SIZE = 1000;
   let allData: any[] = [];
   let page = 0;
@@ -54,6 +54,7 @@ async function fetchAllOrders(restaurantId: string, from: Date | null, branchId?
 
     if (from) query = query.gte('created_at', from.toISOString());
     if (branchId) query = query.eq('branch_id', branchId);
+    if (orderSource) query = query.eq('order_source' as any, orderSource);
 
     const { data, error } = await query;
     if (error) throw error;
