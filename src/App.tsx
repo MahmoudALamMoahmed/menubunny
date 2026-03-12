@@ -18,6 +18,8 @@ const Orders = lazy(() => import("./pages/Orders"));
 const BranchOrders = lazy(() => import("./pages/BranchOrders"));
 const Wallet = lazy(() => import("./pages/Wallet"));
 const Analytics = lazy(() => import("./pages/Analytics"));
+const WhatsAppOrders = lazy(() => import("./pages/WhatsAppOrders"));
+const WhatsAppAnalytics = lazy(() => import("./pages/WhatsAppAnalytics"));
 const Subscription = lazy(() => import("./pages/Subscription"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
