@@ -5,6 +5,8 @@ import { ArrowRight, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useAdminBranches } from '@/hooks/useAdminData';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
+import UpgradePrompt from '@/components/UpgradePrompt';
 import { useAnalyticsData, AnalyticsFilters } from '@/hooks/useAnalyticsData';
 import DateRangeFilter from '@/components/analytics/DateRangeFilter';
 import AnalyticsKPIs from '@/components/analytics/AnalyticsKPIs';
@@ -38,6 +40,7 @@ export default function WhatsAppAnalytics() {
   }, [authLoading, userTypeLoading, user, isBranchStaff, branchStaffInfo, navigate]);
 
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  const { data: limits } = useRestaurantLimits(restaurant?.id);
   const { data: branches = [] } = useAdminBranches(restaurant?.id);
   const {
     isLoading, kpis, timeSeriesData, statusDistribution,
@@ -84,7 +87,12 @@ export default function WhatsAppAnalytics() {
           />
         </div>
 
-        {isLoading ? (
+        {limits && !(limits.features as any)?.whatsapp_orders ? (
+          <UpgradePrompt
+            feature="تقارير واتساب"
+            description="هذه الميزة متاحة في الباقات المدفوعة. قم بترقية باقتك لعرض تقارير وتحليلات طلبات واتساب."
+          />
+        ) : isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-3" />
             <p className="text-muted-foreground">جاري تحليل البيانات...</p>

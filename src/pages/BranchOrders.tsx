@@ -12,6 +12,7 @@ import OrderFilters from '@/components/OrderFilters';
 import OrderStats from '@/components/OrderStats';
 import { useOrdersRealtime } from '@/hooks/useOrdersRealtime';
 import { useNotificationSound } from '@/hooks/useNotificationSound';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -37,10 +38,19 @@ export default function BranchOrders() {
   );
   const updateStatusMut = useUpdateOrderStatus(branchStaffInfo?.branch_id, true);
 
+  const { data: limits } = useRestaurantLimits(branchStaffInfo?.restaurant_id);
+  const hasBranchStaff = !limits || (limits.features as any)?.branch_staff;
+
+  // اشتراكين realtime لتغطية كلا التبويبين
   useOrdersRealtime({
     filterColumn: 'branch_id',
     filterValue: branchStaffInfo?.branch_id,
-    queryKey: ['branch_orders', branchStaffInfo?.branch_id, activeTab],
+    queryKey: ['branch_orders', branchStaffInfo?.branch_id, 'dashboard'],
+  });
+  useOrdersRealtime({
+    filterColumn: 'branch_id',
+    filterValue: branchStaffInfo?.branch_id,
+    queryKey: ['branch_orders', branchStaffInfo?.branch_id, 'whatsapp'],
   });
 
   const filteredOrders = useMemo(() => {
@@ -73,12 +83,30 @@ export default function BranchOrders() {
     setStatusFilter(null);
   };
 
-  if (loading || userTypeLoading || ordersLoading) {
+  if (loading || userTypeLoading || ordersLoading || (limits === undefined && branchStaffInfo?.restaurant_id)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">جاري تحميل الطلبات...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasBranchStaff) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+            <Building2 className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground mb-2">غير متاح حالياً</h2>
+          <p className="text-muted-foreground mb-4">اشتراك المطعم لا يشمل ميزة موظفي الفروع. يرجى التواصل مع صاحب المطعم لترقية الباقة.</p>
+          <Button variant="outline" onClick={handleSignOut} className="flex items-center gap-2 mx-auto">
+            <LogOut className="w-4 h-4" />
+            تسجيل الخروج
+          </Button>
         </div>
       </div>
     );

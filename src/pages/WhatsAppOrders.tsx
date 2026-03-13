@@ -7,6 +7,8 @@ import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useAdminOrders } from '@/hooks/useAdminData';
 import { useUpdateOrderStatus } from '@/hooks/useAdminMutations';
 import { useAuth } from '@/hooks/useAuth';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
+import UpgradePrompt from '@/components/UpgradePrompt';
 import OrderCard from '@/components/OrderCard';
 import OrderFilters from '@/components/OrderFilters';
 import OrderStats from '@/components/OrderStats';
@@ -32,6 +34,7 @@ export default function WhatsAppOrders() {
   }, [authLoading, userTypeLoading, user, isBranchStaff, branchStaffInfo, navigate]);
 
   const { data: restaurant, isLoading: restaurantLoading } = useRestaurant(username);
+  const { data: limits } = useRestaurantLimits(restaurant?.id);
   const { data: orders = [], isLoading: ordersLoading } = useAdminOrders(restaurant?.id, 'whatsapp');
   const updateStatusMut = useUpdateOrderStatus(restaurant?.id);
 
@@ -61,6 +64,8 @@ export default function WhatsAppOrders() {
   const handleUpdateStatus = (orderId: string, newStatus: string, isConfirmed?: boolean) => {
     updateStatusMut.mutate({ orderId, status: newStatus, isConfirmed });
   };
+
+  const hasWhatsappOrders = !limits || (limits.features as any)?.whatsapp_orders;
 
   if (authLoading || userTypeLoading || restaurantLoading || ordersLoading) {
     return (
@@ -92,6 +97,13 @@ export default function WhatsAppOrders() {
           </div>
         </div>
 
+        {!hasWhatsappOrders ? (
+          <UpgradePrompt
+            feature="طلبات واتساب"
+            description="هذه الميزة متاحة في الباقات المدفوعة. قم بترقية باقتك لاستقبال وإدارة طلبات واتساب."
+          />
+        ) : (
+        <>
         {/* Pending Orders Counter */}
         <Card className={`mb-6 border-2 ${pendingCount > 0 ? 'border-green-400 bg-green-50' : 'border-muted'}`}>
           <CardContent className="flex items-center justify-between py-5">
@@ -146,6 +158,8 @@ export default function WhatsAppOrders() {
             ))
           )}
         </div>
+        </>
+        )}
       </div>
     </div>
   );
