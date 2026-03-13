@@ -94,6 +94,24 @@ export default function BranchOrders() {
     );
   }
 
+  if (!hasBranchStaff) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+            <Building2 className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground mb-2">غير متاح حالياً</h2>
+          <p className="text-muted-foreground mb-4">اشتراك المطعم لا يشمل ميزة موظفي الفروع. يرجى التواصل مع صاحب المطعم لترقية الباقة.</p>
+          <Button variant="outline" onClick={handleSignOut} className="flex items-center gap-2 mx-auto">
+            <LogOut className="w-4 h-4" />
+            تسجيل الخروج
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <div className="bg-card shadow-sm border-b">
