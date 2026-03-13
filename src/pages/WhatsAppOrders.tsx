@@ -7,6 +7,8 @@ import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useAdminOrders } from '@/hooks/useAdminData';
 import { useUpdateOrderStatus } from '@/hooks/useAdminMutations';
 import { useAuth } from '@/hooks/useAuth';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
+import UpgradePrompt from '@/components/UpgradePrompt';
 import OrderCard from '@/components/OrderCard';
 import OrderFilters from '@/components/OrderFilters';
 import OrderStats from '@/components/OrderStats';
