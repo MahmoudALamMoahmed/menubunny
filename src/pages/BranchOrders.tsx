@@ -38,10 +38,19 @@ export default function BranchOrders() {
   );
   const updateStatusMut = useUpdateOrderStatus(branchStaffInfo?.branch_id, true);
 
+  const { data: limits } = useRestaurantLimits(branchStaffInfo?.restaurant_id);
+  const hasBranchStaff = !limits || (limits.features as any)?.branch_staff;
+
+  // اشتراكين realtime لتغطية كلا التبويبين
   useOrdersRealtime({
     filterColumn: 'branch_id',
     filterValue: branchStaffInfo?.branch_id,
-    queryKey: ['branch_orders', branchStaffInfo?.branch_id, activeTab],
+    queryKey: ['branch_orders', branchStaffInfo?.branch_id, 'dashboard'],
+  });
+  useOrdersRealtime({
+    filterColumn: 'branch_id',
+    filterValue: branchStaffInfo?.branch_id,
+    queryKey: ['branch_orders', branchStaffInfo?.branch_id, 'whatsapp'],
   });
 
   const filteredOrders = useMemo(() => {
