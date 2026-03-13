@@ -5,6 +5,8 @@ import { ArrowRight, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRestaurant } from '@/hooks/useRestaurantData';
 import { useAdminBranches } from '@/hooks/useAdminData';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
+import UpgradePrompt from '@/components/UpgradePrompt';
 import { useAnalyticsData, AnalyticsFilters } from '@/hooks/useAnalyticsData';
 import DateRangeFilter from '@/components/analytics/DateRangeFilter';
 import AnalyticsKPIs from '@/components/analytics/AnalyticsKPIs';
