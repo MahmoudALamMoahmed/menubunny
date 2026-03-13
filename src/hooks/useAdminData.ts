@@ -150,15 +150,16 @@ export function useAdminOrders(restaurantId: string | undefined, orderSource?: s
 }
 
 // React Query - جلب طلبات فرع محدد (لموظف الفرع)
-export function useBranchOrders(branchId: string | undefined) {
+export function useBranchOrders(branchId: string | undefined, orderSource?: string) {
   return useQuery({
-    queryKey: ['branch_orders', branchId],
+    queryKey: ['branch_orders', branchId, orderSource],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('orders')
         .select('*')
-        .eq('branch_id', branchId!)
-        .order('created_at', { ascending: false });
+        .eq('branch_id', branchId!);
+      if (orderSource) query = query.eq('order_source', orderSource);
+      const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
