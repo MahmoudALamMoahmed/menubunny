@@ -1,28 +1,24 @@
 
 
-## الوضع الحالي
+# إصلاح جدول "جميع الأصناف المباعة" ليطابق تصميم "الأصناف الأكثر طلباً"
 
-موظف الفرع يُوجَّه لـ `BranchOrders.tsx` التي تجلب **كل** طلبات الفرع بدون فلتر `order_source`. يرى كل الطلبات مخلوطة.
+## المشكلة
+الجدولان متطابقان في الأعمدة والبيانات، لكن المشكلة أن `ScrollArea` يلتف حول مكون `Table` الذي بداخله `div` بـ `overflow-auto`. هذا التداخل يسبب مشاكل في العرض والمحاذاة.
 
-## الاقتراح
+## الحل
+إعادة كتابة `AllItemsTable.tsx` ليستخدم نفس بنية `TopItems.tsx` بالضبط، مع إضافة `ScrollArea` بشكل صحيح عن طريق لف الـ `Card` بالكامل أو استخدام `max-h` على الـ `CardContent` مع `overflow-y-auto` بدلاً من `ScrollArea` لتجنب التعارض مع div الـ overflow الموجود داخل مكون `Table`.
 
-إضافة **تبويبات (Tabs)** في صفحة `BranchOrders.tsx`:
+## التعديل - ملف واحد: `src/components/analytics/AllItemsTable.tsx`
 
-| تبويب | المحتوى |
-|-------|---------|
-| طلبات لوحة التحكم | `order_source = 'dashboard'` |
-| طلبات واتساب | `order_source = 'whatsapp'` |
+استبدال `ScrollArea` بـ `div` بسيط مع `overflow-y-auto` و `max-h-[400px]`:
 
-هذا أبسط وأوضح من إنشاء صفحة منفصلة — موظف الفرع له صفحة واحدة فقط يتنقل فيها بين التبويبات.
+```tsx
+<div className="max-h-[400px] overflow-y-auto" dir="rtl">
+  <Table>
+    ...
+  </Table>
+</div>
+```
 
-## التغييرات
-
-### 1. `src/hooks/useAdminData.ts`
-- تعديل `useBranchOrders` ليقبل `orderSource` parameter اختياري وفلترة بـ `.eq('order_source', orderSource)` عند وجوده
-
-### 2. `src/pages/BranchOrders.tsx`
-- إضافة state لـ `activeTab` (`'dashboard' | 'whatsapp'`)
-- استخدام مكون `Tabs` من shadcn
-- استدعاء `useBranchOrders` مع `orderSource = activeTab`
-- عرض عداد الطلبات المعلقة والإحصائيات لكل تبويب بشكل مستقل
+هذا يزيل التعارض بين `ScrollArea` و `Table` ويحافظ على إمكانية التمرير مع تطابق التصميم مع جدول الأصناف الأكثر طلباً.
 

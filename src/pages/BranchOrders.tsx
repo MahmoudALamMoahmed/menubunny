@@ -13,12 +13,14 @@ import OrderStats from '@/components/OrderStats';
 import { useOrdersRealtime } from '@/hooks/useOrdersRealtime';
 import { useNotificationSound } from '@/hooks/useNotificationSound';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function BranchOrders() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { user, loading, isBranchStaff, branchStaffInfo, userTypeLoading, signOut } = useAuth();
 
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [timeFilter, setTimeFilter] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -30,14 +32,15 @@ export default function BranchOrders() {
   }, [user, loading, isBranchStaff, userTypeLoading, navigate, username]);
 
   const { data: orders = [], isLoading: ordersLoading } = useBranchOrders(
-    isBranchStaff ? branchStaffInfo?.branch_id : undefined
+    isBranchStaff ? branchStaffInfo?.branch_id : undefined,
+    activeTab
   );
   const updateStatusMut = useUpdateOrderStatus(branchStaffInfo?.branch_id, true);
 
   useOrdersRealtime({
     filterColumn: 'branch_id',
     filterValue: branchStaffInfo?.branch_id,
-    queryKey: ['branch_orders', branchStaffInfo?.branch_id],
+    queryKey: ['branch_orders', branchStaffInfo?.branch_id, activeTab],
   });
 
   const filteredOrders = useMemo(() => {
@@ -62,6 +65,13 @@ export default function BranchOrders() {
   };
 
   const handleSignOut = async () => { await signOut(); navigate('/'); };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchQuery('');
+    setTimeFilter(null);
+    setStatusFilter(null);
+  };
 
   if (loading || userTypeLoading || ordersLoading) {
     return (
@@ -100,6 +110,14 @@ export default function BranchOrders() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-6">
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="dashboard">طلبات لوحة التحكم</TabsTrigger>
+            <TabsTrigger value="whatsapp">طلبات واتساب</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         {/* Pending Orders Counter */}
         <Card className={`mb-6 border-2 ${pendingCount > 0 ? 'border-orange-400 bg-orange-50' : 'border-muted'}`}>
           <CardContent className="flex items-center justify-between py-5">
