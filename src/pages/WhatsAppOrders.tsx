@@ -65,6 +65,8 @@ export default function WhatsAppOrders() {
     updateStatusMut.mutate({ orderId, status: newStatus, isConfirmed });
   };
 
+  const hasWhatsappOrders = !limits || (limits.features as any)?.whatsapp_orders;
+
   if (authLoading || userTypeLoading || restaurantLoading || ordersLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
@@ -95,6 +97,13 @@ export default function WhatsAppOrders() {
           </div>
         </div>
 
+        {!hasWhatsappOrders ? (
+          <UpgradePrompt
+            feature="طلبات واتساب"
+            description="هذه الميزة متاحة في الباقات المدفوعة. قم بترقية باقتك لاستقبال وإدارة طلبات واتساب."
+          />
+        ) : (
+        <>
         {/* Pending Orders Counter */}
         <Card className={`mb-6 border-2 ${pendingCount > 0 ? 'border-green-400 bg-green-50' : 'border-muted'}`}>
           <CardContent className="flex items-center justify-between py-5">

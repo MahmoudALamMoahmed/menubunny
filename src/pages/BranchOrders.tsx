@@ -83,7 +83,7 @@ export default function BranchOrders() {
     setStatusFilter(null);
   };
 
-  if (loading || userTypeLoading || ordersLoading) {
+  if (loading || userTypeLoading || ordersLoading || (limits === undefined && branchStaffInfo?.restaurant_id)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
         <div className="text-center">

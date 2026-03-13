@@ -87,7 +87,12 @@ export default function WhatsAppAnalytics() {
           />
         </div>
 
-        {isLoading ? (
+        {limits && !(limits.features as any)?.whatsapp_orders ? (
+          <UpgradePrompt
+            feature="تقارير واتساب"
+            description="هذه الميزة متاحة في الباقات المدفوعة. قم بترقية باقتك لعرض تقارير وتحليلات طلبات واتساب."
+          />
+        ) : isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-3" />
             <p className="text-muted-foreground">جاري تحليل البيانات...</p>
