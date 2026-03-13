@@ -12,6 +12,7 @@ import OrderFilters from '@/components/OrderFilters';
 import OrderStats from '@/components/OrderStats';
 import { useOrdersRealtime } from '@/hooks/useOrdersRealtime';
 import { useNotificationSound } from '@/hooks/useNotificationSound';
+import { useRestaurantLimits } from '@/hooks/useSubscription';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
