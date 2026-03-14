@@ -65,7 +65,7 @@ export default function WhatsAppOrders() {
     updateStatusMut.mutate({ orderId, status: newStatus, isConfirmed });
   };
 
-  const hasWhatsappOrders = !limits || (limits.features as any)?.whatsapp_orders;
+  const hasWhatsappOrders = !limits || (limits.features as any)?.dashboard_orders;
 
   if (authLoading || userTypeLoading || restaurantLoading || ordersLoading) {
     return (
