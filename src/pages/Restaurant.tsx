@@ -318,31 +318,35 @@ export default function Restaurant() {
         areaName = area.name;
       }
 
-      // حفظ الطلب في قاعدة البيانات مع order_source = 'whatsapp'
-      const orderItems = cart.map(item => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        total: item.price * item.quantity,
-        size: item.selectedSize ? { id: item.selectedSize.id, name: item.selectedSize.name, price: item.selectedSize.price } : undefined,
-        extras: item.selectedExtras?.map(e => ({ id: e.id, name: e.name, price: e.price })),
-      }));
+      // حفظ الطلب في قاعدة البيانات فقط إذا كانت الباقة تدعم إدارة الطلبات
+      const hasDashboardOrders = limits?.features && (limits.features as any)?.dashboard_orders;
+      
+      if (hasDashboardOrders) {
+        const orderItems = cart.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          total: item.price * item.quantity,
+          size: item.selectedSize ? { id: item.selectedSize.id, name: item.selectedSize.name, price: item.selectedSize.price } : undefined,
+          extras: item.selectedExtras?.map(e => ({ id: e.id, name: e.name, price: e.price })),
+        }));
 
-      await supabase.from('orders').insert({
-        restaurant_id: restaurant.id,
-        branch_id: selectedBranch || null,
-        delivery_area_id: selectedArea || null,
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        customer_address: customerAddress,
-        payment_method: paymentMethod,
-        items: orderItems as any,
-        total_price: finalTotal,
-        notes: areaName ? `المنطقة: ${areaName} - الفرع: ${branchName || ''}` : (branchName ? `الفرع: ${branchName}` : null),
-        status: 'pending',
-        order_source: 'whatsapp',
-      } as any);
+        await supabase.from('orders').insert({
+          restaurant_id: restaurant.id,
+          branch_id: selectedBranch || null,
+          delivery_area_id: selectedArea || null,
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          customer_address: customerAddress,
+          payment_method: paymentMethod,
+          items: orderItems as any,
+          total_price: finalTotal,
+          notes: areaName ? `المنطقة: ${areaName} - الفرع: ${branchName || ''}` : (branchName ? `الفرع: ${branchName}` : null),
+          status: 'pending',
+          order_source: 'whatsapp',
+        } as any);
+      }
 
       const orderText = cart.map(item => {
         const sizeText = item.selectedSize ? ` (${item.selectedSize.name})` : '';

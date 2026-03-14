@@ -1,41 +1,24 @@
 
 
+# إصلاح جدول "جميع الأصناف المباعة" ليطابق تصميم "الأصناف الأكثر طلباً"
+
 ## المشكلة
+الجدولان متطابقان في الأعمدة والبيانات، لكن المشكلة أن `ScrollArea` يلتف حول مكون `Table` الذي بداخله `div` بـ `overflow-auto`. هذا التداخل يسبب مشاكل في العرض والمحاذاة.
 
-الباقة المجانية تحتوي على `whatsapp_orders: true` و `dashboard_orders: false`. الفحص الحالي في صفحتي واتساب يستخدم `whatsapp_orders` — لذلك لا يتم تجميدهما أبداً.
+## الحل
+إعادة كتابة `AllItemsTable.tsx` ليستخدم نفس بنية `TopItems.tsx` بالضبط، مع إضافة `ScrollArea` بشكل صحيح عن طريق لف الـ `Card` بالكامل أو استخدام `max-h` على الـ `CardContent` مع `overflow-y-auto` بدلاً من `ScrollArea` لتجنب التعارض مع div الـ overflow الموجود داخل مكون `Table`.
 
-## التغييرات المطلوبة
+## التعديل - ملف واحد: `src/components/analytics/AllItemsTable.tsx`
 
-### 1. `src/pages/WhatsAppOrders.tsx` و `src/pages/WhatsAppAnalytics.tsx`
-تغيير فحص الميزة من `whatsapp_orders` إلى `dashboard_orders`:
-```typescript
-// قبل
-const hasWhatsappOrders = !limits || (limits.features as any)?.whatsapp_orders;
+استبدال `ScrollArea` بـ `div` بسيط مع `overflow-y-auto` و `max-h-[400px]`:
 
-// بعد
-const hasWhatsappOrders = !limits || (limits.features as any)?.dashboard_orders;
-```
-هذا يجعل الصفحتين مجمدتين في الباقة المجانية (`dashboard_orders: false`) ومفتوحتين في المدفوعة (`dashboard_orders: true`).
-
-### 2. `src/pages/Restaurant.tsx` — حفظ الطلب في DB فقط للباقات المدفوعة
-في دالة `sendOrderToWhatsApp`، نضيف فحص `limits` قبل الحفظ في قاعدة البيانات. إذا الباقة مجانية (`dashboard_orders: false`)، نتخطى الـ `insert` ونفتح واتساب فقط.
-
-نحتاج جلب `limits` في صفحة `Restaurant.tsx` (موجود بالفعل عبر `useRestaurantLimits`):
-```typescript
-const hasDashboardOrders = limits?.features && (limits.features as any)?.dashboard_orders;
-
-// داخل sendOrderToWhatsApp:
-if (hasDashboardOrders) {
-  await supabase.from('orders').insert({ ... });
-}
-// ثم فتح واتساب بشكل طبيعي في كلا الحالتين
+```tsx
+<div className="max-h-[400px] overflow-y-auto" dir="rtl">
+  <Table>
+    ...
+  </Table>
+</div>
 ```
 
-### الملفات المتأثرة
-
-| الملف | التغيير |
-|-------|---------|
-| `WhatsAppOrders.tsx` | تغيير feature check إلى `dashboard_orders` |
-| `WhatsAppAnalytics.tsx` | تغيير feature check إلى `dashboard_orders` |
-| `Restaurant.tsx` | تخطي حفظ الطلب في DB إذا الباقة مجانية |
+هذا يزيل التعارض بين `ScrollArea` و `Table` ويحافظ على إمكانية التمرير مع تطابق التصميم مع جدول الأصناف الأكثر طلباً.
 

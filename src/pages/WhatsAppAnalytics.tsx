@@ -87,7 +87,7 @@ export default function WhatsAppAnalytics() {
           />
         </div>
 
-        {limits && !(limits.features as any)?.whatsapp_orders ? (
+        {limits && !(limits.features as any)?.dashboard_orders ? (
           <UpgradePrompt
             feature="تقارير واتساب"
             description="هذه الميزة متاحة في الباقات المدفوعة. قم بترقية باقتك لعرض تقارير وتحليلات طلبات واتساب."
