@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,7 @@ const corsHeaders = {
 const STORAGE_ZONE = "menuss";
 const STORAGE_HOSTNAME = "storage.bunnycdn.com";
 const CDN_HOSTNAME = "menuss.b-cdn.net";
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,6 +18,29 @@ serve(async (req) => {
   }
 
   try {
+    // Auth check
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const accessKey = Deno.env.get("BUNNY_STORAGE_ACCESS_KEY");
     if (!accessKey) {
       return new Response(
@@ -35,7 +60,23 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Uploading to Bunny: ${path}, size: ${file.size}`);
+    // File size check
+    if (file.size > MAX_FILE_SIZE) {
+      return new Response(
+        JSON.stringify({ success: false, error: "File too large (max 10MB)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Path validation - must start with restaurants/
+    if (!path.startsWith("restaurants/")) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid upload path" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`Uploading to Bunny: ${path}, size: ${file.size}, user: ${user.id}`);
 
     const fileBuffer = await file.arrayBuffer();
 
