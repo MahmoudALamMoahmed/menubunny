@@ -339,11 +339,14 @@ export default function Subscription() {
               const isCurrentPlan = limits?.plan_id === plan.id;
               const canAfford = walletBalance >= Number(plan.price_monthly);
               const features = planFeatures(plan);
+              // منع تبديل الباقة أثناء وجود اشتراك فعال
+              const hasActiveSubscription = limits?.is_subscribed && limits?.expires_at && new Date(limits.expires_at) > new Date();
+              const isLockedOtherPlan = !isCurrentPlan && hasActiveSubscription;
               
               return (
                 <Card 
                   key={plan.id} 
-                  className={`relative ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}
+                  className={`relative ${isCurrentPlan ? 'ring-2 ring-primary' : ''} ${isLockedOtherPlan ? 'opacity-60' : ''}`}
                 >
                   {isCurrentPlan && (
                     <div className="absolute -top-3 right-4">
@@ -373,11 +376,20 @@ export default function Subscription() {
                       </div>
                     ))}
                   </CardContent>
-                  <CardFooter>
+                  <CardFooter className="flex-col gap-2">
                     {isCurrentPlan ? (
                       <Button disabled className="w-full" variant="outline">
                         الباقة الحالية
                       </Button>
+                    ) : isLockedOtherPlan ? (
+                      <>
+                        <Button disabled className="w-full" variant="outline">
+                          🔒 غير متاح أثناء الاشتراك
+                        </Button>
+                        <p className="text-xs text-muted-foreground text-center">
+                          يمكنك تغيير باقتك بعد انتهاء اشتراكك الحالي
+                        </p>
+                      </>
                     ) : Number(plan.price_monthly) === 0 ? (
                       <Button disabled className="w-full" variant="outline">
                         الباقة المجانية
