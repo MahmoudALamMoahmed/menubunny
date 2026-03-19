@@ -125,6 +125,8 @@ export function useSubscribeToPlan(restaurantId: string | undefined) {
         toast({ title: 'رصيد غير كافي', description: 'يرجى شحن المحفظة أولاً', variant: 'destructive' });
       } else if (result === 'plan_not_found') {
         toast({ title: 'خطأ', description: 'الباقة غير متاحة', variant: 'destructive' });
+      } else if (result === 'plan_change_not_allowed') {
+        toast({ title: 'غير مسموح', description: 'لا يمكن تغيير الباقة أثناء وجود اشتراك فعال. انتظر انتهاء اشتراكك الحالي.', variant: 'destructive' });
       } else {
         toast({ title: 'خطأ', description: 'حدث خطأ أثناء الاشتراك', variant: 'destructive' });
       }
