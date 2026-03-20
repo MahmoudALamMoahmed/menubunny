@@ -65,6 +65,30 @@ serve(async (req) => {
       );
     }
 
+    // Ownership check - verify user owns the restaurant in the path
+    const pathParts = path.split('/');
+    const restaurantUsername = pathParts[1];
+    if (!restaurantUsername) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid path format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: restaurant } = await userClient
+      .from('restaurants')
+      .select('id')
+      .eq('username', restaurantUsername)
+      .eq('owner_id', user.id)
+      .single();
+
+    if (!restaurant) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Forbidden" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     console.log(`Deleting from Bunny: ${path}, user: ${user.id}`);
 
     const response = await fetch(
