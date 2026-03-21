@@ -89,6 +89,13 @@ export type Database = {
             foreignKeyName: "branch_staff_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "public_restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_staff_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
@@ -145,6 +152,13 @@ export type Database = {
             foreignKeyName: "branches_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "public_restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branches_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
@@ -173,6 +187,13 @@ export type Database = {
           restaurant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "categories_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "public_restaurants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "categories_restaurant_id_fkey"
             columns: ["restaurant_id"]
@@ -259,6 +280,13 @@ export type Database = {
             foreignKeyName: "extras_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "public_restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extras_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
@@ -313,6 +341,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "public_restaurants"
             referencedColumns: ["id"]
           },
           {
@@ -392,6 +427,13 @@ export type Database = {
             columns: ["delivery_area_id"]
             isOneToOne: false
             referencedRelation: "delivery_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "public_restaurants"
             referencedColumns: ["id"]
           },
           {
@@ -583,6 +625,13 @@ export type Database = {
             foreignKeyName: "subscription_transactions_restaurant_id_fkey"
             columns: ["restaurant_id"]
             isOneToOne: false
+            referencedRelation: "public_restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_transactions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
             referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
@@ -635,6 +684,13 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: true
+            referencedRelation: "public_restaurants"
             referencedColumns: ["id"]
           },
           {
@@ -716,7 +772,60 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_restaurants: {
+        Row: {
+          address: string | null
+          cover_image_public_id: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          description: string | null
+          facebook_url: string | null
+          id: string | null
+          instagram_url: string | null
+          logo_public_id: string | null
+          logo_url: string | null
+          name: string | null
+          owner_id: string | null
+          updated_at: string | null
+          username: string | null
+          working_hours: string | null
+        }
+        Insert: {
+          address?: string | null
+          cover_image_public_id?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          facebook_url?: string | null
+          id?: string | null
+          instagram_url?: string | null
+          logo_public_id?: string | null
+          logo_url?: string | null
+          name?: string | null
+          owner_id?: string | null
+          updated_at?: string | null
+          username?: string | null
+          working_hours?: string | null
+        }
+        Update: {
+          address?: string | null
+          cover_image_public_id?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          facebook_url?: string | null
+          id?: string | null
+          instagram_url?: string | null
+          logo_public_id?: string | null
+          logo_url?: string | null
+          name?: string | null
+          owner_id?: string | null
+          updated_at?: string | null
+          username?: string | null
+          working_hours?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_restaurant_limits: {
