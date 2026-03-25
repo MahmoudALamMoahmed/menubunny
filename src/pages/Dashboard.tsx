@@ -171,24 +171,20 @@ export default function Dashboard() {
                 )}
               </div>
               <div className="relative">
-                <Button variant="outline" className="w-full justify-start" disabled={!restaurant || !(limits?.features as any)?.dashboard_orders} onClick={() => restaurant && navigate(`/${restaurant.username}/whatsapp-orders`)}>
-                  <MessageCircle className="w-4 h-4 ml-2" />
-                  طلبات واتساب
-                </Button>
-                {limits && !(limits.features as any)?.dashboard_orders && (
-                  <span className="text-xs text-muted-foreground mr-2">🔒 متاحة في الباقات المدفوعة</span>
-                )}
-              </div>
-              <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/wallet`)}>
-                <Wallet className="w-4 h-4 ml-2" />
-                المحفظة
-              </Button>
-              <div className="relative">
                 <Button variant="outline" className="w-full justify-start" disabled={!restaurant || !(limits?.features as any)?.analytics} onClick={() => restaurant && navigate(`/${restaurant.username}/analytics`)}>
                   <BarChart3 className="w-4 h-4 ml-2" />
                   التقارير
                 </Button>
                 {limits && !(limits.features as any)?.analytics && (
+                  <span className="text-xs text-muted-foreground mr-2">🔒 متاحة في الباقات المدفوعة</span>
+                )}
+              </div>
+              <div className="relative">
+                <Button variant="outline" className="w-full justify-start" disabled={!restaurant || !(limits?.features as any)?.dashboard_orders} onClick={() => restaurant && navigate(`/${restaurant.username}/whatsapp-orders`)}>
+                  <MessageCircle className="w-4 h-4 ml-2" />
+                  طلبات واتساب
+                </Button>
+                {limits && !(limits.features as any)?.dashboard_orders && (
                   <span className="text-xs text-muted-foreground mr-2">🔒 متاحة في الباقات المدفوعة</span>
                 )}
               </div>
@@ -201,6 +197,10 @@ export default function Dashboard() {
                   <span className="text-xs text-muted-foreground mr-2">🔒 متاحة في الباقات المدفوعة</span>
                 )}
               </div>
+              <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/wallet`)}>
+                <Wallet className="w-4 h-4 ml-2" />
+                المحفظة
+              </Button>
               <Button variant="outline" className="w-full justify-start" disabled={!restaurant} onClick={() => restaurant && navigate(`/${restaurant.username}/subscription`)}>
                 <Crown className="w-4 h-4 ml-2" />
                 الباقة والاشتراك
