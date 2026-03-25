@@ -154,7 +154,7 @@ const Footer = () => {
             
             <div className="text-center md:text-right">
               <p className="font-tajawal text-sm text-gray-400">
-                © 2024 منيو تك. جميع الحقوق محفوظة.
+                © 2026 منيو تك. جميع الحقوق محفوظة.
               </p>
             </div>
 
