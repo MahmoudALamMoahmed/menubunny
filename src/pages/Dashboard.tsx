@@ -108,7 +108,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-4">
               <Button variant="outline" size="sm" onClick={() => navigate('/')}>
                 <ArrowRight className="w-4 h-4" />
-                العودةة
+                العودةةة
               </Button>
               <div>
                 <div className="flex items-center gap-2">
