@@ -14,7 +14,7 @@ import ImageUploader from '@/components/ImageUploader';
 import { getCoverPublicId, getLogoPublicId } from '@/lib/bunny';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Settings, Menu, BarChart3, ShoppingBag, ArrowLeft, Save, Eye, Building2, Store, Wallet, Crown, MessageCircle
+  Settings, Menu, BarChart3, ShoppingBag, ArrowRight, Save, Eye, Building2, Store, Wallet, Crown, MessageCircle
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -107,7 +107,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button variant="outline" size="sm" onClick={() => navigate('/')}>
-                <ArrowLeft className="w-4 h-4 ml-2" />
+                <ArrowRight className="w-4 h-4" />
                 العودة
               </Button>
               <div>
