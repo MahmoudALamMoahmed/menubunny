@@ -11,7 +11,7 @@ import { useRestaurantLimits, usePlans, useWalletBalance, useSubscribeToPlan, us
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { 
-  Crown, ArrowLeft, Check, Wallet, Calendar, Zap, AlertTriangle, 
+  Crown, ArrowRight, Check, Wallet, Calendar, Zap, AlertTriangle, 
   Utensils, Grid3X3, Building2, Cookie, X, Info, Clock, ShieldAlert
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -173,8 +173,8 @@ export default function Subscription() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button variant="outline" size="sm" onClick={() => navigate(`/${restaurant.username}/dashboard`)}>
-                <ArrowLeft className="w-4 h-4 ml-2" />
-                العودة للوحة التحكم
+                <ArrowRight className="w-4 h-4" />
+                العودة
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">

@@ -43,7 +43,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import {
-  ArrowLeft,
+  ArrowRight,
   Plus,
   Edit,
   Trash2,
@@ -420,8 +420,8 @@ export default function MenuManagement() {
                 size="sm"
                 onClick={() => navigate(`/${restaurant.username}/dashboard`)}
               >
-                <ArrowLeft className="w-4 h-4 ml-2" />
-                العودة لوحة التحكم
+                <ArrowRight className="w-4 h-4" />
+                العودة
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">إدارة القائمة</h1>

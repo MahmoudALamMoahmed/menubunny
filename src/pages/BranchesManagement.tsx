@@ -19,7 +19,7 @@ import { useLimitsCheck } from '@/hooks/useLimitsCheck';
 import { useRestaurantLimits } from '@/hooks/useSubscription';
 import type { Tables } from '@/integrations/supabase/types';
 import { 
-  ArrowLeft, 
+  ArrowRight, 
   Plus, 
   Trash2, 
   Edit2, 
@@ -859,8 +859,8 @@ export default function BranchesManagement() {
                 size="sm"
                 onClick={() => navigate(`/${restaurant.username}/dashboard`)}
               >
-                <ArrowLeft className="w-4 h-4 ml-2" />
-                العودة لوحة التحكم
+                <ArrowRight className="w-4 h-4" />
+                العودة
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">إدارة الفروع</h1>

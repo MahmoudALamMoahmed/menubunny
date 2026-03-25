@@ -61,7 +61,7 @@ export default function Analytics() {
           <div className="flex items-center gap-4">
             <Button variant="outline" onClick={() => navigate(`/${username}/dashboard`)} className="flex items-center gap-2">
               <ArrowRight className="w-4 h-4" />
-              العودة للوحة التحكم
+              العودة
             </Button>
             <div>
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
